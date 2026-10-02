@@ -11,7 +11,7 @@
     <div class="card">
       <div class="logo">🍦</div>
       <h1>Ice Cream Tycoon</h1>
-      <p>Run your own ice cream stand! Start with Chocolate and Vanilla, sell scoops to customers, and unlock rarer flavors for more money.</p>
+      <p>Run your own ice cream stand! Start with Chocolate and Vanilla, sell scoops to customers, and buy rarer ice cream at the shop for more money.</p>
       <form id="joinForm">
         <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off" autofocus>
         <button type="submit">Open my stand</button>
@@ -25,6 +25,31 @@
     <div id="worldWrap">
       <canvas id="canvas"></canvas>
       <div id="toast"></div>
+
+      <div id="handLabel"></div>
+      <div id="hotbar"></div>
+
+      <div id="shopModal" class="modal hidden">
+        <div class="modalHead">
+          <div>
+            <div class="modalTitle">🛒 Ice Cream Shop</div>
+            <div id="shopTimer" class="sub"></div>
+          </div>
+          <button id="shopClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Buy a tub, then hold it and place it on your stand. Rarer ice cream takes longer to grow
+          but sells for more. The stock changes every 3 minutes.</p>
+        <div id="shopList"></div>
+      </div>
+
+      <div id="invModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">🎒 Inventory</div>
+          <button id="invClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Tap an ice cream here to move it to your hotbar. Tap one in your hotbar to put it in here.</p>
+        <div id="invGrid"></div>
+      </div>
     </div>
     <aside id="panel">
       <div class="moneyBox">
@@ -34,15 +59,20 @@
       </div>
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
+      <p class="sub howto">Walk with the arrow keys or tap where to go. Pick an ice cream in your hotbar
+        (keys 1–0), then tap a dashed space on your stand to place it.</p>
+      <div id="shopTimerSide" class="sideTimer"></div>
       <div id="eventBox"></div>
       <div id="testTools" class="hidden">
         <div class="label">🧪 Test buttons</div>
         <select id="testMutationPick"><option value="">Random mutation</option></select>
         <button id="testMutationBtn">Start it now</button>
         <button id="testMoneyBtn">+$1,000</button>
+        <button id="testRestockBtn">Restock shop</button>
+        <button id="testGrowBtn">Grow all now</button>
       </div>
 
-      <h2>Flavors</h2>
+      <h2>Flavor guide</h2>
       <div id="flavors"></div>
 
       <h2>Upgrades</h2>

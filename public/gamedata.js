@@ -1,19 +1,21 @@
 // Shared game data, used by both the server (require) and the browser (window.GameData).
 (function (root) {
+  // growSec: how long a placed tub takes to grow before customers can buy it
+  // stock: chance the shop has this rarity after a restock, and how many tubs
   const RARITIES = {
-    common:    { name: 'Common',    color: '#b0b0b0', order: 0 },
-    uncommon:  { name: 'Uncommon',  color: '#4caf50', order: 1 },
-    rare:      { name: 'Rare',      color: '#2196f3', order: 2 },
-    epic:      { name: 'Epic',      color: '#9c27b0', order: 3 },
-    legendary: { name: 'Legendary', color: '#ff9800', order: 4 },
-    mythic:    { name: 'Mythic',    color: '#f44336', order: 5 },
-    secret:    { name: 'Secret',    color: '#111111', order: 6 },
+    common:    { name: 'Common',    color: '#b0b0b0', order: 0, growSec: 10,  stock: { chance: 1,    min: 5, max: 10 } },
+    uncommon:  { name: 'Uncommon',  color: '#4caf50', order: 1, growSec: 30,  stock: { chance: 0.8,  min: 3, max: 6 } },
+    rare:      { name: 'Rare',      color: '#2196f3', order: 2, growSec: 60,  stock: { chance: 0.6,  min: 2, max: 4 } },
+    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 120, stock: { chance: 0.4,  min: 1, max: 3 } },
+    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.25, min: 1, max: 2 } },
+    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.12, min: 1, max: 1 } },
+    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.05, min: 1, max: 1 } },
   };
 
-  // price = what a customer pays per scoop, cost = price to unlock the flavor
+  // price = what a customer pays per scoop, cost = price of one tub in the shop
   const FLAVORS = [
-    { id: 'vanilla',     name: 'Vanilla',          rarity: 'common',    price: 2,    cost: 0,       color: '#fff3c4' },
-    { id: 'chocolate',   name: 'Chocolate',        rarity: 'common',    price: 2,    cost: 0,       color: '#6b3e26' },
+    { id: 'vanilla',     name: 'Vanilla',          rarity: 'common',    price: 2,    cost: 10,      color: '#fff3c4' },
+    { id: 'chocolate',   name: 'Chocolate',        rarity: 'common',    price: 2,    cost: 10,      color: '#6b3e26' },
     { id: 'strawberry',  name: 'Strawberry',       rarity: 'uncommon',  price: 5,    cost: 50,      color: '#ff8fab' },
     { id: 'mint',        name: 'Mint Chip',        rarity: 'uncommon',  price: 6,    cost: 120,     color: '#a8e6cf' },
     { id: 'cookiedough', name: 'Cookie Dough',     rarity: 'rare',      price: 14,   cost: 400,     color: '#e6c79c' },
@@ -71,7 +73,13 @@
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
   const MUTATION_CHANCE = 0.35;           // chance a scoop mutates while an event is on
 
+  const RESTOCK_SEC = 180;  // the shop gets new stock every 3 minutes
+  const HOTBAR_SIZE = 10;   // see-through slots at the bottom of the screen
+  const STORAGE_SIZE = 30;  // the Inventory chest on your plot
+  const MAX_STACK = 99;     // tubs of one flavor per slot
+
   const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME,
+    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;

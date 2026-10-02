@@ -59,7 +59,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 /* ---------- game layout ---------- */
 #game { display: flex; height: 100vh; }
 #worldWrap { flex: 1; position: relative; min-width: 0; background: #8fd16a; }
-#canvas { display: block; width: 100%; height: 100%; }
+#canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
 #panel {
   width: 320px; flex-shrink: 0; overflow-y: auto;
@@ -124,6 +124,66 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .row .count { font-size: 12px; color: #8a7480; white-space: nowrap; }
 .row.active-mut { border-color: #ff6fa5; box-shadow: 0 0 10px rgba(255,111,165,0.5); }
 
+.howto { margin: 8px 0 0; text-align: center; }
+.sideTimer { margin-top: 8px; text-align: center; font-weight: bold; font-size: 14px; color: #e0457b; }
+
+/* ---------- hotbar: 10 see-through grey slots at the bottom ---------- */
+#hotbar {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  display: flex; gap: 5px; z-index: 5;
+}
+#hotbar .slot, #invGrid .slot {
+  position: relative; width: 50px; height: 50px; border-radius: 10px;
+  background: rgba(90, 90, 90, 0.35); border: 2px solid rgba(255, 255, 255, 0.55);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  backdrop-filter: blur(2px);
+}
+#hotbar .slot.selected { border-color: #fff; background: rgba(255, 111, 165, 0.45); transform: translateY(-4px); }
+#hotbar .key { position: absolute; top: 1px; left: 4px; font-size: 10px; color: #fff; font-weight: bold; }
+#hotbar .content, #invGrid .slot { display: flex; align-items: center; justify-content: center; }
+.slot .count {
+  position: absolute; bottom: 1px; right: 4px; font-size: 12px; font-weight: bold; color: #fff;
+  text-shadow: 0 1px 2px #000;
+}
+#handLabel {
+  position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%); z-index: 5;
+  color: #fff; font-weight: bold; font-size: 13px; text-shadow: 0 1px 3px #000; pointer-events: none;
+}
+
+/* ice cream cone icon */
+.icon { position: relative; width: 26px; height: 34px; }
+.icon .ball {
+  position: absolute; top: 0; left: 1px; width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.15); box-sizing: border-box; z-index: 1;
+}
+.icon .cone {
+  position: absolute; top: 16px; left: 3px; width: 0; height: 0;
+  border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 18px solid #d9a35b;
+}
+.icon.mystery {
+  background: #222; color: #fff; border-radius: 50%; width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center; font-weight: bold;
+}
+
+/* ---------- shop and inventory windows ---------- */
+.modal {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;
+  width: min(440px, calc(100% - 24px)); max-height: calc(100% - 100px); overflow-y: auto;
+  background: #fff8fb; border: 4px solid #ffc2d9; border-radius: 18px; padding: 14px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+.modalHead { display: flex; justify-content: space-between; align-items: center; }
+.modalTitle { font-size: 20px; font-weight: bold; color: #e0457b; }
+.closeBtn { background: #d6336c; padding: 6px 10px; }
+#shopList .row { gap: 10px; }
+#shopList .iconWrap { width: 30px; display: flex; justify-content: center; }
+#shopList .stock { font-size: 12px; font-weight: bold; }
+#shopList .stock.in { color: #2b8a3e; }
+#shopList .stock.out { color: #c92a2a; }
+#shopList .row.soldout { opacity: 0.55; }
+#invGrid { display: grid; grid-template-columns: repeat(6, 50px); gap: 6px; justify-content: center; }
+#invGrid .slot { background: rgba(90, 90, 90, 0.2); border-color: rgba(90, 90, 90, 0.35); }
+
 #leaderboard { padding-left: 22px; margin: 0; }
 #leaderboard li { padding: 3px 0; font-size: 14px; }
 #leaderboard li.me { font-weight: bold; color: #e0457b; }
@@ -139,7 +199,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 @media (max-width: 760px) {
   body { overflow: auto; height: auto; }
   #game { flex-direction: column; height: auto; }
-  #worldWrap { height: 58vw; flex: none; }
+  #worldWrap { height: 72vh; flex: none; }
+  #hotbar { gap: 3px; bottom: 6px; }
+  #hotbar .slot { width: 33px; height: 33px; border-radius: 8px; }
+  #hotbar .slot .icon { transform: scale(0.72); }
+  #handLabel { bottom: 46px; }
+  #invGrid { grid-template-columns: repeat(5, 46px); }
+  #invGrid .slot { width: 46px; height: 46px; }
   #panel { width: 100%; border-left: none; border-top: 4px solid #ffc2d9; }
 }
 </style>
@@ -149,7 +215,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     <div class="card">
       <div class="logo">🍦</div>
       <h1>Ice Cream Tycoon</h1>
-      <p>Run your own ice cream stand! Start with Chocolate and Vanilla, sell scoops to customers, and unlock rarer flavors for more money.</p>
+      <p>Run your own ice cream stand! Start with Chocolate and Vanilla, sell scoops to customers, and buy rarer ice cream at the shop for more money.</p>
       <form id="joinForm">
         <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off" autofocus>
         <button type="submit">Open my stand</button>
@@ -163,6 +229,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     <div id="worldWrap">
       <canvas id="canvas"></canvas>
       <div id="toast"></div>
+
+      <div id="handLabel"></div>
+      <div id="hotbar"></div>
+
+      <div id="shopModal" class="modal hidden">
+        <div class="modalHead">
+          <div>
+            <div class="modalTitle">🛒 Ice Cream Shop</div>
+            <div id="shopTimer" class="sub"></div>
+          </div>
+          <button id="shopClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Buy a tub, then hold it and place it on your stand. Rarer ice cream takes longer to grow
+          but sells for more. The stock changes every 3 minutes.</p>
+        <div id="shopList"></div>
+      </div>
+
+      <div id="invModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">🎒 Inventory</div>
+          <button id="invClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Tap an ice cream here to move it to your hotbar. Tap one in your hotbar to put it in here.</p>
+        <div id="invGrid"></div>
+      </div>
     </div>
     <aside id="panel">
       <div class="moneyBox">
@@ -172,15 +263,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       </div>
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
+      <p class="sub howto">Walk with the arrow keys or tap where to go. Pick an ice cream in your hotbar
+        (keys 1–0), then tap a dashed space on your stand to place it.</p>
+      <div id="shopTimerSide" class="sideTimer"></div>
       <div id="eventBox"></div>
       <div id="testTools" class="hidden">
         <div class="label">🧪 Test buttons</div>
         <select id="testMutationPick"><option value="">Random mutation</option></select>
         <button id="testMutationBtn">Start it now</button>
         <button id="testMoneyBtn">+$1,000</button>
+        <button id="testRestockBtn">Restock shop</button>
+        <button id="testGrowBtn">Grow all now</button>
       </div>
 
-      <h2>Flavors</h2>
+      <h2>Flavor guide</h2>
       <div id="flavors"></div>
 
       <h2>Upgrades</h2>
@@ -199,20 +295,22 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   <script>
 // Shared game data, used by both the server (require) and the browser (window.GameData).
 (function (root) {
+  // growSec: how long a placed tub takes to grow before customers can buy it
+  // stock: chance the shop has this rarity after a restock, and how many tubs
   const RARITIES = {
-    common:    { name: 'Common',    color: '#b0b0b0', order: 0 },
-    uncommon:  { name: 'Uncommon',  color: '#4caf50', order: 1 },
-    rare:      { name: 'Rare',      color: '#2196f3', order: 2 },
-    epic:      { name: 'Epic',      color: '#9c27b0', order: 3 },
-    legendary: { name: 'Legendary', color: '#ff9800', order: 4 },
-    mythic:    { name: 'Mythic',    color: '#f44336', order: 5 },
-    secret:    { name: 'Secret',    color: '#111111', order: 6 },
+    common:    { name: 'Common',    color: '#b0b0b0', order: 0, growSec: 10,  stock: { chance: 1,    min: 5, max: 10 } },
+    uncommon:  { name: 'Uncommon',  color: '#4caf50', order: 1, growSec: 30,  stock: { chance: 0.8,  min: 3, max: 6 } },
+    rare:      { name: 'Rare',      color: '#2196f3', order: 2, growSec: 60,  stock: { chance: 0.6,  min: 2, max: 4 } },
+    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 120, stock: { chance: 0.4,  min: 1, max: 3 } },
+    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.25, min: 1, max: 2 } },
+    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.12, min: 1, max: 1 } },
+    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.05, min: 1, max: 1 } },
   };
 
-  // price = what a customer pays per scoop, cost = price to unlock the flavor
+  // price = what a customer pays per scoop, cost = price of one tub in the shop
   const FLAVORS = [
-    { id: 'vanilla',     name: 'Vanilla',          rarity: 'common',    price: 2,    cost: 0,       color: '#fff3c4' },
-    { id: 'chocolate',   name: 'Chocolate',        rarity: 'common',    price: 2,    cost: 0,       color: '#6b3e26' },
+    { id: 'vanilla',     name: 'Vanilla',          rarity: 'common',    price: 2,    cost: 10,      color: '#fff3c4' },
+    { id: 'chocolate',   name: 'Chocolate',        rarity: 'common',    price: 2,    cost: 10,      color: '#6b3e26' },
     { id: 'strawberry',  name: 'Strawberry',       rarity: 'uncommon',  price: 5,    cost: 50,      color: '#ff8fab' },
     { id: 'mint',        name: 'Mint Chip',        rarity: 'uncommon',  price: 6,    cost: 120,     color: '#a8e6cf' },
     { id: 'cookiedough', name: 'Cookie Dough',     rarity: 'rare',      price: 14,   cost: 400,     color: '#e6c79c' },
@@ -270,7 +368,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
   const MUTATION_CHANCE = 0.35;           // chance a scoop mutates while an event is on
 
+  const RESTOCK_SEC = 180;  // the shop gets new stock every 3 minutes
+  const HOTBAR_SIZE = 10;   // see-through slots at the bottom of the screen
+  const STORAGE_SIZE = 30;  // the Inventory chest on your plot
+  const MAX_STACK = 99;     // tubs of one flavor per slot
+
   const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME,
+    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
@@ -278,32 +382,48 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 })(this);
 </script>
   <script>
-// The game rules: stands, customers, sales and mutation events.
+// The game rules: players, stands, customers, the shop, inventories and mutation events.
 // Runs on the server for multiplayer, or right in the browser for the single-file version.
 // Each player connection is an object with a send(msg) function.
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost,
-    MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE } = GameData;
+  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost,
+    MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
+    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
-  const WORLD = { width: 1280, height: 860 };
+  // ---------- park layout (shared with the browser for drawing and clicking) ----------
+  const WORLD = { width: 1280, height: 1180 };
+  const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
+  const REACH = 230;                 // how close you must stand to use something
   const MAX_QUEUE = 5;
-  const WALK_SPEED = 170;
+  const WALK_SPEED = 170;            // customers
   const COLORS = ['#ff6b6b', '#4dabf7', '#51cf66', '#fcc419', '#cc5de8', '#ff922b',
     '#20c997', '#f06595', '#748ffc', '#94d82d', '#fd7e14', '#22b8cf'];
 
-  // 4 x 3 grid of stand spots in the park
+  // 4 x 3 grid of plots below the shop
   const SLOTS = [];
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 4; col++) {
-      SLOTS.push({ x: 170 + col * 313, y: 140 + row * 270 });
+      SLOTS.push({ x: 170 + col * 313, y: 340 + row * 300 });
     }
+  }
+
+  // where the Inventory chest sits on a plot
+  const chestPos = slot => ({ x: slot.x + 128, y: slot.y + 30 });
+
+  // where flavor space i sits on the stand counter (up to 7 per row)
+  function tubPos(slot, i, spaces) {
+    const row = Math.floor(i / 7);
+    const inRow = Math.min(7, spaces - row * 7);
+    const col = i % 7;
+    return { x: slot.x - ((inRow - 1) * 23) / 2 + col * 23, y: slot.y + 9 + row * 26 };
   }
 
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const pick = list => list[Math.floor(Math.random() * list.length)];
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
   function pickMutation() {
     let r = Math.random() * MUTATIONS.reduce((sum, m) => sum + m.weight, 0);
@@ -314,6 +434,44 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return MUTATIONS[0];
   }
 
+  function rollStock() {
+    const stock = {};
+    for (const f of FLAVORS) {
+      const st = RARITIES[f.rarity].stock;
+      stock[f.id] = Math.random() < st.chance
+        ? st.min + Math.floor(Math.random() * (st.max - st.min + 1)) : 0;
+    }
+    return stock;
+  }
+
+  // ---------- inventory helpers (a slot is null or { flavor, count }) ----------
+  function addItem(slots, flavor, count) {
+    for (const s of slots) {
+      if (count <= 0) break;
+      if (s && s.flavor === flavor && s.count < MAX_STACK) {
+        const n = Math.min(count, MAX_STACK - s.count);
+        s.count += n; count -= n;
+      }
+    }
+    for (let i = 0; i < slots.length && count > 0; i++) {
+      if (!slots[i]) {
+        const n = Math.min(count, MAX_STACK);
+        slots[i] = { flavor, count: n }; count -= n;
+      }
+    }
+    return count; // tubs that didn't fit
+  }
+
+  const fits = (slots, flavor) => slots.some(s => !s || (s.flavor === flavor && s.count < MAX_STACK));
+
+  function fixSlots(list, size) {
+    const out = Array(size).fill(null);
+    (list || []).slice(0, size).forEach((s, i) => {
+      if (s && flavorById[s.flavor] && s.count > 0) out[i] = { flavor: s.flavor, count: s.count };
+    });
+    return out;
+  }
+
   function createGame({ saves = {}, allowTest = false } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
@@ -321,10 +479,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
     // mutation event: either one is active, or we count down to the next one (seconds)
     const event = { id: null, left: 0, next: pick(MUTATION_GAPS_MIN) * 60 };
+    // the shop's stock is the same for everyone; each player can buy up to that many of each
+    const shop = { stock: rollStock(), left: RESTOCK_SEC };
 
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
-        flavors: s.flavors, spaces: s.spaces, upgrades: s.upgrades, mutations: s.mutations };
+        spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
+        upgrades: s.upgrades, mutations: s.mutations };
     }
 
     function snapshotSaves() {
@@ -338,16 +499,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const slot = SLOTS.findIndex((_, i) => !used.has(i));
       if (slot === -1) return null;
       const saved = saves[key] || {};
+      const spaces = saved.spaces ?? START_SPACES;
+
+      // tubs on the stand: null (empty space) or { flavor, grow: seconds left until ready }
+      let tubs = Array(spaces).fill(null);
+      const oldFlavors = saved.tubs ? null : (saved.flavors ?? ['vanilla', 'chocolate']); // older saves
+      (saved.tubs || oldFlavors.map(f => ({ flavor: f, grow: 0 }))).slice(0, spaces).forEach((t, i) => {
+        if (t && flavorById[t.flavor]) tubs[i] = { flavor: t.flavor, grow: Math.max(0, t.grow || 0) };
+      });
+
+      const s = SLOTS[slot];
       const stand = {
         id: nextId++, conn, key, name, slot,
         color: COLORS[slot % COLORS.length],
         money: saved.money ?? 0,
         totalEarned: saved.totalEarned ?? 0,
         sold: saved.sold ?? 0,
-        flavors: saved.flavors ?? ['vanilla', 'chocolate'],
-        spaces: saved.spaces ?? START_SPACES,
+        spaces, tubs,
+        hotbar: fixSlots(saved.hotbar, HOTBAR_SIZE),
+        storage: fixSlots(saved.storage, STORAGE_SIZE),
+        seen: saved.seen ?? [...new Set(tubs.filter(Boolean).map(t => t.flavor))], // flavors you've had
         upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, saved.upgrades?.[k] ?? 0])),
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
+        bought: {},                       // tubs bought since the last restock
+        x: s.x + 60, y: s.y + 110,        // the player's character
+        hand: -1,                         // hotbar slot in hand, -1 = nothing
         queue: [],
         serveProgress: 0,
         spawnTimer: 0,
@@ -362,16 +538,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       return { x: s.x, y: s.y + 88 + index * 20 };
     }
 
+    const readyTubs = stand => stand.tubs.filter(t => t && t.grow <= 0);
+
     function spawnCustomer(stand) {
+      const ready = readyTubs(stand);
+      if (!ready.length) return; // nothing to sell yet
       // walk in along the path from whichever side of the park is closer
       const slot = SLOTS[stand.slot];
       const fromLeft = slot.x < WORLD.width / 2;
       const c = {
         id: nextId++,
         x: fromLeft ? -30 : WORLD.width + 30,
-        y: slot.y + 90 + Math.random() * 120,
+        y: slot.y + 95 + Math.random() * 80,
         standId: stand.id,
-        flavor: pick(stand.flavors),
+        flavor: pick(ready).flavor,
         golden: Math.random() < 0.05, // lucky customer pays triple
         mutation: null,
         state: 'walking',
@@ -384,7 +564,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     function sendOffCustomer(c) {
       c.state = 'leaving';
       c.tx = c.x < WORLD.width / 2 ? -40 : WORLD.width + 40;
-      c.ty = c.y + 30 + Math.random() * 60;
+      c.ty = c.y + 20 + Math.random() * 40;
     }
 
     function completeSale(stand) {
@@ -416,7 +596,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       broadcast({ type: 'mutationStart', mutation: m.id });
     }
 
-    function updateEvent(dt) {
+    function restock() {
+      shop.stock = rollStock();
+      shop.left = RESTOCK_SEC;
+      for (const s of stands.values()) s.bought = {};
+      broadcast({ type: 'restock' });
+    }
+
+    function updateTimers(dt) {
       if (event.id) {
         event.left -= dt;
         if (event.left <= 0) {
@@ -428,14 +615,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         event.next -= dt;
         if (event.next <= 0) startMutation();
       }
+      shop.left -= dt;
+      if (shop.left <= 0) restock();
     }
 
     function tick(dt) {
-      updateEvent(dt);
+      updateTimers(dt);
 
       for (const stand of stands.values()) {
-        // new customers: bigger sign and more flavors bring more people
-        const interval = 2.5 / (1 + 0.3 * stand.upgrades.sign + 0.1 * (stand.flavors.length - 2));
+        for (const t of stand.tubs) if (t && t.grow > 0) t.grow = Math.max(0, t.grow - dt);
+
+        // new customers: bigger sign and more ready tubs bring more people
+        const ready = readyTubs(stand).length;
+        const interval = 2.5 / (1 + 0.3 * stand.upgrades.sign + 0.1 * Math.max(0, ready - 2));
         stand.spawnTimer -= dt;
         if (stand.spawnTimer <= 0) {
           stand.spawnTimer = interval * (0.6 + Math.random() * 0.8);
@@ -459,15 +651,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           c.tx = t.x; c.ty = t.y;
         }
         const dx = c.tx - c.x, dy = c.ty - c.y;
-        const dist = Math.hypot(dx, dy);
+        const d = Math.hypot(dx, dy);
         const step = WALK_SPEED * dt;
-        if (dist <= step) {
+        if (d <= step) {
           c.x = c.tx; c.y = c.ty;
           if (c.state === 'walking') c.state = 'waiting';
           else if (c.state === 'leaving') customers.delete(c.id);
         } else {
-          c.x += (dx / dist) * step;
-          c.y += (dy / dist) * step;
+          c.x += (dx / d) * step;
+          c.y += (dy / d) * step;
           if (c.state === 'waiting') c.state = 'walking';
         }
       }
@@ -475,10 +667,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       broadcast({
         type: 'state',
         event: { id: event.id, left: Math.ceil(event.left), next: Math.ceil(event.next) },
+        shop: { stock: shop.stock, left: Math.ceil(shop.left) },
         stands: [...stands.values()].map(s => ({
           id: s.id, name: s.name, slot: s.slot, color: s.color,
           money: s.money, totalEarned: s.totalEarned, sold: s.sold,
-          flavors: s.flavors, spaces: s.spaces, upgrades: s.upgrades, mutations: s.mutations,
+          spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
+          upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
+          x: Math.round(s.x), y: Math.round(s.y), hand: s.hand,
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
@@ -495,40 +690,84 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // ---------- player actions ----------
     function handle(conn, msg) {
       const stand = conn.standId && stands.get(conn.standId);
+      const err = text => conn.send({ type: 'error', text });
 
       if (msg.type === 'join' && !stand) {
         const name = String(msg.name || '').replace(/[^\w \-]/g, '').trim().slice(0, 16);
-        if (!name) return conn.send({ type: 'error', text: 'Please pick a name.' });
+        if (!name) return err('Please pick a name.');
         if ([...stands.values()].some(s => s.key === name.toLowerCase())) {
-          return conn.send({ type: 'error', text: 'Someone with that name is already playing.' });
+          return err('Someone with that name is already playing.');
         }
         const s = createStand(conn, name);
-        if (!s) return conn.send({ type: 'error', text: 'The park is full (12 stands). Try again later!' });
+        if (!s) return err('The park is full (12 stands). Try again later!');
         conn.standId = s.id;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS,
           returning: !!saves[s.key], allowTest });
         return;
       }
       if (!stand) return;
+      const slot = SLOTS[stand.slot];
+      const near = p => dist(stand, p) <= REACH;
 
-      if (msg.type === 'scoop') {
+      if (msg.type === 'move') {
+        stand.x = Math.max(0, Math.min(WORLD.width, Number(msg.x) || 0));
+        stand.y = Math.max(0, Math.min(WORLD.height, Number(msg.y) || 0));
+      } else if (msg.type === 'hold') {
+        const i = Number(msg.slot);
+        stand.hand = Number.isInteger(i) && i >= 0 && i < HOTBAR_SIZE ? i : -1;
+      } else if (msg.type === 'scoop') {
         stand.clicks++;
-      } else if (msg.type === 'buyFlavor') {
-        const f = flavorById[msg.id];
-        if (!f || stand.flavors.includes(f.id)) return;
-        if (stand.flavors.length >= stand.spaces) {
-          return conn.send({ type: 'error', text: 'Your stand is full! Buy Extra Space first.' });
-        }
-        if (stand.money < f.cost) return conn.send({ type: 'error', text: 'Not enough money!' });
+      } else if (msg.type === 'buy') {
+        const f = flavorById[msg.flavor];
+        if (!f) return;
+        if (!near(SHOP)) return err('Walk to the Ice Cream Shop to buy.');
+        if ((shop.stock[f.id] || 0) - (stand.bought[f.id] || 0) <= 0) return err('Sold out! New stock soon.');
+        if (stand.money < f.cost) return err('Not enough money!');
+        if (!fits(stand.hotbar, f.id) && !fits(stand.storage, f.id)) return err('Your inventory is full!');
         stand.money -= f.cost;
-        stand.flavors.push(f.id);
-        conn.send({ type: 'unlocked', flavor: f.id });
+        stand.bought[f.id] = (stand.bought[f.id] || 0) + 1;
+        if (addItem(stand.hotbar, f.id, 1) > 0) addItem(stand.storage, f.id, 1);
+        if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+        conn.send({ type: 'bought', flavor: f.id });
+      } else if (msg.type === 'place') {
+        // put the tub in your hand into an empty space on your stand
+        const item = stand.hotbar[stand.hand];
+        if (!item) return err('Pick an ice cream from your hotbar first.');
+        if (!near(slot)) return err('Walk to your stand to place ice cream.');
+        let i = Number(msg.space);
+        if (!(i >= 0 && i < stand.spaces && !stand.tubs[i])) i = stand.tubs.indexOf(null);
+        if (i === -1) return err('Your stand is full! Buy Extra Space or take a tub off.');
+        stand.tubs[i] = { flavor: item.flavor, grow: RARITIES[flavorById[item.flavor].rarity].growSec };
+        item.count--;
+        if (item.count <= 0) stand.hotbar[stand.hand] = null;
+        conn.send({ type: 'placed', flavor: stand.tubs[i].flavor });
+      } else if (msg.type === 'takeOut') {
+        // take a tub off your stand and put it back in your inventory
+        const i = Number(msg.space);
+        const tub = stand.tubs[i];
+        if (!tub) return;
+        if (!near(slot)) return err('Walk to your stand to take ice cream off.');
+        if (!fits(stand.hotbar, tub.flavor) && !fits(stand.storage, tub.flavor)) return err('Your inventory is full!');
+        if (addItem(stand.hotbar, tub.flavor, 1) > 0) addItem(stand.storage, tub.flavor, 1);
+        stand.tubs[i] = null;
+      } else if (msg.type === 'moveItem') {
+        // click an item to move it between the hotbar and the Inventory chest
+        const from = msg.from === 'storage' ? stand.storage : stand.hotbar;
+        const to = from === stand.storage ? stand.hotbar : stand.storage;
+        const i = Number(msg.index);
+        const item = from[i];
+        if (!item) return;
+        if (!near(chestPos(slot))) return err('Walk to your Inventory chest first.');
+        const left = addItem(to, item.flavor, item.count);
+        if (left === item.count) return err(to === stand.hotbar ? 'Your hotbar is full!' : 'Your inventory is full!');
+        if (left > 0) item.count = left; else from[i] = null;
       } else if (msg.type === 'buySpace') {
         const cost = spaceCost(stand.spaces);
-        if (cost === null || stand.flavors.length < stand.spaces) return;
-        if (stand.money < cost) return conn.send({ type: 'error', text: 'Not enough money!' });
+        if (cost === null || stand.tubs.includes(null)) return;
+        if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
         stand.spaces += SPACES_PER_BUY;
+        for (let i = 0; i < SPACES_PER_BUY; i++) stand.tubs.push(null);
         conn.send({ type: 'spaceAdded', spaces: stand.spaces });
       } else if (msg.type === 'buyUpgrade') {
         const u = UPGRADES[msg.key];
@@ -536,7 +775,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const level = stand.upgrades[msg.key];
         if (level >= u.max) return;
         const cost = upgradeCost(msg.key, level);
-        if (stand.money < cost) return conn.send({ type: 'error', text: 'Not enough money!' });
+        if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
         stand.upgrades[msg.key]++;
       } else if (allowTest && msg.type === 'testMutation') {
@@ -546,6 +785,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       } else if (allowTest && msg.type === 'testMoney') {
         stand.money += 1000;
         stand.totalEarned += 1000;
+      } else if (allowTest && msg.type === 'testRestock') {
+        restock();
+      } else if (allowTest && msg.type === 'testGrow') {
+        for (const t of stand.tubs) if (t) t.grow = 0;
       }
     }
 
@@ -559,7 +802,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return { handle, leave, tick, snapshotSaves };
   }
 
-  const Engine = { createGame, WORLD, SLOTS };
+  const Engine = { createGame, WORLD, SLOTS, SHOP, REACH, chestPos, tubPos };
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   else root.Engine = Engine;
 })(this);
@@ -567,7 +810,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   <script>window.SOLO = true;</script>
   <script>
 (() => {
-  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE } = window.GameData;
+  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE,
+    HOTBAR_SIZE, STORAGE_SIZE } = window.GameData;
+  const { SHOP, REACH, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
 
@@ -577,16 +822,25 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   let ws = null;
   let myId = null;
-  let world = { width: 1280, height: 860 };
+  let world = { width: 1280, height: 1180 };
   let slots = [];
   let stands = [];
   const customers = new Map(); // id -> { ...server data, dx, dy (display position) }
+  const others = new Map();    // stand id -> display position of other players' characters
   const floaters = [];
   const ambient = []; // falling sparkles during a mutation event
   const particles = [];
-  let view = { scale: 1, ox: 0, oy: 0 };
+  let view = { scale: 1, ox: 0, oy: 0, w: 0, h: 0 };
   let spaceBtn = null; // Extra Space button area (world coords) while it's showing
   let gameEvent = { id: null, left: 0, next: 0 }; // current mutation event
+  let shop = { stock: {}, left: 0 };
+
+  // your character (moved here in the browser, then sent to the server)
+  const player = { x: 0, y: 0, placed: false, facing: 1, moving: false };
+  let walkTarget = null; // { x, y, reach, action } when walking somewhere you tapped
+  const keys = new Set();
+  let hand = -1;         // selected hotbar slot
+  let openWindow = null; // 'shop' | 'inventory' | null
 
   // ---------- helpers ----------
   function fmt(n) {
@@ -609,6 +863,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return `${m}:${String(s).padStart(2, '0')}`;
   }
 
+  const growText = sec => sec >= 60 ? `${Math.round(sec / 60)} min` : `${sec}s`;
+
   // mutations shimmer through their colors
   function mutColor(m, time) {
     return m.colors[Math.floor(time * 5) % m.colors.length];
@@ -620,6 +876,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   }
 
   const me = () => stands.find(s => s.id === myId);
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const isSecretHidden = (f, s) => f.rarity === 'secret' && !(s && s.seen.includes(f.id));
+  const heldItem = () => { const s = me(); return s && hand >= 0 ? s.hotbar[hand] : null; };
+
+  // HTML icon of an ice cream cone for the hotbar, inventory and shop
+  function iconHtml(flavorId) {
+    const f = flavorById[flavorId];
+    return `<div class="icon"><div class="ball" style="background:${f.color}"></div><div class="cone"></div></div>`;
+  }
 
   // ---------- joining ----------
   $('joinForm').addEventListener('submit', e => {
@@ -654,7 +919,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     let saves = {};
     try { saves = JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch (e) {}
     const game = window.Engine.createGame({ saves, allowTest: true });
-    const conn = { send: msg => onMessage(msg) };
+    const conn = { send: msg => onMessage(JSON.parse(JSON.stringify(msg))) };
     ws = { readyState: 1, send: data => game.handle(conn, JSON.parse(data)) };
     const save = () => {
       try { localStorage.setItem(SAVE_KEY, JSON.stringify(game.snapshotSaves())); } catch (e) {}
@@ -673,6 +938,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   }
 
   function onMessage(msg) {
+    const s = me();
     switch (msg.type) {
       case 'welcome':
         myId = msg.id;
@@ -681,9 +947,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         $('join').classList.add('hidden');
         $('game').classList.remove('hidden');
         buildPanel();
+        buildHotbar();
         $('testTools').classList.toggle('hidden', !msg.allowTest);
         resize();
-        toast(msg.returning ? 'Welcome back! Your stand is open again.' : 'Your stand is open! Customers are on their way.');
+        toast(msg.returning ? 'Welcome back! Your stand is open again.'
+          : 'Welcome! Walk with the arrow keys or tap where you want to go.');
         break;
       case 'error':
         if (myId) toast(msg.text); else $('joinError').textContent = msg.text;
@@ -691,11 +959,32 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'state':
         stands = msg.stands;
         gameEvent = msg.event;
+        shop = msg.shop;
+        if (!player.placed && me()) {
+          player.x = me().x; player.y = me().y; player.placed = true;
+        }
         syncCustomers(msg.customers);
         updatePanel();
+        updateHotbar();
+        if (openWindow === 'shop') updateShop();
+        if (openWindow === 'inventory') updateInventory();
         break;
       case 'sale':
         onSale(msg);
+        break;
+      case 'bought': {
+        const f = flavorById[msg.flavor];
+        toast(`You bought ${f.name}! Hold it and place it on your stand.`);
+        break;
+      }
+      case 'placed': {
+        const f = flavorById[msg.flavor];
+        toast(`${f.name} is growing! Ready in ${growText(RARITIES[f.rarity].growSec)}.`);
+        if (s) confetti(slots[s.slot].x, slots[s.slot].y, 12);
+        break;
+      }
+      case 'restock':
+        toast('🛒 The Ice Cream Shop has new stock!');
         break;
       case 'mutationStart': {
         const m = mutationById[msg.mutation];
@@ -708,19 +997,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'mutationEnd':
         toast(`The ${mutationById[msg.mutation].name} mutation is over.`);
         break;
-      case 'spaceAdded': {
-        toast(`+3 flavor spaces! Your stand now holds ${msg.spaces} flavors.`);
-        const s = me();
+      case 'spaceAdded':
+        toast(`+3 flavor spaces! Your stand now holds ${msg.spaces} tubs.`);
         if (s) confetti(slots[s.slot].x, slots[s.slot].y - 40, 40);
         break;
-      }
-      case 'unlocked': {
-        const f = flavorById[msg.flavor];
-        toast(`New flavor: ${f.name} (${RARITIES[f.rarity].name})!`);
-        const s = me();
-        if (s) confetti(slots[s.slot].x, slots[s.slot].y - 40, RARITIES[f.rarity].order >= 3 ? 80 : 30);
-        break;
-      }
     }
   }
 
@@ -776,10 +1056,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <div class="info">
           <div class="name"></div>
           <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
-            ${fmt(f.price)} / scoop</div>
-        </div>
-        <button></button>`;
-      row.querySelector('button').addEventListener('click', () => send({ type: 'buyFlavor', id: f.id }));
+            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)}</div>
+        </div>`;
       fl.appendChild(row);
       f.row = row;
     }
@@ -815,35 +1093,53 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       up.appendChild(row);
       u.row = row;
     }
+
+    // shop window rows
+    const list = $('shopList');
+    list.innerHTML = '';
+    for (const f of FLAVORS) {
+      const r = RARITIES[f.rarity];
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `
+        <div class="iconWrap"></div>
+        <div class="info">
+          <div class="name"></div>
+          <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
+            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)}</div>
+          <div class="stock"></div>
+        </div>
+        <button>${fmt(f.cost)}</button>`;
+      row.querySelector('button').addEventListener('click', () => send({ type: 'buy', flavor: f.id }));
+      list.appendChild(row);
+      f.shopRow = row;
+    }
+
+    // inventory window slots
+    const grid = $('invGrid');
+    grid.innerHTML = '';
+    for (let i = 0; i < STORAGE_SIZE; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'slot';
+      cell.addEventListener('click', () => send({ type: 'moveItem', from: 'storage', index: i }));
+      grid.appendChild(cell);
+    }
   }
 
   function updatePanel() {
     const s = me();
     if (!s) return;
     $('money').textContent = fmt(s.money);
+    const filled = s.tubs.filter(Boolean).length;
     $('stats').textContent = `${s.sold} scoops sold · ${fmt(s.totalEarned)} earned · ` +
-      `${s.flavors.length}/${s.spaces} flavor spaces used`;
-    const full = s.flavors.length >= s.spaces;
+      `${filled}/${s.spaces} stand spaces used`;
     $('serveBar').style.width = Math.min(100, s.serve * 100) + '%';
+    $('shopTimerSide').textContent = `🛒 Shop restocks in ${clock(shop.left)}`;
 
     for (const f of FLAVORS) {
-      const owned = s.flavors.includes(f.id);
-      const hidden = f.rarity === 'secret' && !owned;
-      const row = f.row;
-      row.classList.toggle('owned', owned);
-      row.querySelector('.name').textContent = hidden ? '???' : f.name;
-      row.querySelector('.scoop').style.background = hidden ? '#222' : f.color;
-      const btn = row.querySelector('button');
-      if (owned) {
-        btn.textContent = 'On menu ✓';
-        btn.disabled = true;
-      } else if (full) {
-        btn.textContent = 'Stand full';
-        btn.disabled = true;
-      } else {
-        btn.textContent = 'Unlock ' + fmt(f.cost);
-        btn.disabled = s.money < f.cost;
-      }
+      const hidden = isSecretHidden(f, s);
+      f.row.querySelector('.name').textContent = hidden ? '???' : f.name;
+      f.row.querySelector('.scoop').style.background = hidden ? '#222' : f.color;
     }
 
     for (const [key, u] of Object.entries(UPGRADES)) {
@@ -886,6 +1182,100 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
   }
 
+  // ---------- hotbar (10 see-through slots at the bottom) ----------
+  function buildHotbar() {
+    const bar = $('hotbar');
+    bar.innerHTML = '';
+    for (let i = 0; i < HOTBAR_SIZE; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'slot';
+      cell.innerHTML = `<span class="key">${(i + 1) % 10}</span><div class="content"></div>`;
+      cell.addEventListener('click', () => {
+        if (openWindow === 'inventory') send({ type: 'moveItem', from: 'hotbar', index: i });
+        else selectHand(hand === i ? -1 : i);
+      });
+      bar.appendChild(cell);
+    }
+  }
+
+  function selectHand(i) {
+    hand = i;
+    send({ type: 'hold', slot: i });
+    updateHotbar();
+    const item = heldItem();
+    if (item) toast(`Holding ${flavorById[item.flavor].name}. Tap a dashed space on your stand to place it.`);
+  }
+
+  function slotHtml(item) {
+    return item ? `${iconHtml(item.flavor)}${item.count > 1 ? `<span class="count">${item.count}</span>` : ''}` : '';
+  }
+
+  function updateHotbar() {
+    const s = me();
+    if (!s) return;
+    [...$('hotbar').children].forEach((cell, i) => {
+      const item = s.hotbar[i];
+      const html = slotHtml(item);
+      const content = cell.querySelector('.content');
+      if (content.innerHTML !== html) content.innerHTML = html;
+      cell.classList.toggle('selected', i === hand && !!item);
+      cell.title = item ? flavorById[item.flavor].name : '';
+    });
+    $('handLabel').textContent = heldItem() ? `In hand: ${flavorById[heldItem().flavor].name}` : '';
+  }
+
+  // ---------- shop and inventory windows ----------
+  function openShop() {
+    openWindow = 'shop';
+    $('invModal').classList.add('hidden');
+    $('shopModal').classList.remove('hidden');
+    updateShop();
+  }
+
+  function openInventory() {
+    openWindow = 'inventory';
+    $('shopModal').classList.add('hidden');
+    $('invModal').classList.remove('hidden');
+    updateInventory();
+  }
+
+  function closeWindows() {
+    openWindow = null;
+    $('shopModal').classList.add('hidden');
+    $('invModal').classList.add('hidden');
+  }
+  $('shopClose').addEventListener('click', closeWindows);
+  $('invClose').addEventListener('click', closeWindows);
+
+  function updateShop() {
+    const s = me();
+    if (!s) return;
+    $('shopTimer').textContent = `New stock in ${clock(shop.left)}`;
+    for (const f of FLAVORS) {
+      const row = f.shopRow;
+      const left = (shop.stock[f.id] || 0) - (s.bought[f.id] || 0);
+      const hidden = isSecretHidden(f, s);
+      row.querySelector('.name').textContent = hidden ? '???' : f.name;
+      const wrap = row.querySelector('.iconWrap');
+      const icon = hidden ? '<div class="icon mystery">?</div>' : iconHtml(f.id);
+      if (wrap.innerHTML !== icon) wrap.innerHTML = icon;
+      const stock = row.querySelector('.stock');
+      stock.textContent = left > 0 ? `x${left} in stock` : 'Out of stock';
+      stock.className = 'stock ' + (left > 0 ? 'in' : 'out');
+      row.classList.toggle('soldout', left <= 0);
+      row.querySelector('button').disabled = left <= 0 || s.money < f.cost;
+    }
+  }
+
+  function updateInventory() {
+    const s = me();
+    if (!s) return;
+    [...$('invGrid').children].forEach((cell, i) => {
+      const html = slotHtml(s.storage[i]);
+      if (cell.innerHTML !== html) cell.innerHTML = html;
+    });
+  }
+
   // ---------- input ----------
   function scoop() {
     send({ type: 'scoop' });
@@ -908,25 +1298,117 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   $('testMutationBtn').addEventListener('click', () =>
     send({ type: 'testMutation', id: $('testMutationPick').value || undefined }));
   $('testMoneyBtn').addEventListener('click', () => send({ type: 'testMoney' }));
+  $('testRestockBtn').addEventListener('click', () => send({ type: 'testRestock' }));
+  $('testGrowBtn').addEventListener('click', () => send({ type: 'testGrow' }));
+
+  const MOVE_KEYS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+    KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
+
   document.addEventListener('keydown', e => {
-    if (e.code === 'Space' && myId && document.activeElement.tagName !== 'INPUT') {
+    if (!myId || document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+    if (MOVE_KEYS[e.code]) {
+      e.preventDefault();
+      keys.add(e.code);
+      walkTarget = null;
+    } else if (e.code === 'Space') {
       e.preventDefault();
       if (!e.repeat) scoop();
+    } else if (/^Digit\d$/.test(e.code)) {
+      const i = (Number(e.code.slice(5)) + 9) % 10; // 1..9 -> 0..8, 0 -> 9
+      selectHand(hand === i ? -1 : i);
+    } else if (e.code === 'Escape') {
+      closeWindows();
+      selectHand(-1);
     }
   });
+  document.addEventListener('keyup', e => keys.delete(e.code));
+  window.addEventListener('blur', () => keys.clear());
+
+  // walk to a spot, then do something there (tapping things that are far away)
+  function goDo(target, reach, action) {
+    if (dist(player, target) <= reach) { walkTarget = null; action(); return; }
+    walkTarget = { x: target.x, y: target.y, reach, action };
+  }
+
+  const near = (p, extra = 0) => dist(player, p) <= REACH - 30 + extra;
+  const inRect = (wx, wy, r) => wx > r.x && wx < r.x + r.w && wy > r.y && wy < r.y + r.h;
+
   canvas.addEventListener('pointerdown', e => {
     const s = me();
     if (!s) return;
     const rect = canvas.getBoundingClientRect();
     const wx = (e.clientX - rect.left - view.ox) / view.scale;
     const wy = (e.clientY - rect.top - view.oy) / view.scale;
-    if (spaceBtn && wx > spaceBtn.x && wx < spaceBtn.x + spaceBtn.w && wy > spaceBtn.y && wy < spaceBtn.y + spaceBtn.h) {
-      send({ type: 'buySpace' });
-      return;
-    }
     const slot = slots[s.slot];
-    if (Math.abs(wx - slot.x) < 100 && wy > slot.y - 90 && wy < slot.y + 160) scoop();
+    const stub = { x: slot.x, y: slot.y };
+
+    if (spaceBtn && inRect(wx, wy, spaceBtn)) return send({ type: 'buySpace' });
+
+    // the Inventory chest (and its button) on your plot
+    const chest = chestPos(slot);
+    if (inRect(wx, wy, { x: chest.x - 45, y: chest.y - 62, w: 90, h: 90 })) {
+      return goDo(chest, REACH - 40, openInventory);
+    }
+    // the Ice Cream Shop
+    if (inRect(wx, wy, { x: SHOP.x - 150, y: SHOP.y - 100, w: 300, h: 200 })) {
+      return goDo({ x: SHOP.x, y: SHOP.y + 90 }, 60, openShop);
+    }
+    // a space on your stand
+    for (let i = 0; i < s.spaces; i++) {
+      const p = tubPos(slot, i, s.spaces);
+      if (Math.hypot(wx - p.x, wy - p.y) < 13) {
+        const tub = s.tubs[i];
+        if (heldItem() && !tub) return goDo(stub, REACH - 40, () => send({ type: 'place', space: i }));
+        if (tub) return goDo(stub, REACH - 40, () => send({ type: 'takeOut', space: i }));
+        return toast('Pick an ice cream in your hotbar, then tap a dashed space to place it.');
+      }
+    }
+    // the rest of your stand: place into the first empty space
+    if (heldItem() && Math.abs(wx - slot.x) < 95 && wy > slot.y - 70 && wy < slot.y + 65) {
+      return goDo(stub, REACH - 40, () => send({ type: 'place', space: -1 }));
+    }
+    // anywhere else: walk there
+    walkTarget = { x: wx, y: wy, reach: 4, action: null };
   });
+
+  // ---------- movement ----------
+  const PLAYER_SPEED = 260;
+  let sendTimer = 0;
+  let lastSent = { x: -1, y: -1 };
+
+  function updatePlayer(dt) {
+    if (!player.placed) return;
+    let vx = 0, vy = 0;
+    for (const k of keys) { vx += MOVE_KEYS[k][0]; vy += MOVE_KEYS[k][1]; }
+    if (!vx && !vy && walkTarget) {
+      const dx = walkTarget.x - player.x, dy = walkTarget.y - player.y;
+      const d = Math.hypot(dx, dy);
+      if (d <= Math.max(walkTarget.reach, PLAYER_SPEED * dt)) {
+        const action = walkTarget.action;
+        walkTarget = null;
+        if (action) action();
+      } else { vx = dx / d; vy = dy / d; }
+    }
+    const len = Math.hypot(vx, vy);
+    player.moving = len > 0;
+    if (len > 0) {
+      player.x = Math.max(10, Math.min(world.width - 10, player.x + (vx / len) * PLAYER_SPEED * dt));
+      player.y = Math.max(20, Math.min(world.height - 10, player.y + (vy / len) * PLAYER_SPEED * dt));
+      if (vx) player.facing = vx > 0 ? 1 : -1;
+    }
+
+    sendTimer -= dt;
+    if (sendTimer <= 0 && (Math.abs(player.x - lastSent.x) > 1 || Math.abs(player.y - lastSent.y) > 1)) {
+      send({ type: 'move', x: Math.round(player.x), y: Math.round(player.y) });
+      lastSent = { x: player.x, y: player.y };
+      sendTimer = 0.1;
+    }
+
+    // close windows when you walk away
+    const s = me();
+    if (openWindow === 'shop' && dist(player, { x: SHOP.x, y: SHOP.y + 90 }) > REACH) closeWindows();
+    if (openWindow === 'inventory' && s && !near(chestPos(slots[s.slot]), 40)) closeWindows();
+  }
 
   // ---------- rendering ----------
   function resize() {
@@ -935,10 +1417,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const scale = Math.min(rect.width / world.width, rect.height / world.height);
-    view = { scale, ox: (rect.width - world.width * scale) / 2, oy: (rect.height - world.height * scale) / 2 };
+    view.w = rect.width; view.h = rect.height;
+    // zoom so about 860 x 620 of the park is visible
+    view.scale = Math.max(rect.width / 860, rect.height / 620);
   }
   window.addEventListener('resize', resize);
+
+  // the camera follows your character
+  function updateCamera() {
+    const sw = world.width * view.scale, sh = world.height * view.scale;
+    const ox = view.w / 2 - player.x * view.scale, oy = view.h / 2 - player.y * view.scale;
+    view.ox = sw <= view.w ? (view.w - sw) / 2 : Math.min(0, Math.max(view.w - sw, ox));
+    view.oy = sh <= view.h ? (view.h - sh) / 2 : Math.min(0, Math.max(view.h - sh, oy));
+  }
 
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
@@ -950,19 +1441,23 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.fillRect(0, 0, world.width, world.height);
     // grass tufts
     ctx.fillStyle = '#7cc257';
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 170; i++) {
       const x = (i * 397) % world.width, y = (i * 263) % world.height;
       ctx.beginPath(); ctx.ellipse(x, y, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
     }
-    // paths between rows of stands
     ctx.fillStyle = '#ecd9b0';
+    // plaza in front of the shop and a path down the middle
+    ctx.fillRect(0, SHOP.y + 75, world.width, 70);
+    ctx.fillRect(SHOP.x - 40, SHOP.y + 75, 80, world.height);
+    // paths between rows of stands
     for (let i = 0; i < slots.length; i += 4) {
-      ctx.fillRect(0, slots[i].y + 75, world.width, 150);
+      ctx.fillRect(0, slots[i].y + 75, world.width, 115);
     }
     // trees in the gaps between stands
     for (let i = 0; i < slots.length; i += 4) {
-      for (const x of [22, 326, 639, 952, 1258]) drawTree(x, slots[i].y - 20);
+      for (const x of [22, 326, 952, 1258]) drawTree(x, slots[i].y - 40);
     }
+    for (const x of [60, 180, 300, 980, 1100, 1220]) drawTree(x, 60);
   }
 
   function drawTree(x, y) {
@@ -972,6 +1467,63 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.beginPath(); ctx.arc(x, y - 4, 20, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#5db347';
     ctx.beginPath(); ctx.arc(x - 6, y - 10, 10, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawShop(time) {
+    const { x, y } = SHOP;
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 72, 150, 14, 0, 0, Math.PI * 2); ctx.fill();
+    // building
+    ctx.fillStyle = '#fff4e6';
+    roundRect(x - 130, y - 40, 260, 110, 8); ctx.fill();
+    ctx.strokeStyle = '#d9a35b'; ctx.lineWidth = 3; ctx.stroke();
+    // door and windows
+    ctx.fillStyle = '#b5651d';
+    roundRect(x - 22, y + 10, 44, 60, 6); ctx.fill();
+    ctx.fillStyle = '#9ad7ff';
+    roundRect(x - 110, y + 5, 60, 40, 6); ctx.fill();
+    roundRect(x + 50, y + 5, 60, 40, 6); ctx.fill();
+    // ice cream tubs in the windows
+    ['#ff8fab', '#a8e6cf', '#fff3c4', '#6b3e26'].forEach((c, i) => {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(x - 98 + (i % 2) * 36 + (i > 1 ? 160 : 0), y + 34, 9, Math.PI, 0); ctx.fill();
+    });
+    // roof
+    ctx.fillStyle = '#ff6fa5';
+    ctx.beginPath();
+    ctx.moveTo(x - 150, y - 38); ctx.lineTo(x, y - 100); ctx.lineTo(x + 150, y - 38);
+    ctx.fill();
+    // giant cone on the roof
+    drawCone(x, y - 108, { color: '#ffb3cf' }, 22);
+    // sign
+    ctx.fillStyle = '#fff';
+    roundRect(x - 95, y - 66, 190, 26, 8); ctx.fill();
+    ctx.strokeStyle = '#ff6fa5'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#e0457b';
+    ctx.font = 'bold 16px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.fillText('ICE CREAM SHOP', x, y - 47);
+    // restock timer
+    ctx.fillStyle = 'rgba(40, 20, 35, 0.8)';
+    roundRect(x - 80, y + 78, 160, 24, 10); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px Trebuchet MS';
+    ctx.fillText(`New stock in ${clock(shop.left)}`, x, y + 95);
+    if (dist(player, { x, y: y + 90 }) <= REACH && openWindow !== 'shop') {
+      drawBubbleButton(x, y + 128, '🛒 Tap the shop to buy', '#ff6fa5', time);
+    }
+  }
+
+  function drawBubbleButton(x, y, text, color, time) {
+    ctx.font = 'bold 14px Trebuchet MS';
+    const w = ctx.measureText(text).width + 20;
+    const bob = Math.sin(time * 4) * 2;
+    ctx.fillStyle = color;
+    roundRect(x - w / 2, y - 13 + bob, w, 26, 10); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, x, y + 5 + bob);
   }
 
   function drawEmptySlot(slot) {
@@ -986,13 +1538,95 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.fillStyle = '#3d5a27';
     ctx.font = 'bold 16px Trebuchet MS';
     ctx.textAlign = 'center';
-    ctx.fillText('Empty spot', slot.x, slot.y + 6);
+    ctx.fillText('Empty plot', slot.x, slot.y + 6);
     ctx.restore();
   }
 
-  function drawStand(s, time) {
-    const { x, y } = slots[s.slot];
+  function drawChest(s, time) {
+    const slot = slots[s.slot];
+    const { x, y } = chestPos(slot);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 22, 26, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#a0662d';
+    roundRect(x - 24, y - 6, 48, 28, 4); ctx.fill();
+    ctx.fillStyle = '#c47f3a';
+    roundRect(x - 24, y - 18, 48, 14, [8, 8, 2, 2]); ctx.fill();
+    ctx.fillStyle = '#ffd43b';
+    ctx.fillRect(x - 4, y - 8, 8, 9);
+    ctx.strokeStyle = '#6e4317'; ctx.lineWidth = 2;
+    roundRect(x - 24, y - 18, 48, 40, 4); ctx.stroke();
+    if (s.id === myId) {
+      // the Inventory button on your plot
+      ctx.font = 'bold 13px Trebuchet MS';
+      const text = '🎒 Inventory';
+      const w = ctx.measureText(text).width + 16;
+      const glow = near({ x, y }, 40) ? 1 : 0.85;
+      ctx.globalAlpha = glow;
+      ctx.fillStyle = '#845ef7';
+      roundRect(x - w / 2, y - 50, w, 24, 9); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, x, y - 33);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawTub(s, i, slot, time, holding) {
+    const p = tubPos(slot, i, s.spaces);
+    const tub = s.tubs[i];
     const mine = s.id === myId;
+    if (!tub) {
+      if (mine && holding) {
+        // moving dashed outline: "you can place your ice cream here"
+        ctx.strokeStyle = '#ff2e7e';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 3]);
+        ctx.lineDashOffset = -time * 12;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 10.5 + Math.sin(time * 5) * 0.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineDashOffset = 0;
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2); ctx.fill();
+      }
+      return;
+    }
+    const f = flavorById[tub.flavor];
+    const total = RARITIES[f.rarity].growSec;
+    const progress = tub.grow > 0 ? 1 - tub.grow / total : 1;
+    // tub
+    ctx.fillStyle = '#e9ecef';
+    roundRect(p.x - 9, p.y, 18, 9, 2); ctx.fill();
+    // scoop grows bigger until it's ready
+    ctx.fillStyle = f.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y + 1, 3 + 6.5 * progress, Math.PI, 0); ctx.fill();
+    if (tub.grow > 0) {
+      ctx.strokeStyle = '#2fb344';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y + 2, 12, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2); ctx.stroke();
+      if (mine) {
+        ctx.font = 'bold 9px Trebuchet MS';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#1b5e20';
+        ctx.fillText(tub.grow >= 60 ? `${Math.ceil(tub.grow / 60)}m` : `${Math.ceil(tub.grow)}s`, p.x, p.y - 10);
+      }
+    } else if (f.rarity === 'secret' || f.rarity === 'mythic' || f.rarity === 'legendary') {
+      ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 5 + i)})`;
+      ctx.beginPath(); ctx.arc(p.x + 3, p.y - 4, 1.8, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawStand(s, time) {
+    const slot = slots[s.slot];
+    const { x, y } = slot;
+    const mine = s.id === myId;
+
+    // the plot's ground
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    roundRect(x - 150, y - 125, 300, 195, 16); ctx.fill();
+    ctx.strokeStyle = s.color; ctx.globalAlpha = 0.5; ctx.lineWidth = 3;
+    ctx.stroke(); ctx.globalAlpha = 1;
 
     // shadow
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
@@ -1007,34 +1641,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.fillStyle = '#fff';
     roundRect(x - 85, y, 170, 60, 6); ctx.fill();
     ctx.fillStyle = s.color;
-    ctx.fillRect(x - 85, y + 22, 170, 16);
+    ctx.fillRect(x - 85, y + 48, 170, 8);
     ctx.strokeStyle = 'rgba(0,0,0,0.2)';
     ctx.lineWidth = 2;
     roundRect(x - 85, y, 170, 60, 6); ctx.stroke();
 
-    // flavor tubs on the counter
-    // one tub per flavor space; empty spaces are dashed outlines
-    const n = s.spaces;
-    const spacing = Math.min(28, 156 / n);
-    const r = Math.min(11, spacing / 2 - 1);
-    for (let i = s.flavors.length; i < n; i++) {
-      const tx = x - ((n - 1) * spacing) / 2 + i * spacing;
-      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.arc(tx, y + 2, r, Math.PI, 0); ctx.closePath(); ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    s.flavors.forEach((id, i) => {
-      const f = flavorById[id];
-      const tx = x - ((n - 1) * spacing) / 2 + i * spacing;
-      ctx.fillStyle = f.color;
-      ctx.beginPath(); ctx.arc(tx, y + 2, r, Math.PI, 0); ctx.fill();
-      if (f.rarity === 'secret' || f.rarity === 'mythic') {
-        ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 5 + i)})`;
-        ctx.beginPath(); ctx.arc(tx + 2, y - 3, 1.8, 0, Math.PI * 2); ctx.fill();
-      }
-    });
+    // flavor spaces
+    const holding = mine && !!heldItem();
+    for (let i = 0; i < s.spaces; i++) drawTub(s, i, slot, time, holding);
 
     // striped awning
     const stripes = 8, aw = 190, ax = x - aw / 2, ay = y - 62;
@@ -1070,34 +1684,28 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       roundRect(x - 50, y + 66, 100 * Math.min(1, s.serve), 7, 3); ctx.fill();
     }
 
-    const cost = mine && s.flavors.length >= s.spaces ? spaceCost(s.spaces) : null;
-    if (mine) spaceBtn = null;
-    if (cost !== null) {
-      // stand is full: show the Extra Space button on top of it
-      const text = `Extra Space +3 (${fmt(cost)})`;
-      ctx.font = 'bold 16px Trebuchet MS';
-      const bw = ctx.measureText(text).width + 24, bh = 30;
-      const pulse = s.money >= cost ? 1 + Math.sin(time * 6) * 0.04 : 1;
-      spaceBtn = { x: x - bw / 2, y: ay - 70, w: bw, h: bh };
-      ctx.save();
-      ctx.translate(x, ay - 70 + bh / 2);
-      ctx.scale(pulse, pulse);
-      ctx.fillStyle = s.money >= cost ? '#2fb344' : '#a99aa3';
-      roundRect(-bw / 2, -bh / 2, bw, bh, 10); ctx.fill();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-      ctx.fillStyle = '#fff';
-      ctx.fillText(text, 0, 6);
-      ctx.restore();
-    } else if (mine) {
-      const bob = Math.sin(time * 4) * 5;
-      ctx.fillStyle = '#ff2e7e';
-      ctx.beginPath();
-      ctx.moveTo(x, ay - 38 + bob);
-      ctx.lineTo(x - 12, ay - 56 + bob);
-      ctx.lineTo(x + 12, ay - 56 + bob);
-      ctx.fill();
-      ctx.font = 'bold 14px Trebuchet MS';
-      ctx.fillText('YOU', x, ay - 60 + bob);
+    if (mine) {
+      spaceBtn = null;
+      const cost = !s.tubs.includes(null) ? spaceCost(s.spaces) : null;
+      if (cost !== null) {
+        // stand is full: show the Extra Space button on top of it
+        const text = `Extra Space +3 (${fmt(cost)})`;
+        ctx.font = 'bold 16px Trebuchet MS';
+        const bw = ctx.measureText(text).width + 24, bh = 30;
+        const pulse = s.money >= cost ? 1 + Math.sin(time * 6) * 0.04 : 1;
+        spaceBtn = { x: x - bw / 2, y: ay - 70, w: bw, h: bh };
+        ctx.save();
+        ctx.translate(x, ay - 70 + bh / 2);
+        ctx.scale(pulse, pulse);
+        ctx.fillStyle = s.money >= cost ? '#2fb344' : '#a99aa3';
+        roundRect(-bw / 2, -bh / 2, bw, bh, 10); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.fillText(text, 0, 6);
+        ctx.restore();
+      } else if (!s.tubs.some(Boolean)) {
+        drawBubbleButton(x, ay - 54, 'Buy ice cream at the shop!', '#ff6fa5', time);
+      }
     }
   }
 
@@ -1201,6 +1809,45 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.restore();
   }
 
+  // a player's character: bigger than customers, wears their stand's color, shows their name
+  function drawPlayer(p, time) {
+    const bounce = p.moving ? Math.abs(Math.sin(time * 12)) * 3 : 0;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(0, 18, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.scale(1.7 * p.facing, 1.7);
+    const y = -bounce / 1.7;
+    // legs
+    ctx.fillStyle = '#3b3b58';
+    ctx.fillRect(-6, y + 6, 5, 6);
+    ctx.fillRect(1, y + 6, 5, 6);
+    // body
+    ctx.fillStyle = p.color;
+    roundRect(-9, y - 7, 18, 15, 5); ctx.fill();
+    // head
+    ctx.fillStyle = '#f8d5b8';
+    ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
+    // cap
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(0, y - 16, 8, Math.PI, 0); ctx.fill();
+    ctx.fillRect(0, y - 17, 11, 3);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(2, y - 15, 2, 2.5);
+    ctx.fillRect(5.5, y - 15, 2, 2.5);
+    // the ice cream in your hand
+    if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
+    ctx.restore();
+
+    ctx.font = 'bold 13px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff';
+    ctx.strokeText(p.name, p.x, p.y - 46);
+    ctx.fillStyle = p.isMe ? '#e0457b' : '#3a2a35';
+    ctx.fillText(p.name, p.x, p.y - 46);
+  }
+
   // colored sky, falling sparkles and a banner while a mutation is happening
   function drawEventEffects(time, dt) {
     const m = gameEvent.id && mutationById[gameEvent.id];
@@ -1228,18 +1875,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.7 + 0.3 * Math.sin(time * 8 + i)), 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
+  }
 
-    if (m) {
-      const text = `${m.emoji} ${m.name.toUpperCase()} MUTATION · x${m.mult} · ${clock(gameEvent.left)}`;
-      ctx.font = 'bold 22px Trebuchet MS';
-      ctx.textAlign = 'center';
-      const w = ctx.measureText(text).width + 40;
-      ctx.fillStyle = 'rgba(30, 15, 25, 0.75)';
-      roundRect(world.width / 2 - w / 2, world.height - 52, w, 40, 14); ctx.fill();
-      ctx.strokeStyle = mutColor(m, time); ctx.lineWidth = 3; ctx.stroke();
-      ctx.fillStyle = '#fff';
-      ctx.fillText(text, world.width / 2, world.height - 24);
-    }
+  // the mutation banner stays at the top of the screen (screen coordinates)
+  function drawEventBanner(time) {
+    const m = gameEvent.id && mutationById[gameEvent.id];
+    if (!m) return;
+    const text = `${m.emoji} ${m.name.toUpperCase()} MUTATION · x${m.mult} · ${clock(gameEvent.left)}`;
+    ctx.font = 'bold 16px Trebuchet MS';
+    ctx.textAlign = 'center';
+    const w = ctx.measureText(text).width + 30;
+    ctx.fillStyle = 'rgba(30, 15, 25, 0.75)';
+    roundRect(view.w / 2 - w / 2, 8, w, 32, 12); ctx.fill();
+    ctx.strokeStyle = mutColor(m, time); ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.fillText(text, view.w / 2, 30);
   }
 
   // Rainbow mutation: warm sunlight after rain, a big rainbow across the park, a light sun shower
@@ -1253,13 +1903,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
     const fade = Math.min(1, (300 - gameEvent.left) / 4 + 0.15, gameEvent.left / 4); // fade in and out
     const shimmer = 0.03 * Math.sin(time * 0.8);
-    drawRainbowArc(world.width / 2, world.height + 120, 900, 120, (0.34 + shimmer) * fade);
-    drawRainbowArc(world.width / 2, world.height + 120, 1060, 90, (0.12 + shimmer / 2) * fade); // faint double rainbow
+    drawRainbowArc(world.width / 2, world.height + 120, 1100, 140, (0.34 + shimmer) * fade);
+    drawRainbowArc(world.width / 2, world.height + 120, 1290, 100, (0.12 + shimmer / 2) * fade); // faint double rainbow
   }
 
   function drawSunShower(dt) {
     // light sun-shower rain: thin slanted streaks
-    if (Math.random() < dt * 40) {
+    if (Math.random() < dt * 50) {
       raindrops.push({ x: Math.random() * (world.width + 200), y: -20, v: 600 + Math.random() * 250 });
     }
     ctx.strokeStyle = 'rgba(220, 235, 255, 0.55)';
@@ -1279,27 +1929,58 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     const time = now / 1000;
-    const rect = canvas.getBoundingClientRect();
+
+    updatePlayer(dt);
+    updateCamera();
 
     ctx.fillStyle = '#6fb34c';
-    ctx.fillRect(0, 0, rect.width, rect.height);
+    ctx.fillRect(0, 0, view.w, view.h);
     ctx.save();
     ctx.translate(view.ox, view.oy);
     ctx.scale(view.scale, view.scale);
     ctx.beginPath(); ctx.rect(0, 0, world.width, world.height); ctx.clip();
 
     drawPark(time);
-    if (gameEvent.id === 'rainbow') drawRainbowSky(time); // behind the stands, like a real rainbow
+    if (gameEvent.id === 'rainbow') drawRainbowSky(time); // behind everything, like a real rainbow
+    drawShop(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);
+    for (const s of stands) drawChest(s, time);
 
-    // smooth customers toward their latest server position, draw back-to-front
+    // smooth customers and other players toward their latest server position
     const k = Math.min(1, dt * 10);
-    const list = [...customers.values()];
-    for (const c of list) { c.dx += (c.x - c.dx) * k; c.dy += (c.y - c.dy) * k; }
-    list.sort((a, b) => a.dy - b.dy);
-    for (const c of list) drawCustomer(c, time);
+    const entities = [];
+    for (const c of customers.values()) {
+      c.dx += (c.x - c.dx) * k; c.dy += (c.y - c.dy) * k;
+      entities.push({ y: c.dy, draw: () => drawCustomer(c, time) });
+    }
+    for (const s of stands) {
+      if (s.id === myId) {
+        if (!player.placed) continue;
+        const p = { x: player.x, y: player.y, facing: player.facing, moving: player.moving,
+          color: s.color, name: s.name, item: heldItem(), isMe: true };
+        entities.push({ y: p.y, draw: () => drawPlayer(p, time) });
+        continue;
+      }
+      let o = others.get(s.id);
+      if (!o) { o = { x: s.x, y: s.y, facing: 1 }; others.set(s.id, o); }
+      const nx = o.x + (s.x - o.x) * k;
+      o.moving = Math.abs(nx - o.x) + Math.abs(s.y - o.y) > 0.5;
+      if (Math.abs(nx - o.x) > 0.3) o.facing = nx > o.x ? 1 : -1;
+      o.x = nx; o.y += (s.y - o.y) * k;
+      const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null };
+      entities.push({ y: o.y, draw: () => drawPlayer(p, time) });
+    }
+    entities.sort((a, b) => a.y - b.y);
+    for (const e of entities) e.draw();
+
+    // where you're walking to
+    if (walkTarget && !walkTarget.action) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(walkTarget.x, walkTarget.y, 12, 5, 0, 0, Math.PI * 2); ctx.stroke();
+    }
 
     drawEventEffects(time, dt);
 
@@ -1336,9 +2017,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.globalAlpha = 1;
 
     ctx.restore();
+    drawEventBanner(time);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+  window.__icecream = { view, player }; // for automated tests
 })();
 </script>
 </body>

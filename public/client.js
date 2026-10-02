@@ -1,5 +1,7 @@
 (() => {
-  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE } = window.GameData;
+  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE,
+    HOTBAR_SIZE, STORAGE_SIZE } = window.GameData;
+  const { SHOP, REACH, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
 
@@ -9,16 +11,25 @@
 
   let ws = null;
   let myId = null;
-  let world = { width: 1280, height: 860 };
+  let world = { width: 1280, height: 1180 };
   let slots = [];
   let stands = [];
   const customers = new Map(); // id -> { ...server data, dx, dy (display position) }
+  const others = new Map();    // stand id -> display position of other players' characters
   const floaters = [];
   const ambient = []; // falling sparkles during a mutation event
   const particles = [];
-  let view = { scale: 1, ox: 0, oy: 0 };
+  let view = { scale: 1, ox: 0, oy: 0, w: 0, h: 0 };
   let spaceBtn = null; // Extra Space button area (world coords) while it's showing
   let gameEvent = { id: null, left: 0, next: 0 }; // current mutation event
+  let shop = { stock: {}, left: 0 };
+
+  // your character (moved here in the browser, then sent to the server)
+  const player = { x: 0, y: 0, placed: false, facing: 1, moving: false };
+  let walkTarget = null; // { x, y, reach, action } when walking somewhere you tapped
+  const keys = new Set();
+  let hand = -1;         // selected hotbar slot
+  let openWindow = null; // 'shop' | 'inventory' | null
 
   // ---------- helpers ----------
   function fmt(n) {
@@ -41,6 +52,8 @@
     return `${m}:${String(s).padStart(2, '0')}`;
   }
 
+  const growText = sec => sec >= 60 ? `${Math.round(sec / 60)} min` : `${sec}s`;
+
   // mutations shimmer through their colors
   function mutColor(m, time) {
     return m.colors[Math.floor(time * 5) % m.colors.length];
@@ -52,6 +65,15 @@
   }
 
   const me = () => stands.find(s => s.id === myId);
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const isSecretHidden = (f, s) => f.rarity === 'secret' && !(s && s.seen.includes(f.id));
+  const heldItem = () => { const s = me(); return s && hand >= 0 ? s.hotbar[hand] : null; };
+
+  // HTML icon of an ice cream cone for the hotbar, inventory and shop
+  function iconHtml(flavorId) {
+    const f = flavorById[flavorId];
+    return `<div class="icon"><div class="ball" style="background:${f.color}"></div><div class="cone"></div></div>`;
+  }
 
   // ---------- joining ----------
   $('joinForm').addEventListener('submit', e => {
@@ -86,7 +108,7 @@
     let saves = {};
     try { saves = JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch (e) {}
     const game = window.Engine.createGame({ saves, allowTest: true });
-    const conn = { send: msg => onMessage(msg) };
+    const conn = { send: msg => onMessage(JSON.parse(JSON.stringify(msg))) };
     ws = { readyState: 1, send: data => game.handle(conn, JSON.parse(data)) };
     const save = () => {
       try { localStorage.setItem(SAVE_KEY, JSON.stringify(game.snapshotSaves())); } catch (e) {}
@@ -105,6 +127,7 @@
   }
 
   function onMessage(msg) {
+    const s = me();
     switch (msg.type) {
       case 'welcome':
         myId = msg.id;
@@ -113,9 +136,11 @@
         $('join').classList.add('hidden');
         $('game').classList.remove('hidden');
         buildPanel();
+        buildHotbar();
         $('testTools').classList.toggle('hidden', !msg.allowTest);
         resize();
-        toast(msg.returning ? 'Welcome back! Your stand is open again.' : 'Your stand is open! Customers are on their way.');
+        toast(msg.returning ? 'Welcome back! Your stand is open again.'
+          : 'Welcome! Walk with the arrow keys or tap where you want to go.');
         break;
       case 'error':
         if (myId) toast(msg.text); else $('joinError').textContent = msg.text;
@@ -123,11 +148,32 @@
       case 'state':
         stands = msg.stands;
         gameEvent = msg.event;
+        shop = msg.shop;
+        if (!player.placed && me()) {
+          player.x = me().x; player.y = me().y; player.placed = true;
+        }
         syncCustomers(msg.customers);
         updatePanel();
+        updateHotbar();
+        if (openWindow === 'shop') updateShop();
+        if (openWindow === 'inventory') updateInventory();
         break;
       case 'sale':
         onSale(msg);
+        break;
+      case 'bought': {
+        const f = flavorById[msg.flavor];
+        toast(`You bought ${f.name}! Hold it and place it on your stand.`);
+        break;
+      }
+      case 'placed': {
+        const f = flavorById[msg.flavor];
+        toast(`${f.name} is growing! Ready in ${growText(RARITIES[f.rarity].growSec)}.`);
+        if (s) confetti(slots[s.slot].x, slots[s.slot].y, 12);
+        break;
+      }
+      case 'restock':
+        toast('🛒 The Ice Cream Shop has new stock!');
         break;
       case 'mutationStart': {
         const m = mutationById[msg.mutation];
@@ -140,19 +186,10 @@
       case 'mutationEnd':
         toast(`The ${mutationById[msg.mutation].name} mutation is over.`);
         break;
-      case 'spaceAdded': {
-        toast(`+3 flavor spaces! Your stand now holds ${msg.spaces} flavors.`);
-        const s = me();
+      case 'spaceAdded':
+        toast(`+3 flavor spaces! Your stand now holds ${msg.spaces} tubs.`);
         if (s) confetti(slots[s.slot].x, slots[s.slot].y - 40, 40);
         break;
-      }
-      case 'unlocked': {
-        const f = flavorById[msg.flavor];
-        toast(`New flavor: ${f.name} (${RARITIES[f.rarity].name})!`);
-        const s = me();
-        if (s) confetti(slots[s.slot].x, slots[s.slot].y - 40, RARITIES[f.rarity].order >= 3 ? 80 : 30);
-        break;
-      }
     }
   }
 
@@ -208,10 +245,8 @@
         <div class="info">
           <div class="name"></div>
           <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
-            ${fmt(f.price)} / scoop</div>
-        </div>
-        <button></button>`;
-      row.querySelector('button').addEventListener('click', () => send({ type: 'buyFlavor', id: f.id }));
+            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)}</div>
+        </div>`;
       fl.appendChild(row);
       f.row = row;
     }
@@ -247,35 +282,53 @@
       up.appendChild(row);
       u.row = row;
     }
+
+    // shop window rows
+    const list = $('shopList');
+    list.innerHTML = '';
+    for (const f of FLAVORS) {
+      const r = RARITIES[f.rarity];
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `
+        <div class="iconWrap"></div>
+        <div class="info">
+          <div class="name"></div>
+          <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
+            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)}</div>
+          <div class="stock"></div>
+        </div>
+        <button>${fmt(f.cost)}</button>`;
+      row.querySelector('button').addEventListener('click', () => send({ type: 'buy', flavor: f.id }));
+      list.appendChild(row);
+      f.shopRow = row;
+    }
+
+    // inventory window slots
+    const grid = $('invGrid');
+    grid.innerHTML = '';
+    for (let i = 0; i < STORAGE_SIZE; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'slot';
+      cell.addEventListener('click', () => send({ type: 'moveItem', from: 'storage', index: i }));
+      grid.appendChild(cell);
+    }
   }
 
   function updatePanel() {
     const s = me();
     if (!s) return;
     $('money').textContent = fmt(s.money);
+    const filled = s.tubs.filter(Boolean).length;
     $('stats').textContent = `${s.sold} scoops sold · ${fmt(s.totalEarned)} earned · ` +
-      `${s.flavors.length}/${s.spaces} flavor spaces used`;
-    const full = s.flavors.length >= s.spaces;
+      `${filled}/${s.spaces} stand spaces used`;
     $('serveBar').style.width = Math.min(100, s.serve * 100) + '%';
+    $('shopTimerSide').textContent = `🛒 Shop restocks in ${clock(shop.left)}`;
 
     for (const f of FLAVORS) {
-      const owned = s.flavors.includes(f.id);
-      const hidden = f.rarity === 'secret' && !owned;
-      const row = f.row;
-      row.classList.toggle('owned', owned);
-      row.querySelector('.name').textContent = hidden ? '???' : f.name;
-      row.querySelector('.scoop').style.background = hidden ? '#222' : f.color;
-      const btn = row.querySelector('button');
-      if (owned) {
-        btn.textContent = 'On menu ✓';
-        btn.disabled = true;
-      } else if (full) {
-        btn.textContent = 'Stand full';
-        btn.disabled = true;
-      } else {
-        btn.textContent = 'Unlock ' + fmt(f.cost);
-        btn.disabled = s.money < f.cost;
-      }
+      const hidden = isSecretHidden(f, s);
+      f.row.querySelector('.name').textContent = hidden ? '???' : f.name;
+      f.row.querySelector('.scoop').style.background = hidden ? '#222' : f.color;
     }
 
     for (const [key, u] of Object.entries(UPGRADES)) {
@@ -318,6 +371,100 @@
     }
   }
 
+  // ---------- hotbar (10 see-through slots at the bottom) ----------
+  function buildHotbar() {
+    const bar = $('hotbar');
+    bar.innerHTML = '';
+    for (let i = 0; i < HOTBAR_SIZE; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'slot';
+      cell.innerHTML = `<span class="key">${(i + 1) % 10}</span><div class="content"></div>`;
+      cell.addEventListener('click', () => {
+        if (openWindow === 'inventory') send({ type: 'moveItem', from: 'hotbar', index: i });
+        else selectHand(hand === i ? -1 : i);
+      });
+      bar.appendChild(cell);
+    }
+  }
+
+  function selectHand(i) {
+    hand = i;
+    send({ type: 'hold', slot: i });
+    updateHotbar();
+    const item = heldItem();
+    if (item) toast(`Holding ${flavorById[item.flavor].name}. Tap a dashed space on your stand to place it.`);
+  }
+
+  function slotHtml(item) {
+    return item ? `${iconHtml(item.flavor)}${item.count > 1 ? `<span class="count">${item.count}</span>` : ''}` : '';
+  }
+
+  function updateHotbar() {
+    const s = me();
+    if (!s) return;
+    [...$('hotbar').children].forEach((cell, i) => {
+      const item = s.hotbar[i];
+      const html = slotHtml(item);
+      const content = cell.querySelector('.content');
+      if (content.innerHTML !== html) content.innerHTML = html;
+      cell.classList.toggle('selected', i === hand && !!item);
+      cell.title = item ? flavorById[item.flavor].name : '';
+    });
+    $('handLabel').textContent = heldItem() ? `In hand: ${flavorById[heldItem().flavor].name}` : '';
+  }
+
+  // ---------- shop and inventory windows ----------
+  function openShop() {
+    openWindow = 'shop';
+    $('invModal').classList.add('hidden');
+    $('shopModal').classList.remove('hidden');
+    updateShop();
+  }
+
+  function openInventory() {
+    openWindow = 'inventory';
+    $('shopModal').classList.add('hidden');
+    $('invModal').classList.remove('hidden');
+    updateInventory();
+  }
+
+  function closeWindows() {
+    openWindow = null;
+    $('shopModal').classList.add('hidden');
+    $('invModal').classList.add('hidden');
+  }
+  $('shopClose').addEventListener('click', closeWindows);
+  $('invClose').addEventListener('click', closeWindows);
+
+  function updateShop() {
+    const s = me();
+    if (!s) return;
+    $('shopTimer').textContent = `New stock in ${clock(shop.left)}`;
+    for (const f of FLAVORS) {
+      const row = f.shopRow;
+      const left = (shop.stock[f.id] || 0) - (s.bought[f.id] || 0);
+      const hidden = isSecretHidden(f, s);
+      row.querySelector('.name').textContent = hidden ? '???' : f.name;
+      const wrap = row.querySelector('.iconWrap');
+      const icon = hidden ? '<div class="icon mystery">?</div>' : iconHtml(f.id);
+      if (wrap.innerHTML !== icon) wrap.innerHTML = icon;
+      const stock = row.querySelector('.stock');
+      stock.textContent = left > 0 ? `x${left} in stock` : 'Out of stock';
+      stock.className = 'stock ' + (left > 0 ? 'in' : 'out');
+      row.classList.toggle('soldout', left <= 0);
+      row.querySelector('button').disabled = left <= 0 || s.money < f.cost;
+    }
+  }
+
+  function updateInventory() {
+    const s = me();
+    if (!s) return;
+    [...$('invGrid').children].forEach((cell, i) => {
+      const html = slotHtml(s.storage[i]);
+      if (cell.innerHTML !== html) cell.innerHTML = html;
+    });
+  }
+
   // ---------- input ----------
   function scoop() {
     send({ type: 'scoop' });
@@ -340,25 +487,117 @@
   $('testMutationBtn').addEventListener('click', () =>
     send({ type: 'testMutation', id: $('testMutationPick').value || undefined }));
   $('testMoneyBtn').addEventListener('click', () => send({ type: 'testMoney' }));
+  $('testRestockBtn').addEventListener('click', () => send({ type: 'testRestock' }));
+  $('testGrowBtn').addEventListener('click', () => send({ type: 'testGrow' }));
+
+  const MOVE_KEYS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+    KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
+
   document.addEventListener('keydown', e => {
-    if (e.code === 'Space' && myId && document.activeElement.tagName !== 'INPUT') {
+    if (!myId || document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+    if (MOVE_KEYS[e.code]) {
+      e.preventDefault();
+      keys.add(e.code);
+      walkTarget = null;
+    } else if (e.code === 'Space') {
       e.preventDefault();
       if (!e.repeat) scoop();
+    } else if (/^Digit\d$/.test(e.code)) {
+      const i = (Number(e.code.slice(5)) + 9) % 10; // 1..9 -> 0..8, 0 -> 9
+      selectHand(hand === i ? -1 : i);
+    } else if (e.code === 'Escape') {
+      closeWindows();
+      selectHand(-1);
     }
   });
+  document.addEventListener('keyup', e => keys.delete(e.code));
+  window.addEventListener('blur', () => keys.clear());
+
+  // walk to a spot, then do something there (tapping things that are far away)
+  function goDo(target, reach, action) {
+    if (dist(player, target) <= reach) { walkTarget = null; action(); return; }
+    walkTarget = { x: target.x, y: target.y, reach, action };
+  }
+
+  const near = (p, extra = 0) => dist(player, p) <= REACH - 30 + extra;
+  const inRect = (wx, wy, r) => wx > r.x && wx < r.x + r.w && wy > r.y && wy < r.y + r.h;
+
   canvas.addEventListener('pointerdown', e => {
     const s = me();
     if (!s) return;
     const rect = canvas.getBoundingClientRect();
     const wx = (e.clientX - rect.left - view.ox) / view.scale;
     const wy = (e.clientY - rect.top - view.oy) / view.scale;
-    if (spaceBtn && wx > spaceBtn.x && wx < spaceBtn.x + spaceBtn.w && wy > spaceBtn.y && wy < spaceBtn.y + spaceBtn.h) {
-      send({ type: 'buySpace' });
-      return;
-    }
     const slot = slots[s.slot];
-    if (Math.abs(wx - slot.x) < 100 && wy > slot.y - 90 && wy < slot.y + 160) scoop();
+    const stub = { x: slot.x, y: slot.y };
+
+    if (spaceBtn && inRect(wx, wy, spaceBtn)) return send({ type: 'buySpace' });
+
+    // the Inventory chest (and its button) on your plot
+    const chest = chestPos(slot);
+    if (inRect(wx, wy, { x: chest.x - 45, y: chest.y - 62, w: 90, h: 90 })) {
+      return goDo(chest, REACH - 40, openInventory);
+    }
+    // the Ice Cream Shop
+    if (inRect(wx, wy, { x: SHOP.x - 150, y: SHOP.y - 100, w: 300, h: 200 })) {
+      return goDo({ x: SHOP.x, y: SHOP.y + 90 }, 60, openShop);
+    }
+    // a space on your stand
+    for (let i = 0; i < s.spaces; i++) {
+      const p = tubPos(slot, i, s.spaces);
+      if (Math.hypot(wx - p.x, wy - p.y) < 13) {
+        const tub = s.tubs[i];
+        if (heldItem() && !tub) return goDo(stub, REACH - 40, () => send({ type: 'place', space: i }));
+        if (tub) return goDo(stub, REACH - 40, () => send({ type: 'takeOut', space: i }));
+        return toast('Pick an ice cream in your hotbar, then tap a dashed space to place it.');
+      }
+    }
+    // the rest of your stand: place into the first empty space
+    if (heldItem() && Math.abs(wx - slot.x) < 95 && wy > slot.y - 70 && wy < slot.y + 65) {
+      return goDo(stub, REACH - 40, () => send({ type: 'place', space: -1 }));
+    }
+    // anywhere else: walk there
+    walkTarget = { x: wx, y: wy, reach: 4, action: null };
   });
+
+  // ---------- movement ----------
+  const PLAYER_SPEED = 260;
+  let sendTimer = 0;
+  let lastSent = { x: -1, y: -1 };
+
+  function updatePlayer(dt) {
+    if (!player.placed) return;
+    let vx = 0, vy = 0;
+    for (const k of keys) { vx += MOVE_KEYS[k][0]; vy += MOVE_KEYS[k][1]; }
+    if (!vx && !vy && walkTarget) {
+      const dx = walkTarget.x - player.x, dy = walkTarget.y - player.y;
+      const d = Math.hypot(dx, dy);
+      if (d <= Math.max(walkTarget.reach, PLAYER_SPEED * dt)) {
+        const action = walkTarget.action;
+        walkTarget = null;
+        if (action) action();
+      } else { vx = dx / d; vy = dy / d; }
+    }
+    const len = Math.hypot(vx, vy);
+    player.moving = len > 0;
+    if (len > 0) {
+      player.x = Math.max(10, Math.min(world.width - 10, player.x + (vx / len) * PLAYER_SPEED * dt));
+      player.y = Math.max(20, Math.min(world.height - 10, player.y + (vy / len) * PLAYER_SPEED * dt));
+      if (vx) player.facing = vx > 0 ? 1 : -1;
+    }
+
+    sendTimer -= dt;
+    if (sendTimer <= 0 && (Math.abs(player.x - lastSent.x) > 1 || Math.abs(player.y - lastSent.y) > 1)) {
+      send({ type: 'move', x: Math.round(player.x), y: Math.round(player.y) });
+      lastSent = { x: player.x, y: player.y };
+      sendTimer = 0.1;
+    }
+
+    // close windows when you walk away
+    const s = me();
+    if (openWindow === 'shop' && dist(player, { x: SHOP.x, y: SHOP.y + 90 }) > REACH) closeWindows();
+    if (openWindow === 'inventory' && s && !near(chestPos(slots[s.slot]), 40)) closeWindows();
+  }
 
   // ---------- rendering ----------
   function resize() {
@@ -367,10 +606,19 @@
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const scale = Math.min(rect.width / world.width, rect.height / world.height);
-    view = { scale, ox: (rect.width - world.width * scale) / 2, oy: (rect.height - world.height * scale) / 2 };
+    view.w = rect.width; view.h = rect.height;
+    // zoom so about 860 x 620 of the park is visible
+    view.scale = Math.max(rect.width / 860, rect.height / 620);
   }
   window.addEventListener('resize', resize);
+
+  // the camera follows your character
+  function updateCamera() {
+    const sw = world.width * view.scale, sh = world.height * view.scale;
+    const ox = view.w / 2 - player.x * view.scale, oy = view.h / 2 - player.y * view.scale;
+    view.ox = sw <= view.w ? (view.w - sw) / 2 : Math.min(0, Math.max(view.w - sw, ox));
+    view.oy = sh <= view.h ? (view.h - sh) / 2 : Math.min(0, Math.max(view.h - sh, oy));
+  }
 
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
@@ -382,19 +630,23 @@
     ctx.fillRect(0, 0, world.width, world.height);
     // grass tufts
     ctx.fillStyle = '#7cc257';
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 170; i++) {
       const x = (i * 397) % world.width, y = (i * 263) % world.height;
       ctx.beginPath(); ctx.ellipse(x, y, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
     }
-    // paths between rows of stands
     ctx.fillStyle = '#ecd9b0';
+    // plaza in front of the shop and a path down the middle
+    ctx.fillRect(0, SHOP.y + 75, world.width, 70);
+    ctx.fillRect(SHOP.x - 40, SHOP.y + 75, 80, world.height);
+    // paths between rows of stands
     for (let i = 0; i < slots.length; i += 4) {
-      ctx.fillRect(0, slots[i].y + 75, world.width, 150);
+      ctx.fillRect(0, slots[i].y + 75, world.width, 115);
     }
     // trees in the gaps between stands
     for (let i = 0; i < slots.length; i += 4) {
-      for (const x of [22, 326, 639, 952, 1258]) drawTree(x, slots[i].y - 20);
+      for (const x of [22, 326, 952, 1258]) drawTree(x, slots[i].y - 40);
     }
+    for (const x of [60, 180, 300, 980, 1100, 1220]) drawTree(x, 60);
   }
 
   function drawTree(x, y) {
@@ -404,6 +656,63 @@
     ctx.beginPath(); ctx.arc(x, y - 4, 20, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#5db347';
     ctx.beginPath(); ctx.arc(x - 6, y - 10, 10, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawShop(time) {
+    const { x, y } = SHOP;
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 72, 150, 14, 0, 0, Math.PI * 2); ctx.fill();
+    // building
+    ctx.fillStyle = '#fff4e6';
+    roundRect(x - 130, y - 40, 260, 110, 8); ctx.fill();
+    ctx.strokeStyle = '#d9a35b'; ctx.lineWidth = 3; ctx.stroke();
+    // door and windows
+    ctx.fillStyle = '#b5651d';
+    roundRect(x - 22, y + 10, 44, 60, 6); ctx.fill();
+    ctx.fillStyle = '#9ad7ff';
+    roundRect(x - 110, y + 5, 60, 40, 6); ctx.fill();
+    roundRect(x + 50, y + 5, 60, 40, 6); ctx.fill();
+    // ice cream tubs in the windows
+    ['#ff8fab', '#a8e6cf', '#fff3c4', '#6b3e26'].forEach((c, i) => {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(x - 98 + (i % 2) * 36 + (i > 1 ? 160 : 0), y + 34, 9, Math.PI, 0); ctx.fill();
+    });
+    // roof
+    ctx.fillStyle = '#ff6fa5';
+    ctx.beginPath();
+    ctx.moveTo(x - 150, y - 38); ctx.lineTo(x, y - 100); ctx.lineTo(x + 150, y - 38);
+    ctx.fill();
+    // giant cone on the roof
+    drawCone(x, y - 108, { color: '#ffb3cf' }, 22);
+    // sign
+    ctx.fillStyle = '#fff';
+    roundRect(x - 95, y - 66, 190, 26, 8); ctx.fill();
+    ctx.strokeStyle = '#ff6fa5'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#e0457b';
+    ctx.font = 'bold 16px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.fillText('ICE CREAM SHOP', x, y - 47);
+    // restock timer
+    ctx.fillStyle = 'rgba(40, 20, 35, 0.8)';
+    roundRect(x - 80, y + 78, 160, 24, 10); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px Trebuchet MS';
+    ctx.fillText(`New stock in ${clock(shop.left)}`, x, y + 95);
+    if (dist(player, { x, y: y + 90 }) <= REACH && openWindow !== 'shop') {
+      drawBubbleButton(x, y + 128, '🛒 Tap the shop to buy', '#ff6fa5', time);
+    }
+  }
+
+  function drawBubbleButton(x, y, text, color, time) {
+    ctx.font = 'bold 14px Trebuchet MS';
+    const w = ctx.measureText(text).width + 20;
+    const bob = Math.sin(time * 4) * 2;
+    ctx.fillStyle = color;
+    roundRect(x - w / 2, y - 13 + bob, w, 26, 10); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, x, y + 5 + bob);
   }
 
   function drawEmptySlot(slot) {
@@ -418,13 +727,95 @@
     ctx.fillStyle = '#3d5a27';
     ctx.font = 'bold 16px Trebuchet MS';
     ctx.textAlign = 'center';
-    ctx.fillText('Empty spot', slot.x, slot.y + 6);
+    ctx.fillText('Empty plot', slot.x, slot.y + 6);
     ctx.restore();
   }
 
-  function drawStand(s, time) {
-    const { x, y } = slots[s.slot];
+  function drawChest(s, time) {
+    const slot = slots[s.slot];
+    const { x, y } = chestPos(slot);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 22, 26, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#a0662d';
+    roundRect(x - 24, y - 6, 48, 28, 4); ctx.fill();
+    ctx.fillStyle = '#c47f3a';
+    roundRect(x - 24, y - 18, 48, 14, [8, 8, 2, 2]); ctx.fill();
+    ctx.fillStyle = '#ffd43b';
+    ctx.fillRect(x - 4, y - 8, 8, 9);
+    ctx.strokeStyle = '#6e4317'; ctx.lineWidth = 2;
+    roundRect(x - 24, y - 18, 48, 40, 4); ctx.stroke();
+    if (s.id === myId) {
+      // the Inventory button on your plot
+      ctx.font = 'bold 13px Trebuchet MS';
+      const text = '🎒 Inventory';
+      const w = ctx.measureText(text).width + 16;
+      const glow = near({ x, y }, 40) ? 1 : 0.85;
+      ctx.globalAlpha = glow;
+      ctx.fillStyle = '#845ef7';
+      roundRect(x - w / 2, y - 50, w, 24, 9); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, x, y - 33);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawTub(s, i, slot, time, holding) {
+    const p = tubPos(slot, i, s.spaces);
+    const tub = s.tubs[i];
     const mine = s.id === myId;
+    if (!tub) {
+      if (mine && holding) {
+        // moving dashed outline: "you can place your ice cream here"
+        ctx.strokeStyle = '#ff2e7e';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 3]);
+        ctx.lineDashOffset = -time * 12;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 10.5 + Math.sin(time * 5) * 0.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineDashOffset = 0;
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2); ctx.fill();
+      }
+      return;
+    }
+    const f = flavorById[tub.flavor];
+    const total = RARITIES[f.rarity].growSec;
+    const progress = tub.grow > 0 ? 1 - tub.grow / total : 1;
+    // tub
+    ctx.fillStyle = '#e9ecef';
+    roundRect(p.x - 9, p.y, 18, 9, 2); ctx.fill();
+    // scoop grows bigger until it's ready
+    ctx.fillStyle = f.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y + 1, 3 + 6.5 * progress, Math.PI, 0); ctx.fill();
+    if (tub.grow > 0) {
+      ctx.strokeStyle = '#2fb344';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y + 2, 12, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2); ctx.stroke();
+      if (mine) {
+        ctx.font = 'bold 9px Trebuchet MS';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#1b5e20';
+        ctx.fillText(tub.grow >= 60 ? `${Math.ceil(tub.grow / 60)}m` : `${Math.ceil(tub.grow)}s`, p.x, p.y - 10);
+      }
+    } else if (f.rarity === 'secret' || f.rarity === 'mythic' || f.rarity === 'legendary') {
+      ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 5 + i)})`;
+      ctx.beginPath(); ctx.arc(p.x + 3, p.y - 4, 1.8, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawStand(s, time) {
+    const slot = slots[s.slot];
+    const { x, y } = slot;
+    const mine = s.id === myId;
+
+    // the plot's ground
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    roundRect(x - 150, y - 125, 300, 195, 16); ctx.fill();
+    ctx.strokeStyle = s.color; ctx.globalAlpha = 0.5; ctx.lineWidth = 3;
+    ctx.stroke(); ctx.globalAlpha = 1;
 
     // shadow
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
@@ -439,34 +830,14 @@
     ctx.fillStyle = '#fff';
     roundRect(x - 85, y, 170, 60, 6); ctx.fill();
     ctx.fillStyle = s.color;
-    ctx.fillRect(x - 85, y + 22, 170, 16);
+    ctx.fillRect(x - 85, y + 48, 170, 8);
     ctx.strokeStyle = 'rgba(0,0,0,0.2)';
     ctx.lineWidth = 2;
     roundRect(x - 85, y, 170, 60, 6); ctx.stroke();
 
-    // flavor tubs on the counter
-    // one tub per flavor space; empty spaces are dashed outlines
-    const n = s.spaces;
-    const spacing = Math.min(28, 156 / n);
-    const r = Math.min(11, spacing / 2 - 1);
-    for (let i = s.flavors.length; i < n; i++) {
-      const tx = x - ((n - 1) * spacing) / 2 + i * spacing;
-      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.arc(tx, y + 2, r, Math.PI, 0); ctx.closePath(); ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    s.flavors.forEach((id, i) => {
-      const f = flavorById[id];
-      const tx = x - ((n - 1) * spacing) / 2 + i * spacing;
-      ctx.fillStyle = f.color;
-      ctx.beginPath(); ctx.arc(tx, y + 2, r, Math.PI, 0); ctx.fill();
-      if (f.rarity === 'secret' || f.rarity === 'mythic') {
-        ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 5 + i)})`;
-        ctx.beginPath(); ctx.arc(tx + 2, y - 3, 1.8, 0, Math.PI * 2); ctx.fill();
-      }
-    });
+    // flavor spaces
+    const holding = mine && !!heldItem();
+    for (let i = 0; i < s.spaces; i++) drawTub(s, i, slot, time, holding);
 
     // striped awning
     const stripes = 8, aw = 190, ax = x - aw / 2, ay = y - 62;
@@ -502,34 +873,28 @@
       roundRect(x - 50, y + 66, 100 * Math.min(1, s.serve), 7, 3); ctx.fill();
     }
 
-    const cost = mine && s.flavors.length >= s.spaces ? spaceCost(s.spaces) : null;
-    if (mine) spaceBtn = null;
-    if (cost !== null) {
-      // stand is full: show the Extra Space button on top of it
-      const text = `Extra Space +3 (${fmt(cost)})`;
-      ctx.font = 'bold 16px Trebuchet MS';
-      const bw = ctx.measureText(text).width + 24, bh = 30;
-      const pulse = s.money >= cost ? 1 + Math.sin(time * 6) * 0.04 : 1;
-      spaceBtn = { x: x - bw / 2, y: ay - 70, w: bw, h: bh };
-      ctx.save();
-      ctx.translate(x, ay - 70 + bh / 2);
-      ctx.scale(pulse, pulse);
-      ctx.fillStyle = s.money >= cost ? '#2fb344' : '#a99aa3';
-      roundRect(-bw / 2, -bh / 2, bw, bh, 10); ctx.fill();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-      ctx.fillStyle = '#fff';
-      ctx.fillText(text, 0, 6);
-      ctx.restore();
-    } else if (mine) {
-      const bob = Math.sin(time * 4) * 5;
-      ctx.fillStyle = '#ff2e7e';
-      ctx.beginPath();
-      ctx.moveTo(x, ay - 38 + bob);
-      ctx.lineTo(x - 12, ay - 56 + bob);
-      ctx.lineTo(x + 12, ay - 56 + bob);
-      ctx.fill();
-      ctx.font = 'bold 14px Trebuchet MS';
-      ctx.fillText('YOU', x, ay - 60 + bob);
+    if (mine) {
+      spaceBtn = null;
+      const cost = !s.tubs.includes(null) ? spaceCost(s.spaces) : null;
+      if (cost !== null) {
+        // stand is full: show the Extra Space button on top of it
+        const text = `Extra Space +3 (${fmt(cost)})`;
+        ctx.font = 'bold 16px Trebuchet MS';
+        const bw = ctx.measureText(text).width + 24, bh = 30;
+        const pulse = s.money >= cost ? 1 + Math.sin(time * 6) * 0.04 : 1;
+        spaceBtn = { x: x - bw / 2, y: ay - 70, w: bw, h: bh };
+        ctx.save();
+        ctx.translate(x, ay - 70 + bh / 2);
+        ctx.scale(pulse, pulse);
+        ctx.fillStyle = s.money >= cost ? '#2fb344' : '#a99aa3';
+        roundRect(-bw / 2, -bh / 2, bw, bh, 10); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.fillText(text, 0, 6);
+        ctx.restore();
+      } else if (!s.tubs.some(Boolean)) {
+        drawBubbleButton(x, ay - 54, 'Buy ice cream at the shop!', '#ff6fa5', time);
+      }
     }
   }
 
@@ -633,6 +998,45 @@
     ctx.restore();
   }
 
+  // a player's character: bigger than customers, wears their stand's color, shows their name
+  function drawPlayer(p, time) {
+    const bounce = p.moving ? Math.abs(Math.sin(time * 12)) * 3 : 0;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(0, 18, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.scale(1.7 * p.facing, 1.7);
+    const y = -bounce / 1.7;
+    // legs
+    ctx.fillStyle = '#3b3b58';
+    ctx.fillRect(-6, y + 6, 5, 6);
+    ctx.fillRect(1, y + 6, 5, 6);
+    // body
+    ctx.fillStyle = p.color;
+    roundRect(-9, y - 7, 18, 15, 5); ctx.fill();
+    // head
+    ctx.fillStyle = '#f8d5b8';
+    ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
+    // cap
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(0, y - 16, 8, Math.PI, 0); ctx.fill();
+    ctx.fillRect(0, y - 17, 11, 3);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(2, y - 15, 2, 2.5);
+    ctx.fillRect(5.5, y - 15, 2, 2.5);
+    // the ice cream in your hand
+    if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
+    ctx.restore();
+
+    ctx.font = 'bold 13px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff';
+    ctx.strokeText(p.name, p.x, p.y - 46);
+    ctx.fillStyle = p.isMe ? '#e0457b' : '#3a2a35';
+    ctx.fillText(p.name, p.x, p.y - 46);
+  }
+
   // colored sky, falling sparkles and a banner while a mutation is happening
   function drawEventEffects(time, dt) {
     const m = gameEvent.id && mutationById[gameEvent.id];
@@ -660,18 +1064,21 @@
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.7 + 0.3 * Math.sin(time * 8 + i)), 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
+  }
 
-    if (m) {
-      const text = `${m.emoji} ${m.name.toUpperCase()} MUTATION · x${m.mult} · ${clock(gameEvent.left)}`;
-      ctx.font = 'bold 22px Trebuchet MS';
-      ctx.textAlign = 'center';
-      const w = ctx.measureText(text).width + 40;
-      ctx.fillStyle = 'rgba(30, 15, 25, 0.75)';
-      roundRect(world.width / 2 - w / 2, world.height - 52, w, 40, 14); ctx.fill();
-      ctx.strokeStyle = mutColor(m, time); ctx.lineWidth = 3; ctx.stroke();
-      ctx.fillStyle = '#fff';
-      ctx.fillText(text, world.width / 2, world.height - 24);
-    }
+  // the mutation banner stays at the top of the screen (screen coordinates)
+  function drawEventBanner(time) {
+    const m = gameEvent.id && mutationById[gameEvent.id];
+    if (!m) return;
+    const text = `${m.emoji} ${m.name.toUpperCase()} MUTATION · x${m.mult} · ${clock(gameEvent.left)}`;
+    ctx.font = 'bold 16px Trebuchet MS';
+    ctx.textAlign = 'center';
+    const w = ctx.measureText(text).width + 30;
+    ctx.fillStyle = 'rgba(30, 15, 25, 0.75)';
+    roundRect(view.w / 2 - w / 2, 8, w, 32, 12); ctx.fill();
+    ctx.strokeStyle = mutColor(m, time); ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.fillText(text, view.w / 2, 30);
   }
 
   // Rainbow mutation: warm sunlight after rain, a big rainbow across the park, a light sun shower
@@ -685,13 +1092,13 @@
 
     const fade = Math.min(1, (300 - gameEvent.left) / 4 + 0.15, gameEvent.left / 4); // fade in and out
     const shimmer = 0.03 * Math.sin(time * 0.8);
-    drawRainbowArc(world.width / 2, world.height + 120, 900, 120, (0.34 + shimmer) * fade);
-    drawRainbowArc(world.width / 2, world.height + 120, 1060, 90, (0.12 + shimmer / 2) * fade); // faint double rainbow
+    drawRainbowArc(world.width / 2, world.height + 120, 1100, 140, (0.34 + shimmer) * fade);
+    drawRainbowArc(world.width / 2, world.height + 120, 1290, 100, (0.12 + shimmer / 2) * fade); // faint double rainbow
   }
 
   function drawSunShower(dt) {
     // light sun-shower rain: thin slanted streaks
-    if (Math.random() < dt * 40) {
+    if (Math.random() < dt * 50) {
       raindrops.push({ x: Math.random() * (world.width + 200), y: -20, v: 600 + Math.random() * 250 });
     }
     ctx.strokeStyle = 'rgba(220, 235, 255, 0.55)';
@@ -711,27 +1118,58 @@
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     const time = now / 1000;
-    const rect = canvas.getBoundingClientRect();
+
+    updatePlayer(dt);
+    updateCamera();
 
     ctx.fillStyle = '#6fb34c';
-    ctx.fillRect(0, 0, rect.width, rect.height);
+    ctx.fillRect(0, 0, view.w, view.h);
     ctx.save();
     ctx.translate(view.ox, view.oy);
     ctx.scale(view.scale, view.scale);
     ctx.beginPath(); ctx.rect(0, 0, world.width, world.height); ctx.clip();
 
     drawPark(time);
-    if (gameEvent.id === 'rainbow') drawRainbowSky(time); // behind the stands, like a real rainbow
+    if (gameEvent.id === 'rainbow') drawRainbowSky(time); // behind everything, like a real rainbow
+    drawShop(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);
+    for (const s of stands) drawChest(s, time);
 
-    // smooth customers toward their latest server position, draw back-to-front
+    // smooth customers and other players toward their latest server position
     const k = Math.min(1, dt * 10);
-    const list = [...customers.values()];
-    for (const c of list) { c.dx += (c.x - c.dx) * k; c.dy += (c.y - c.dy) * k; }
-    list.sort((a, b) => a.dy - b.dy);
-    for (const c of list) drawCustomer(c, time);
+    const entities = [];
+    for (const c of customers.values()) {
+      c.dx += (c.x - c.dx) * k; c.dy += (c.y - c.dy) * k;
+      entities.push({ y: c.dy, draw: () => drawCustomer(c, time) });
+    }
+    for (const s of stands) {
+      if (s.id === myId) {
+        if (!player.placed) continue;
+        const p = { x: player.x, y: player.y, facing: player.facing, moving: player.moving,
+          color: s.color, name: s.name, item: heldItem(), isMe: true };
+        entities.push({ y: p.y, draw: () => drawPlayer(p, time) });
+        continue;
+      }
+      let o = others.get(s.id);
+      if (!o) { o = { x: s.x, y: s.y, facing: 1 }; others.set(s.id, o); }
+      const nx = o.x + (s.x - o.x) * k;
+      o.moving = Math.abs(nx - o.x) + Math.abs(s.y - o.y) > 0.5;
+      if (Math.abs(nx - o.x) > 0.3) o.facing = nx > o.x ? 1 : -1;
+      o.x = nx; o.y += (s.y - o.y) * k;
+      const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null };
+      entities.push({ y: o.y, draw: () => drawPlayer(p, time) });
+    }
+    entities.sort((a, b) => a.y - b.y);
+    for (const e of entities) e.draw();
+
+    // where you're walking to
+    if (walkTarget && !walkTarget.action) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(walkTarget.x, walkTarget.y, 12, 5, 0, 0, Math.PI * 2); ctx.stroke();
+    }
 
     drawEventEffects(time, dt);
 
@@ -768,7 +1206,9 @@
     ctx.globalAlpha = 1;
 
     ctx.restore();
+    drawEventBanner(time);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+  window.__icecream = { view, player }; // for automated tests
 })();
