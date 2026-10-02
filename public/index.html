@@ -34,6 +34,12 @@
       </div>
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
+      <div id="eventBox"></div>
+      <div id="testTools" class="hidden">
+        <div class="label">🧪 Test buttons</div>
+        <button id="testMutationBtn">Start a mutation now</button>
+        <button id="testMoneyBtn">+$1,000</button>
+      </div>
 
       <h2>Flavors</h2>
       <div id="flavors"></div>
@@ -41,12 +47,18 @@
       <h2>Upgrades</h2>
       <div id="upgrades"></div>
 
+      <h2>Mutations</h2>
+      <p class="sub">Every 30, 45 or 50 minutes a mutation hits the park for 5 minutes.
+        While it's on, scoops can mutate and sell for much more!</p>
+      <div id="mutations"></div>
+
       <h2>Leaderboard</h2>
       <ol id="leaderboard"></ol>
     </aside>
   </div>
 
   <script src="gamedata.js"></script>
+  <script src="engine.js"></script>
   <script src="client.js"></script>
 </body>
 </html>

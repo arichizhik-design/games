@@ -50,8 +50,28 @@
     return SPACE_COSTS[Math.round((spaces - START_SPACES) / SPACES_PER_BUY)] ?? null;
   }
 
+  // Mutation events: every 30, 45 or 50 minutes one of these takes over the park for a few
+  // minutes. While it's on, scoops can turn into that mutation and sell for `mult` times more.
+  // `weight` = how often it gets picked (rarer mutations pay more).
+  const MUTATIONS = [
+    { id: 'gold',      name: 'Gold',       emoji: '🪙', mult: 2,  weight: 20, colors: ['#ffd700', '#ffec80'] },
+    { id: 'candy',     name: 'Candy',      emoji: '🍬', mult: 3,  weight: 16, colors: ['#ff8fcf', '#8fe3ff', '#fff38f'] },
+    { id: 'frozen',    name: 'Frozen',     emoji: '❄️', mult: 3,  weight: 16, colors: ['#bfefff', '#ffffff'] },
+    { id: 'diamond',   name: 'Diamond',    emoji: '💎', mult: 5,  weight: 12, colors: ['#b9f2ff', '#e8fdff', '#7fdcff'] },
+    { id: 'thunder',   name: 'Thunder',    emoji: '⚡', mult: 6,  weight: 10, colors: ['#fff200', '#5a5aff'] },
+    { id: 'rainbow',   name: 'Rainbow',    emoji: '🌈', mult: 8,  weight: 8,  colors: ['#ff4040', '#ff9f1a', '#ffe81a', '#3ddc4a', '#3d9bff', '#a64dff'] },
+    { id: 'aurora',    name: 'Aurora',     emoji: '🌌', mult: 10, weight: 6,  colors: ['#33ffaa', '#33ccff', '#b366ff'] },
+    { id: 'galaxy',    name: 'Galaxy',     emoji: '🪐', mult: 15, weight: 5,  colors: ['#2a1060', '#7b3cff', '#ff66d9'] },
+    { id: 'yinyang',   name: 'Yin Yang',   emoji: '☯️', mult: 20, weight: 4,  colors: ['#111111', '#ffffff'] },
+    { id: 'bloodmoon', name: 'Blood Moon', emoji: '🌕', mult: 25, weight: 3,  colors: ['#b3001b', '#ff3b3b', '#4a0008'] },
+  ];
+  const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
+  const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
+  const MUTATION_CHANCE = 0.35;           // chance a scoop mutates while an event is on
+
   const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME,
-    START_SPACES, SPACES_PER_BUY, spaceCost };
+    START_SPACES, SPACES_PER_BUY, spaceCost,
+    MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;
 })(this);
