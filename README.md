@@ -19,7 +19,8 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 | Mythic    | Unicorn Dream, Phoenix Fire      | $300–$350       |
 | Secret    | ??? (unlock it to find out!)     | $1,200          |
 
-- **Upgrades:** Faster Scooper (serve faster), Bigger Sign (more customers), Tip Jar (+10% money per level).
+- **Flavor spaces:** your stand starts with 5 spaces for flavors (Vanilla and Chocolate use 2). When they're all full, an **Extra Space** button appears on top of your stand. Buy it to get 3 more spaces ($300, then $6,000, then $75,000).
+- **Upgrades:** Bigger Sign (more customers), Tip Jar (+10% money per level).
 - ⭐ Sometimes a **lucky golden customer** shows up and pays triple.
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.

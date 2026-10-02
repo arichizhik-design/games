@@ -1,5 +1,5 @@
 (() => {
-  const { RARITIES, FLAVORS, UPGRADES, upgradeCost } = window.GameData;
+  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost } = window.GameData;
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
 
   const canvas = document.getElementById('canvas');
@@ -15,6 +15,7 @@
   const floaters = [];
   const particles = [];
   let view = { scale: 1, ox: 0, oy: 0 };
+  let spaceBtn = null; // Extra Space button area (world coords) while it's showing
 
   // ---------- helpers ----------
   function fmt(n) {
@@ -83,6 +84,12 @@
       case 'sale':
         onSale(msg);
         break;
+      case 'spaceAdded': {
+        toast(`+3 flavor spaces! Your stand now holds ${msg.spaces} flavors.`);
+        const s = me();
+        if (s) confetti(slots[s.slot].x, slots[s.slot].y - 40, 40);
+        break;
+      }
       case 'unlocked': {
         const f = flavorById[msg.flavor];
         toast(`New flavor: ${f.name} (${RARITIES[f.rarity].name})!`);
@@ -168,7 +175,9 @@
     const s = me();
     if (!s) return;
     $('money').textContent = fmt(s.money);
-    $('stats').textContent = `${s.sold} scoops sold · ${fmt(s.totalEarned)} earned`;
+    $('stats').textContent = `${s.sold} scoops sold · ${fmt(s.totalEarned)} earned · ` +
+      `${s.flavors.length}/${s.spaces} flavor spaces used`;
+    const full = s.flavors.length >= s.spaces;
     $('serveBar').style.width = Math.min(100, s.serve * 100) + '%';
 
     for (const f of FLAVORS) {
@@ -181,6 +190,9 @@
       const btn = row.querySelector('button');
       if (owned) {
         btn.textContent = 'On menu ✓';
+        btn.disabled = true;
+      } else if (full) {
+        btn.textContent = 'Stand full';
         btn.disabled = true;
       } else {
         btn.textContent = 'Unlock ' + fmt(f.cost);
@@ -236,6 +248,10 @@
     const rect = canvas.getBoundingClientRect();
     const wx = (e.clientX - rect.left - view.ox) / view.scale;
     const wy = (e.clientY - rect.top - view.oy) / view.scale;
+    if (spaceBtn && wx > spaceBtn.x && wx < spaceBtn.x + spaceBtn.w && wy > spaceBtn.y && wy < spaceBtn.y + spaceBtn.h) {
+      send({ type: 'buySpace' });
+      return;
+    }
     const slot = slots[s.slot];
     if (Math.abs(wx - slot.x) < 100 && wy > slot.y - 90 && wy < slot.y + 160) scoop();
   });
@@ -325,13 +341,23 @@
     roundRect(x - 85, y, 170, 60, 6); ctx.stroke();
 
     // flavor tubs on the counter
-    const n = s.flavors.length;
-    const spacing = Math.min(22, 150 / n);
+    // one tub per flavor space; empty spaces are dashed outlines
+    const n = s.spaces;
+    const spacing = Math.min(28, 156 / n);
+    const r = Math.min(11, spacing / 2 - 1);
+    for (let i = s.flavors.length; i < n; i++) {
+      const tx = x - ((n - 1) * spacing) / 2 + i * spacing;
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.arc(tx, y + 2, r, Math.PI, 0); ctx.closePath(); ctx.stroke();
+      ctx.setLineDash([]);
+    }
     s.flavors.forEach((id, i) => {
       const f = flavorById[id];
       const tx = x - ((n - 1) * spacing) / 2 + i * spacing;
       ctx.fillStyle = f.color;
-      ctx.beginPath(); ctx.arc(tx, y + 2, Math.min(9, spacing / 2), Math.PI, 0); ctx.fill();
+      ctx.beginPath(); ctx.arc(tx, y + 2, r, Math.PI, 0); ctx.fill();
       if (f.rarity === 'secret' || f.rarity === 'mythic') {
         ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 5 + i)})`;
         ctx.beginPath(); ctx.arc(tx + 2, y - 3, 1.8, 0, Math.PI * 2); ctx.fill();
@@ -372,7 +398,25 @@
       roundRect(x - 50, y + 66, 100 * Math.min(1, s.serve), 7, 3); ctx.fill();
     }
 
-    if (mine) {
+    const cost = mine && s.flavors.length >= s.spaces ? spaceCost(s.spaces) : null;
+    if (mine) spaceBtn = null;
+    if (cost !== null) {
+      // stand is full: show the Extra Space button on top of it
+      const text = `Extra Space +3 (${fmt(cost)})`;
+      ctx.font = 'bold 16px Trebuchet MS';
+      const bw = ctx.measureText(text).width + 24, bh = 30;
+      const pulse = s.money >= cost ? 1 + Math.sin(time * 6) * 0.04 : 1;
+      spaceBtn = { x: x - bw / 2, y: ay - 70, w: bw, h: bh };
+      ctx.save();
+      ctx.translate(x, ay - 70 + bh / 2);
+      ctx.scale(pulse, pulse);
+      ctx.fillStyle = s.money >= cost ? '#2fb344' : '#a99aa3';
+      roundRect(-bw / 2, -bh / 2, bw, bh, 10); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.fillText(text, 0, 6);
+      ctx.restore();
+    } else if (mine) {
       const bob = Math.sin(time * 4) * 5;
       ctx.fillStyle = '#ff2e7e';
       ctx.beginPath();

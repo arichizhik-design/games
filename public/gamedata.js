@@ -29,7 +29,6 @@
 
   // cost of the next level = base * growth^level
   const UPGRADES = {
-    speed: { name: 'Faster Scooper', desc: 'Serve customers faster',      base: 25, growth: 1.8, max: 10 },
     sign:  { name: 'Bigger Sign',    desc: 'Attract more customers',      base: 40, growth: 1.9, max: 10 },
     tips:  { name: 'Tip Jar',        desc: '+10% money from every scoop', base: 60, growth: 2.0, max: 10 },
   };
@@ -39,11 +38,20 @@
     return Math.round(u.base * Math.pow(u.growth, level));
   }
 
-  function serveTime(speedLevel) {
-    return Math.max(0.5, 3 - speedLevel * 0.25); // seconds
+  const SERVE_TIME = 2.5; // seconds per scoop (the Scoop! button speeds it up)
+
+  // Flavor spaces on the stand: start with 5, each Extra Space adds 3
+  const START_SPACES = 5;
+  const SPACES_PER_BUY = 3;
+  const SPACE_COSTS = [300, 6000, 75000];
+
+  function spaceCost(spaces) {
+    if (spaces >= FLAVORS.length) return null; // already room for every flavor
+    return SPACE_COSTS[Math.round((spaces - START_SPACES) / SPACES_PER_BUY)] ?? null;
   }
 
-  const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, serveTime };
+  const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME,
+    START_SPACES, SPACES_PER_BUY, spaceCost };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;
 })(this);

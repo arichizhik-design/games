@@ -2,7 +2,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
-const { FLAVORS, UPGRADES, upgradeCost, serveTime } = require('./public/gamedata.js');
+const { FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost } =
+  require('./public/gamedata.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -38,7 +39,7 @@ function saveAll() {
 
 function toSave(s) {
   return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
-    flavors: s.flavors, upgrades: s.upgrades };
+    flavors: s.flavors, spaces: s.spaces, upgrades: s.upgrades };
 }
 
 // ---------- game state ----------
@@ -59,7 +60,8 @@ function createStand(ws, name) {
     totalEarned: saved.totalEarned ?? 0,
     sold: saved.sold ?? 0,
     flavors: saved.flavors ?? ['vanilla', 'chocolate'],
-    upgrades: { speed: 0, sign: 0, tips: 0, ...(saved.upgrades || {}) },
+    spaces: saved.spaces ?? START_SPACES,
+    upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, saved.upgrades?.[k] ?? 0])),
     queue: [],
     serveProgress: 0,
     spawnTimer: 0,
@@ -130,7 +132,7 @@ function tick(dt) {
     const front = customers.get(stand.queue[0]);
     if (front && front.state === 'waiting') {
       stand.serveProgress += dt + Math.min(stand.clicks, 3) * 0.35;
-      if (stand.serveProgress >= serveTime(stand.upgrades.speed)) completeSale(stand);
+      if (stand.serveProgress >= SERVE_TIME) completeSale(stand);
     }
     stand.clicks = 0;
   }
@@ -161,8 +163,8 @@ function tick(dt) {
     stands: [...stands.values()].map(s => ({
       id: s.id, name: s.name, slot: s.slot, color: s.color,
       money: s.money, totalEarned: s.totalEarned, sold: s.sold,
-      flavors: s.flavors, upgrades: s.upgrades,
-      serve: s.queue.length ? s.serveProgress / serveTime(s.upgrades.speed) : 0,
+      flavors: s.flavors, spaces: s.spaces, upgrades: s.upgrades,
+      serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
     })),
     customers: [...customers.values()].map(c => ({
       id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor,
@@ -201,10 +203,20 @@ function handle(ws, msg) {
   } else if (msg.type === 'buyFlavor') {
     const f = flavorById[msg.id];
     if (!f || stand.flavors.includes(f.id)) return;
+    if (stand.flavors.length >= stand.spaces) {
+      return send(ws, { type: 'error', text: 'Your stand is full! Buy Extra Space first.' });
+    }
     if (stand.money < f.cost) return send(ws, { type: 'error', text: 'Not enough money!' });
     stand.money -= f.cost;
     stand.flavors.push(f.id);
     send(ws, { type: 'unlocked', flavor: f.id });
+  } else if (msg.type === 'buySpace') {
+    const cost = spaceCost(stand.spaces);
+    if (cost === null || stand.flavors.length < stand.spaces) return;
+    if (stand.money < cost) return send(ws, { type: 'error', text: 'Not enough money!' });
+    stand.money -= cost;
+    stand.spaces += SPACES_PER_BUY;
+    send(ws, { type: 'spaceAdded', spaces: stand.spaces });
   } else if (msg.type === 'buyUpgrade') {
     const u = UPGRADES[msg.key];
     if (!u) return;
