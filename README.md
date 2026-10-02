@@ -27,20 +27,21 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 
   | Mutation | Money | Mutation | Money |
   |---|---|---|---|
-  | 🪙 Gold | x2 | 🌈 Rainbow | x8 |
-  | 🍬 Candy | x3 | 🌌 Aurora | x10 |
-  | ❄️ Frozen | x3 | 🪐 Galaxy | x15 |
-  | 💎 Diamond | x5 | ☯️ Yin Yang | x20 |
-  | ⚡ Thunder | x6 | 🌕 Blood Moon | x25 |
+  | 🪙 Gold | x2 | 🌌 Aurora | x10 |
+  | 🍬 Candy | x3 | 🪐 Galaxy | x15 |
+  | ❄️ Frozen | x3 | ☯️ Yin Yang | x20 |
+  | 💎 Diamond | x5 | 🌕 Blood Moon | x25 |
+  | ⚡ Thunder | x6 | 🌈 **Rainbow** | **x30** |
 
-  Rarer mutations (bigger money) come up less often.
+  Rarer mutations (bigger money) come up less often. **Rainbow** is the best and rarest: a real
+  rainbow arches over the park during a light sun shower, and scoops come out rainbow-striped.
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.
 
 ## Quick test (no install)
 
 Open `ice-cream-tycoon.html` in any web browser. It's a single-player version of the game in one
-file. Progress is saved in that browser, and it has test buttons to start a mutation right away
+file. Progress is saved in that browser, and it has test buttons to start any mutation right away
 and to add $1,000. After changing the game, run `npm run build` to rebuild this file.
 
 ## Running it (multiplayer)

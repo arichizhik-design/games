@@ -107,6 +107,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 }
 #testTools .label { width: 100%; font-size: 12px; color: #8a7480; }
 #testTools button { background: #845ef7; font-size: 13px; }
+#testTools select { font: inherit; font-size: 13px; padding: 6px; border-radius: 8px; border: 2px solid #d0bfff; }
 
 .mut-badge {
   display: inline-block; font-size: 11px; font-weight: bold; color: white; padding: 1px 6px;

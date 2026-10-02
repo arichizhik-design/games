@@ -131,7 +131,9 @@
         break;
       case 'mutationStart': {
         const m = mutationById[msg.mutation];
-        toast(`${m.emoji} ${m.name} mutation has started! Scoops can turn ${m.name} (x${m.mult} money)!`);
+        toast(m.id === 'rainbow'
+          ? `🌈 A RAINBOW appeared! The best mutation: scoops can turn Rainbow (x${m.mult} money)!`
+          : `${m.emoji} ${m.name} mutation has started! Scoops can turn ${m.name} (x${m.mult} money)!`);
         for (const sl of slots) confetti(sl.x, sl.y - 40, 12);
         break;
       }
@@ -329,7 +331,14 @@
     }
   }
   $('scoopBtn').addEventListener('click', scoop);
-  $('testMutationBtn').addEventListener('click', () => send({ type: 'testMutation' }));
+  for (const m of MUTATIONS) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = `${m.emoji} ${m.name} (x${m.mult})`;
+    $('testMutationPick').appendChild(opt);
+  }
+  $('testMutationBtn').addEventListener('click', () =>
+    send({ type: 'testMutation', id: $('testMutationPick').value || undefined }));
   $('testMoneyBtn').addEventListener('click', () => send({ type: 'testMoney' }));
   document.addEventListener('keydown', e => {
     if (e.code === 'Space' && myId && document.activeElement.tagName !== 'INPUT') {
@@ -534,8 +543,44 @@
     ctx.lineTo(x + size * 0.6, y);
     ctx.lineTo(x, y + size * 1.4);
     ctx.fill();
+    const cx = x, cy = y - size * 0.2, r = size * 0.75;
+    if (flavor.stripes) {
+      // real rainbow scoop: soft color bands from red on top to violet at the bottom
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+      const band = (2 * r) / flavor.stripes.length;
+      flavor.stripes.forEach((c, i) => {
+        ctx.fillStyle = c;
+        ctx.fillRect(cx - r, cy - r + i * band, 2 * r, band + 0.5);
+      });
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; // shine
+      ctx.beginPath(); ctx.arc(cx - r * 0.35, cy - r * 0.35, r * 0.35, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      return;
+    }
     ctx.fillStyle = flavor.color;
-    ctx.beginPath(); ctx.arc(x, y - size * 0.2, size * 0.75, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // a rainbow arc, like the real thing: red on the outside, violet inside, faded and see-through
+  function drawRainbowArc(cx, cy, radius, width, alpha) {
+    const colors = mutationById.rainbow.colors;
+    const band = width / colors.length;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = band + 1;
+    colors.forEach((c, i) => {
+      ctx.strokeStyle = c;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - i * band - band / 2, Math.PI, 0);
+      ctx.stroke();
+    });
+    // soft glow on both edges so it blends into the sky
+    ctx.globalAlpha = alpha * 0.4;
+    ctx.lineWidth = band * 1.5;
+    ctx.strokeStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(cx, cy, radius - width - band * 0.6, Math.PI, 0); ctx.stroke();
+    ctx.restore();
   }
 
   function drawCustomer(c, time) {
@@ -571,11 +616,11 @@
     const flavor = flavorById[c.flavor];
     if (c.served && c.mutation) {
       const m = mutationById[c.mutation];
-      ctx.fillStyle = mutColor(m, time + c.id);
-      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = m.id === 'rainbow' ? 'rgba(255,255,255,0.8)' : mutColor(m, time + c.id);
+      ctx.globalAlpha = 0.5 + (m.id === 'rainbow' ? 0.2 * Math.sin(time * 3 + c.id) : 0);
       ctx.beginPath(); ctx.arc(x + 12, y - 4, 11, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
-      drawCone(x + 12, y - 2, { color: mutColor(m, time) }, 7);
+      drawCone(x + 12, y - 2, m.id === 'rainbow' ? { stripes: m.colors } : { color: mutColor(m, time) }, 7);
     } else if (c.served) {
       drawCone(x + 12, y - 2, flavor, 6);
     } else if (c.state === 'waiting') {
@@ -591,9 +636,11 @@
   // colored sky, falling sparkles and a banner while a mutation is happening
   function drawEventEffects(time, dt) {
     const m = gameEvent.id && mutationById[gameEvent.id];
-    if (m) {
+    if (m && m.id === 'rainbow') {
+      drawSunShower(dt);
+    } else if (m) {
       ctx.globalAlpha = m.id === 'bloodmoon' ? 0.22 : 0.13;
-      ctx.fillStyle = m.id === 'rainbow' ? `hsl(${(time * 60) % 360}, 90%, 60%)` : m.colors[0];
+      ctx.fillStyle = m.colors[0];
       ctx.fillRect(0, 0, world.width, world.height);
       ctx.globalAlpha = 1;
       for (let i = 0; i < 2; i++) {
@@ -627,6 +674,38 @@
     }
   }
 
+  // Rainbow mutation: warm sunlight after rain, a big rainbow across the park, a light sun shower
+  const raindrops = [];
+  function drawRainbowSky(time) {
+    const sun = ctx.createRadialGradient(world.width * 0.9, -40, 20, world.width * 0.9, -40, 700);
+    sun.addColorStop(0, 'rgba(255, 244, 200, 0.45)');
+    sun.addColorStop(1, 'rgba(255, 244, 200, 0)');
+    ctx.fillStyle = sun;
+    ctx.fillRect(0, 0, world.width, world.height);
+
+    const fade = Math.min(1, (300 - gameEvent.left) / 4 + 0.15, gameEvent.left / 4); // fade in and out
+    const shimmer = 0.03 * Math.sin(time * 0.8);
+    drawRainbowArc(world.width / 2, world.height + 120, 900, 120, (0.34 + shimmer) * fade);
+    drawRainbowArc(world.width / 2, world.height + 120, 1060, 90, (0.12 + shimmer / 2) * fade); // faint double rainbow
+  }
+
+  function drawSunShower(dt) {
+    // light sun-shower rain: thin slanted streaks
+    if (Math.random() < dt * 40) {
+      raindrops.push({ x: Math.random() * (world.width + 200), y: -20, v: 600 + Math.random() * 250 });
+    }
+    ctx.strokeStyle = 'rgba(220, 235, 255, 0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = raindrops.length - 1; i >= 0; i--) {
+      const d = raindrops[i];
+      d.y += d.v * dt; d.x -= d.v * 0.2 * dt;
+      if (d.y > world.height) { raindrops.splice(i, 1); continue; }
+      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + 4, d.y - 18);
+    }
+    ctx.stroke();
+  }
+
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000);
@@ -642,6 +721,7 @@
     ctx.beginPath(); ctx.rect(0, 0, world.width, world.height); ctx.clip();
 
     drawPark(time);
+    if (gameEvent.id === 'rainbow') drawRainbowSky(time); // behind the stands, like a real rainbow
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);
@@ -677,7 +757,12 @@
       ctx.lineWidth = 4;
       ctx.strokeStyle = f.mutation ? '#2a1a25' : '#fff';
       ctx.strokeText(f.text, f.x, f.y - f.t * 40);
-      ctx.fillStyle = f.mutation ? mutColor(f.mutation, time) : f.color;
+      if (f.mutation && f.mutation.id === 'rainbow') {
+        const w = ctx.measureText(f.text).width;
+        const g = ctx.createLinearGradient(f.x - w / 2, 0, f.x + w / 2, 0);
+        f.mutation.colors.forEach((c, i, a) => g.addColorStop(i / (a.length - 1), c));
+        ctx.fillStyle = g;
+      } else ctx.fillStyle = f.mutation ? mutColor(f.mutation, time) : f.color;
       ctx.fillText(f.text, f.x, f.y - f.t * 40);
     }
     ctx.globalAlpha = 1;

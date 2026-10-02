@@ -59,11 +59,13 @@
     { id: 'frozen',    name: 'Frozen',     emoji: '❄️', mult: 3,  weight: 16, colors: ['#bfefff', '#ffffff'] },
     { id: 'diamond',   name: 'Diamond',    emoji: '💎', mult: 5,  weight: 12, colors: ['#b9f2ff', '#e8fdff', '#7fdcff'] },
     { id: 'thunder',   name: 'Thunder',    emoji: '⚡', mult: 6,  weight: 10, colors: ['#fff200', '#5a5aff'] },
-    { id: 'rainbow',   name: 'Rainbow',    emoji: '🌈', mult: 8,  weight: 8,  colors: ['#ff4040', '#ff9f1a', '#ffe81a', '#3ddc4a', '#3d9bff', '#a64dff'] },
     { id: 'aurora',    name: 'Aurora',     emoji: '🌌', mult: 10, weight: 6,  colors: ['#33ffaa', '#33ccff', '#b366ff'] },
     { id: 'galaxy',    name: 'Galaxy',     emoji: '🪐', mult: 15, weight: 5,  colors: ['#2a1060', '#7b3cff', '#ff66d9'] },
     { id: 'yinyang',   name: 'Yin Yang',   emoji: '☯️', mult: 20, weight: 4,  colors: ['#111111', '#ffffff'] },
     { id: 'bloodmoon', name: 'Blood Moon', emoji: '🌕', mult: 25, weight: 3,  colors: ['#b3001b', '#ff3b3b', '#4a0008'] },
+    // the best and rarest mutation
+    { id: 'rainbow',   name: 'Rainbow',    emoji: '🌈', mult: 30, weight: 2,
+      colors: ['#e8202a', '#f7811e', '#fbd31a', '#3cb44a', '#2a7fd4', '#4b3aa8', '#8f3fb8'] },
   ];
   const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
