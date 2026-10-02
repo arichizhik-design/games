@@ -113,6 +113,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
 }
 #testTools .label { width: 100%; font-size: 12px; color: #8a7480; }
+
+#adminPanel {
+  margin-top: 10px; padding: 10px; border-radius: 12px;
+  background: linear-gradient(135deg, #fff3bf, #ffe066); border: 3px solid #f2b705;
+}
+.adminTitle { font-weight: bold; font-size: 16px; color: #8a5a00; margin-bottom: 6px; }
+.adminRow { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+#adminPanel button { background: #e8a200; font-size: 13px; white-space: nowrap; }
+#adminPanel select, #adminPanel input {
+  font: inherit; font-size: 13px; padding: 6px; border-radius: 8px; border: 2px solid #f2b705; min-width: 0;
+}
+#adminFlavor { flex: 1; }
+#adminCount { width: 64px; }
+#adminCmd { flex: 1; }
 #testTools button { background: #845ef7; font-size: 13px; }
 #testTools select { font: inherit; font-size: 13px; padding: 6px; border-radius: 8px; border: 2px solid #d0bfff; }
 
@@ -267,6 +281,27 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         (keys 1–0), then tap a dashed space on your stand to place it.</p>
       <div id="shopTimerSide" class="sideTimer"></div>
       <div id="eventBox"></div>
+      <div id="adminPanel" class="hidden">
+        <div class="adminTitle">👑 Admin commands</div>
+        <div class="adminRow">
+          <button data-money="1e9">+$1B</button>
+          <button data-money="1e12">+$1T</button>
+        </div>
+        <div class="adminRow">
+          <select id="adminFlavor"></select>
+          <input id="adminCount" type="number" min="1" max="990" value="10">
+          <button id="adminGiveBtn">Give</button>
+        </div>
+        <div class="adminRow">
+          <button id="adminEndBtn">End mutation</button>
+        </div>
+        <form id="adminCmdForm" class="adminRow">
+          <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
+          <button type="submit">Run</button>
+        </form>
+        <div class="sub">Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end ·
+          /restock · /grow · /help</div>
+      </div>
       <div id="testTools" class="hidden">
         <div class="label">🧪 Test buttons</div>
         <select id="testMutationPick"><option value="">Random mutation</option></select>
@@ -396,6 +431,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const WORLD = { width: 1280, height: 1180 };
   const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
   const REACH = 230;                 // how close you must stand to use something
+  const ADMIN_NAMES = ['coolkid'];   // these names get admin commands
+  const ADMIN_MONEY = 1e12;          // admins start with $1 trillion
   const MAX_QUEUE = 5;
   const WALK_SPEED = 170;            // customers
   const COLORS = ['#ff6b6b', '#4dabf7', '#51cf66', '#fcc419', '#cc5de8', '#ff922b',
@@ -673,7 +710,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           money: s.money, totalEarned: s.totalEarned, sold: s.sold,
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
-          x: Math.round(s.x), y: Math.round(s.y), hand: s.hand,
+          x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin,
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
@@ -701,8 +738,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const s = createStand(conn, name);
         if (!s) return err('The park is full (12 stands). Try again later!');
         conn.standId = s.id;
+        s.admin = ADMIN_NAMES.includes(s.key);
+        if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS,
-          returning: !!saves[s.key], allowTest });
+          returning: !!saves[s.key], allowTest, admin: s.admin });
         return;
       }
       if (!stand) return;
@@ -778,16 +817,30 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
         stand.upgrades[msg.key]++;
-      } else if (allowTest && msg.type === 'testMutation') {
+      } else if (stand.admin && msg.type === 'adminMoney') {
+        const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
+        stand.money += amount;
+        conn.send({ type: 'admin', text: `Added $${amount.toLocaleString()}` });
+      } else if (stand.admin && msg.type === 'adminGive') {
+        // put any ice cream in your inventory, even if the shop is sold out
+        const f = flavorById[msg.flavor];
+        if (!f) return err('No ice cream with that name.');
+        const count = Math.min(990, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        const left = addItem(stand.storage, f.id, addItem(stand.hotbar, f.id, count));
+        if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+        conn.send({ type: 'admin', text: `Gave you ${count - left} ${f.name}` + (left ? ` (${left} didn't fit)` : '') });
+      } else if (stand.admin && msg.type === 'adminEndMutation') {
+        if (event.id) event.left = 0.01;
+      } else if ((allowTest || stand.admin) && msg.type === 'testMutation') {
         // test button: start a (new) mutation event right away
         if (event.id) broadcast({ type: 'mutationEnd', mutation: event.id });
         startMutation(msg.id);
-      } else if (allowTest && msg.type === 'testMoney') {
+      } else if ((allowTest || stand.admin) && msg.type === 'testMoney') {
         stand.money += 1000;
         stand.totalEarned += 1000;
-      } else if (allowTest && msg.type === 'testRestock') {
+      } else if ((allowTest || stand.admin) && msg.type === 'testRestock') {
         restock();
-      } else if (allowTest && msg.type === 'testGrow') {
+      } else if ((allowTest || stand.admin) && msg.type === 'testGrow') {
         for (const t of stand.tubs) if (t) t.grow = 0;
       }
     }
@@ -844,6 +897,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // ---------- helpers ----------
   function fmt(n) {
+    if (n >= 1e12) return '$' + +(n / 1e12).toFixed(2) + 'T';
+    if (n >= 1e9) return '$' + +(n / 1e9).toFixed(2) + 'B';
     if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
     if (n >= 1e4) return '$' + (n / 1e3).toFixed(1) + 'K';
     return '$' + (Math.round(n * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -948,13 +1003,18 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         $('game').classList.remove('hidden');
         buildPanel();
         buildHotbar();
-        $('testTools').classList.toggle('hidden', !msg.allowTest);
+        $('testTools').classList.toggle('hidden', !msg.allowTest && !msg.admin);
+        $('adminPanel').classList.toggle('hidden', !msg.admin);
         resize();
-        toast(msg.returning ? 'Welcome back! Your stand is open again.'
+        if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
+        else toast(msg.returning ? 'Welcome back! Your stand is open again.'
           : 'Welcome! Walk with the arrow keys or tap where you want to go.');
         break;
       case 'error':
         if (myId) toast(msg.text); else $('joinError').textContent = msg.text;
+        break;
+      case 'admin':
+        toast('👑 ' + msg.text);
         break;
       case 'state':
         stands = msg.stands;
@@ -1300,6 +1360,64 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   $('testMoneyBtn').addEventListener('click', () => send({ type: 'testMoney' }));
   $('testRestockBtn').addEventListener('click', () => send({ type: 'testRestock' }));
   $('testGrowBtn').addEventListener('click', () => send({ type: 'testGrow' }));
+
+  // ---------- admin commands (only work for admin names like "coolkid") ----------
+  for (const f of FLAVORS) {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.name;
+    $('adminFlavor').appendChild(opt);
+  }
+  document.querySelectorAll('#adminPanel [data-money]').forEach(btn =>
+    btn.addEventListener('click', () => send({ type: 'adminMoney', amount: Number(btn.dataset.money) })));
+  $('adminGiveBtn').addEventListener('click', () =>
+    send({ type: 'adminGive', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
+  $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
+
+  const squash = t => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const findFlavor = t => FLAVORS.find(f => squash(f.id) === squash(t) || squash(f.name) === squash(t));
+  const findMutation = t => MUTATIONS.find(m => squash(m.id) === squash(t) || squash(m.name) === squash(t));
+
+  function parseAmount(t) {
+    const m = String(t || '').toLowerCase().replace(/[$,]/g, '').match(/^(\d+(?:\.\d+)?)([kmbt]?)$/);
+    if (!m) return NaN;
+    return Number(m[1]) * { '': 1, k: 1e3, m: 1e6, b: 1e9, t: 1e12 }[m[2]];
+  }
+
+  function runCommand(line) {
+    const [cmd, ...args] = line.trim().replace(/^[/;:]/, '').split(/\s+/);
+    switch ((cmd || '').toLowerCase()) {
+      case 'money': {
+        const amount = parseAmount(args[0]);
+        if (!(amount > 0)) return toast('Try: /money 5t (k, m, b or t)');
+        return send({ type: 'adminMoney', amount });
+      }
+      case 'give': {
+        // the flavor name can have spaces: /give cookie dough 5
+        let count = 1;
+        if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) count = Number(args.pop());
+        const f = findFlavor(args.join(' '));
+        if (!f) return toast('Try: /give rainbow 5 (any flavor name)');
+        return send({ type: 'adminGive', flavor: f.id, count });
+      }
+      case 'mutation': case 'mutate': {
+        if (squash(args[0]) === 'end' || squash(args[0]) === 'stop') return send({ type: 'adminEndMutation' });
+        const m = args.length ? findMutation(args.join(' ')) : null;
+        if (args.length && !m) return toast('Try: /mutation rainbow, /mutation blood moon or /mutation end');
+        return send({ type: 'testMutation', id: m && m.id });
+      }
+      case 'restock': return send({ type: 'testRestock' });
+      case 'grow': return send({ type: 'testGrow' });
+      default:
+        return toast('Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end · /restock · /grow');
+    }
+  }
+  $('adminCmdForm').addEventListener('submit', e => {
+    e.preventDefault();
+    runCommand($('adminCmd').value);
+    $('adminCmd').value = '';
+    $('adminCmd').blur();
+  });
 
   const MOVE_KEYS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
     KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
@@ -1837,15 +1955,26 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.fillRect(5.5, y - 15, 2, 2.5);
     // the ice cream in your hand
     if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
+    if (p.admin) {
+      // golden crown
+      ctx.fillStyle = '#ffd43b';
+      ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(-7, y - 23); ctx.lineTo(-7, y - 31); ctx.lineTo(-3.5, y - 27);
+      ctx.lineTo(0, y - 33); ctx.lineTo(3.5, y - 27); ctx.lineTo(7, y - 31); ctx.lineTo(7, y - 23);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
     ctx.restore();
 
     ctx.font = 'bold 13px Trebuchet MS';
     ctx.textAlign = 'center';
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#fff';
-    ctx.strokeText(p.name, p.x, p.y - 46);
-    ctx.fillStyle = p.isMe ? '#e0457b' : '#3a2a35';
-    ctx.fillText(p.name, p.x, p.y - 46);
+    const label = p.admin ? `👑 ${p.name} [ADMIN]` : p.name;
+    const ly = p.admin ? p.y - 62 : p.y - 46;
+    ctx.strokeText(label, p.x, ly);
+    ctx.fillStyle = p.admin ? '#e8a200' : p.isMe ? '#e0457b' : '#3a2a35';
+    ctx.fillText(label, p.x, ly);
   }
 
   // colored sky, falling sparkles and a banner while a mutation is happening
@@ -1959,7 +2088,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       if (s.id === myId) {
         if (!player.placed) continue;
         const p = { x: player.x, y: player.y, facing: player.facing, moving: player.moving,
-          color: s.color, name: s.name, item: heldItem(), isMe: true };
+          color: s.color, name: s.name, item: heldItem(), isMe: true, admin: s.admin };
         entities.push({ y: p.y, draw: () => drawPlayer(p, time) });
         continue;
       }
@@ -1969,7 +2098,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       o.moving = Math.abs(nx - o.x) + Math.abs(s.y - o.y) > 0.5;
       if (Math.abs(nx - o.x) > 0.3) o.facing = nx > o.x ? 1 : -1;
       o.x = nx; o.y += (s.y - o.y) * k;
-      const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null };
+      const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null, admin: s.admin };
       entities.push({ y: o.y, draw: () => drawPlayer(p, time) });
     }
     entities.sort((a, b) => a.y - b.y);

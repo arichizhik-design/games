@@ -12,6 +12,8 @@
   const WORLD = { width: 1280, height: 1180 };
   const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
   const REACH = 230;                 // how close you must stand to use something
+  const ADMIN_NAMES = ['coolkid'];   // these names get admin commands
+  const ADMIN_MONEY = 1e12;          // admins start with $1 trillion
   const MAX_QUEUE = 5;
   const WALK_SPEED = 170;            // customers
   const COLORS = ['#ff6b6b', '#4dabf7', '#51cf66', '#fcc419', '#cc5de8', '#ff922b',
@@ -289,7 +291,7 @@
           money: s.money, totalEarned: s.totalEarned, sold: s.sold,
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
-          x: Math.round(s.x), y: Math.round(s.y), hand: s.hand,
+          x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin,
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
@@ -317,8 +319,10 @@
         const s = createStand(conn, name);
         if (!s) return err('The park is full (12 stands). Try again later!');
         conn.standId = s.id;
+        s.admin = ADMIN_NAMES.includes(s.key);
+        if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS,
-          returning: !!saves[s.key], allowTest });
+          returning: !!saves[s.key], allowTest, admin: s.admin });
         return;
       }
       if (!stand) return;
@@ -394,16 +398,30 @@
         if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
         stand.upgrades[msg.key]++;
-      } else if (allowTest && msg.type === 'testMutation') {
+      } else if (stand.admin && msg.type === 'adminMoney') {
+        const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
+        stand.money += amount;
+        conn.send({ type: 'admin', text: `Added $${amount.toLocaleString()}` });
+      } else if (stand.admin && msg.type === 'adminGive') {
+        // put any ice cream in your inventory, even if the shop is sold out
+        const f = flavorById[msg.flavor];
+        if (!f) return err('No ice cream with that name.');
+        const count = Math.min(990, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        const left = addItem(stand.storage, f.id, addItem(stand.hotbar, f.id, count));
+        if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+        conn.send({ type: 'admin', text: `Gave you ${count - left} ${f.name}` + (left ? ` (${left} didn't fit)` : '') });
+      } else if (stand.admin && msg.type === 'adminEndMutation') {
+        if (event.id) event.left = 0.01;
+      } else if ((allowTest || stand.admin) && msg.type === 'testMutation') {
         // test button: start a (new) mutation event right away
         if (event.id) broadcast({ type: 'mutationEnd', mutation: event.id });
         startMutation(msg.id);
-      } else if (allowTest && msg.type === 'testMoney') {
+      } else if ((allowTest || stand.admin) && msg.type === 'testMoney') {
         stand.money += 1000;
         stand.totalEarned += 1000;
-      } else if (allowTest && msg.type === 'testRestock') {
+      } else if ((allowTest || stand.admin) && msg.type === 'testRestock') {
         restock();
-      } else if (allowTest && msg.type === 'testGrow') {
+      } else if ((allowTest || stand.admin) && msg.type === 'testGrow') {
         for (const t of stand.tubs) if (t) t.grow = 0;
       }
     }

@@ -106,6 +106,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
 }
 #testTools .label { width: 100%; font-size: 12px; color: #8a7480; }
+
+#adminPanel {
+  margin-top: 10px; padding: 10px; border-radius: 12px;
+  background: linear-gradient(135deg, #fff3bf, #ffe066); border: 3px solid #f2b705;
+}
+.adminTitle { font-weight: bold; font-size: 16px; color: #8a5a00; margin-bottom: 6px; }
+.adminRow { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+#adminPanel button { background: #e8a200; font-size: 13px; white-space: nowrap; }
+#adminPanel select, #adminPanel input {
+  font: inherit; font-size: 13px; padding: 6px; border-radius: 8px; border: 2px solid #f2b705; min-width: 0;
+}
+#adminFlavor { flex: 1; }
+#adminCount { width: 64px; }
+#adminCmd { flex: 1; }
 #testTools button { background: #845ef7; font-size: 13px; }
 #testTools select { font: inherit; font-size: 13px; padding: 6px; border-radius: 8px; border: 2px solid #d0bfff; }
 

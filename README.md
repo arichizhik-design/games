@@ -48,6 +48,23 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.
 
+## Admin mode
+
+Join with the name **coolkid** (any capitals) to get admin mode: you start with **$1 trillion**, wear a
+gold crown with an [ADMIN] tag, and get an **Admin commands** panel. You can use its buttons or type commands:
+
+| Command | What it does |
+|---|---|
+| `/money 5t` | Adds money (use k, m, b or t, like `500k`, `2b`, `5t`) |
+| `/give rainbow sherbet 10` | Puts any ice cream in your hotbar, even if the shop is sold out |
+| `/mutation rainbow` | Starts that mutation for everyone right now (`/mutation` alone picks one at random) |
+| `/mutation end` | Ends the current mutation |
+| `/restock` | Gives the shop new stock right now |
+| `/grow` | Finishes growing every tub on your stand |
+
+Admin names are listed in `ADMIN_NAMES` in `public/engine.js`. In multiplayer, anyone who types an
+admin name gets admin, so keep it a secret or change it.
+
 ## Quick test (no install)
 
 Open `ice-cream-tycoon.html` in any web browser. It's a single-player version of the game in one

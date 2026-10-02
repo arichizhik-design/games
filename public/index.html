@@ -63,6 +63,27 @@
         (keys 1–0), then tap a dashed space on your stand to place it.</p>
       <div id="shopTimerSide" class="sideTimer"></div>
       <div id="eventBox"></div>
+      <div id="adminPanel" class="hidden">
+        <div class="adminTitle">👑 Admin commands</div>
+        <div class="adminRow">
+          <button data-money="1e9">+$1B</button>
+          <button data-money="1e12">+$1T</button>
+        </div>
+        <div class="adminRow">
+          <select id="adminFlavor"></select>
+          <input id="adminCount" type="number" min="1" max="990" value="10">
+          <button id="adminGiveBtn">Give</button>
+        </div>
+        <div class="adminRow">
+          <button id="adminEndBtn">End mutation</button>
+        </div>
+        <form id="adminCmdForm" class="adminRow">
+          <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
+          <button type="submit">Run</button>
+        </form>
+        <div class="sub">Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end ·
+          /restock · /grow · /help</div>
+      </div>
       <div id="testTools" class="hidden">
         <div class="label">🧪 Test buttons</div>
         <select id="testMutationPick"><option value="">Random mutation</option></select>

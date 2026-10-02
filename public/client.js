@@ -33,6 +33,8 @@
 
   // ---------- helpers ----------
   function fmt(n) {
+    if (n >= 1e12) return '$' + +(n / 1e12).toFixed(2) + 'T';
+    if (n >= 1e9) return '$' + +(n / 1e9).toFixed(2) + 'B';
     if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
     if (n >= 1e4) return '$' + (n / 1e3).toFixed(1) + 'K';
     return '$' + (Math.round(n * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -137,13 +139,18 @@
         $('game').classList.remove('hidden');
         buildPanel();
         buildHotbar();
-        $('testTools').classList.toggle('hidden', !msg.allowTest);
+        $('testTools').classList.toggle('hidden', !msg.allowTest && !msg.admin);
+        $('adminPanel').classList.toggle('hidden', !msg.admin);
         resize();
-        toast(msg.returning ? 'Welcome back! Your stand is open again.'
+        if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
+        else toast(msg.returning ? 'Welcome back! Your stand is open again.'
           : 'Welcome! Walk with the arrow keys or tap where you want to go.');
         break;
       case 'error':
         if (myId) toast(msg.text); else $('joinError').textContent = msg.text;
+        break;
+      case 'admin':
+        toast('👑 ' + msg.text);
         break;
       case 'state':
         stands = msg.stands;
@@ -489,6 +496,64 @@
   $('testMoneyBtn').addEventListener('click', () => send({ type: 'testMoney' }));
   $('testRestockBtn').addEventListener('click', () => send({ type: 'testRestock' }));
   $('testGrowBtn').addEventListener('click', () => send({ type: 'testGrow' }));
+
+  // ---------- admin commands (only work for admin names like "coolkid") ----------
+  for (const f of FLAVORS) {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.name;
+    $('adminFlavor').appendChild(opt);
+  }
+  document.querySelectorAll('#adminPanel [data-money]').forEach(btn =>
+    btn.addEventListener('click', () => send({ type: 'adminMoney', amount: Number(btn.dataset.money) })));
+  $('adminGiveBtn').addEventListener('click', () =>
+    send({ type: 'adminGive', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
+  $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
+
+  const squash = t => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const findFlavor = t => FLAVORS.find(f => squash(f.id) === squash(t) || squash(f.name) === squash(t));
+  const findMutation = t => MUTATIONS.find(m => squash(m.id) === squash(t) || squash(m.name) === squash(t));
+
+  function parseAmount(t) {
+    const m = String(t || '').toLowerCase().replace(/[$,]/g, '').match(/^(\d+(?:\.\d+)?)([kmbt]?)$/);
+    if (!m) return NaN;
+    return Number(m[1]) * { '': 1, k: 1e3, m: 1e6, b: 1e9, t: 1e12 }[m[2]];
+  }
+
+  function runCommand(line) {
+    const [cmd, ...args] = line.trim().replace(/^[/;:]/, '').split(/\s+/);
+    switch ((cmd || '').toLowerCase()) {
+      case 'money': {
+        const amount = parseAmount(args[0]);
+        if (!(amount > 0)) return toast('Try: /money 5t (k, m, b or t)');
+        return send({ type: 'adminMoney', amount });
+      }
+      case 'give': {
+        // the flavor name can have spaces: /give cookie dough 5
+        let count = 1;
+        if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) count = Number(args.pop());
+        const f = findFlavor(args.join(' '));
+        if (!f) return toast('Try: /give rainbow 5 (any flavor name)');
+        return send({ type: 'adminGive', flavor: f.id, count });
+      }
+      case 'mutation': case 'mutate': {
+        if (squash(args[0]) === 'end' || squash(args[0]) === 'stop') return send({ type: 'adminEndMutation' });
+        const m = args.length ? findMutation(args.join(' ')) : null;
+        if (args.length && !m) return toast('Try: /mutation rainbow, /mutation blood moon or /mutation end');
+        return send({ type: 'testMutation', id: m && m.id });
+      }
+      case 'restock': return send({ type: 'testRestock' });
+      case 'grow': return send({ type: 'testGrow' });
+      default:
+        return toast('Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end · /restock · /grow');
+    }
+  }
+  $('adminCmdForm').addEventListener('submit', e => {
+    e.preventDefault();
+    runCommand($('adminCmd').value);
+    $('adminCmd').value = '';
+    $('adminCmd').blur();
+  });
 
   const MOVE_KEYS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
     KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
@@ -1026,15 +1091,26 @@
     ctx.fillRect(5.5, y - 15, 2, 2.5);
     // the ice cream in your hand
     if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
+    if (p.admin) {
+      // golden crown
+      ctx.fillStyle = '#ffd43b';
+      ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(-7, y - 23); ctx.lineTo(-7, y - 31); ctx.lineTo(-3.5, y - 27);
+      ctx.lineTo(0, y - 33); ctx.lineTo(3.5, y - 27); ctx.lineTo(7, y - 31); ctx.lineTo(7, y - 23);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
     ctx.restore();
 
     ctx.font = 'bold 13px Trebuchet MS';
     ctx.textAlign = 'center';
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#fff';
-    ctx.strokeText(p.name, p.x, p.y - 46);
-    ctx.fillStyle = p.isMe ? '#e0457b' : '#3a2a35';
-    ctx.fillText(p.name, p.x, p.y - 46);
+    const label = p.admin ? `👑 ${p.name} [ADMIN]` : p.name;
+    const ly = p.admin ? p.y - 62 : p.y - 46;
+    ctx.strokeText(label, p.x, ly);
+    ctx.fillStyle = p.admin ? '#e8a200' : p.isMe ? '#e0457b' : '#3a2a35';
+    ctx.fillText(label, p.x, ly);
   }
 
   // colored sky, falling sparkles and a banner while a mutation is happening
@@ -1148,7 +1224,7 @@
       if (s.id === myId) {
         if (!player.placed) continue;
         const p = { x: player.x, y: player.y, facing: player.facing, moving: player.moving,
-          color: s.color, name: s.name, item: heldItem(), isMe: true };
+          color: s.color, name: s.name, item: heldItem(), isMe: true, admin: s.admin };
         entities.push({ y: p.y, draw: () => drawPlayer(p, time) });
         continue;
       }
@@ -1158,7 +1234,7 @@
       o.moving = Math.abs(nx - o.x) + Math.abs(s.y - o.y) > 0.5;
       if (Math.abs(nx - o.x) > 0.3) o.facing = nx > o.x ? 1 : -1;
       o.x = nx; o.y += (s.y - o.y) * k;
-      const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null };
+      const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null, admin: s.admin };
       entities.push({ y: o.y, draw: () => drawPlayer(p, time) });
     }
     entities.sort((a, b) => a.y - b.y);
