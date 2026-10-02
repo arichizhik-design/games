@@ -12,10 +12,10 @@
       <div class="logo">🍦</div>
       <h1>Ice Cream Tycoon</h1>
       <p>Run your own ice cream stand! Start with Chocolate and Vanilla, sell scoops to customers, and buy rarer ice cream at the shop for more money.</p>
-      <form id="joinForm">
-        <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off" autofocus>
-        <button type="submit">Open my stand</button>
-      </form>
+      <div id="joinForm">
+        <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off">
+        <button id="joinBtn" type="button">Open my stand</button>
+      </div>
       <p id="joinError" class="error"></p>
       <p class="hint">Use the same name next time to keep your money and flavors.</p>
     </div>
@@ -77,10 +77,10 @@
         <div class="adminRow">
           <button id="adminEndBtn">End mutation</button>
         </div>
-        <form id="adminCmdForm" class="adminRow">
+        <div class="adminRow">
           <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
-          <button type="submit">Run</button>
-        </form>
+          <button id="adminRunBtn" type="button">Run</button>
+        </div>
         <div class="sub">Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end ·
           /restock · /grow · /help</div>
       </div>

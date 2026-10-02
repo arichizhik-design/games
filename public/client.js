@@ -78,13 +78,18 @@
   }
 
   // ---------- joining ----------
-  $('joinForm').addEventListener('submit', e => {
-    e.preventDefault();
+  // (plain click/Enter handlers instead of a <form>: preview windows often block form submits)
+  let joining = false;
+  function join() {
     const name = $('nameInput').value.trim();
-    if (!name) return;
+    if (!name) { $('joinError').textContent = 'Type your name first!'; return; }
+    if (joining) return;
+    joining = true;
     try { localStorage.setItem('icecream-name', name); } catch (e) {}
     connect(name);
-  });
+  }
+  $('joinBtn').addEventListener('click', join);
+  $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
   try { $('nameInput').value = localStorage.getItem('icecream-name') || ''; } catch (e) {}
   if (window.SOLO) {
     document.querySelector('.hint').textContent =
@@ -100,7 +105,10 @@
     ws.onmessage = e => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
-      else if (!$('joinError').textContent) $('joinError').textContent = 'Could not connect to the server.';
+      else {
+        joining = false;
+        if (!$('joinError').textContent) $('joinError').textContent = 'Could not connect to the server.';
+      }
     };
   }
 
@@ -147,7 +155,8 @@
           : 'Welcome! Walk with the arrow keys or tap where you want to go.');
         break;
       case 'error':
-        if (myId) toast(msg.text); else $('joinError').textContent = msg.text;
+        if (myId) toast(msg.text);
+        else { $('joinError').textContent = msg.text; joining = false; }
         break;
       case 'admin':
         toast('👑 ' + msg.text);
@@ -548,12 +557,14 @@
         return toast('Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end · /restock · /grow');
     }
   }
-  $('adminCmdForm').addEventListener('submit', e => {
-    e.preventDefault();
+  function runTypedCommand() {
+    if (!$('adminCmd').value.trim()) return;
     runCommand($('adminCmd').value);
     $('adminCmd').value = '';
     $('adminCmd').blur();
-  });
+  }
+  $('adminRunBtn').addEventListener('click', runTypedCommand);
+  $('adminCmd').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runTypedCommand(); } });
 
   const MOVE_KEYS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
     KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
@@ -687,7 +698,15 @@
 
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
-    ctx.roundRect(x, y, w, h, r);
+    if (ctx.roundRect) return ctx.roundRect(x, y, w, h, r);
+    // older browsers without roundRect
+    r = Math.min(Array.isArray(r) ? r[0] : r, w / 2, h / 2);
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
   }
 
   function drawPark(time) {
