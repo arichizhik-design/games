@@ -1,0 +1,13 @@
+{
+  "name": "ice-cream-tycoon",
+  "version": "1.0.0",
+  "description": "Multiplayer ice cream stand game: sell scoops to AI customers and unlock rarer flavors.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "license": "MIT"
+}

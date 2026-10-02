@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ice Cream Tycoon</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="join" class="overlay">
+    <div class="card">
+      <div class="logo">🍦</div>
+      <h1>Ice Cream Tycoon</h1>
+      <p>Run your own ice cream stand! Start with Chocolate and Vanilla, sell scoops to customers, and unlock rarer flavors for more money.</p>
+      <form id="joinForm">
+        <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off" autofocus>
+        <button type="submit">Open my stand</button>
+      </form>
+      <p id="joinError" class="error"></p>
+      <p class="hint">Use the same name next time to keep your money and flavors.</p>
+    </div>
+  </div>
+
+  <div id="game" class="hidden">
+    <div id="worldWrap">
+      <canvas id="canvas"></canvas>
+      <div id="toast"></div>
+    </div>
+    <aside id="panel">
+      <div class="moneyBox">
+        <div class="label">Money</div>
+        <div id="money">$0</div>
+        <div id="stats" class="sub"></div>
+      </div>
+      <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
+      <div class="progress"><div id="serveBar"></div></div>
+
+      <h2>Flavors</h2>
+      <div id="flavors"></div>
+
+      <h2>Upgrades</h2>
+      <div id="upgrades"></div>
+
+      <h2>Leaderboard</h2>
+      <ol id="leaderboard"></ol>
+    </aside>
+  </div>
+
+  <script src="gamedata.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>

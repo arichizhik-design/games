@@ -1,0 +1,113 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  background: #ffe8f0;
+  color: #3a2a35;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.hidden { display: none !important; }
+
+button {
+  font: inherit;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #ff6fa5;
+  color: white;
+  font-weight: bold;
+  padding: 8px 12px;
+  transition: transform 0.05s, filter 0.1s;
+}
+button:hover:not(:disabled) { filter: brightness(1.08); }
+button:active:not(:disabled) { transform: scale(0.96); }
+button:disabled { background: #d8c6cf; cursor: not-allowed; }
+
+/* ---------- join screen ---------- */
+.overlay {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #ffd1e3, #c9f2ff);
+  padding: 16px;
+}
+.card {
+  background: white; border-radius: 20px; padding: 28px;
+  max-width: 420px; width: 100%; text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+}
+.logo { font-size: 64px; }
+.card h1 { margin: 4px 0 8px; color: #e0457b; }
+.card form { display: flex; gap: 8px; margin-top: 16px; }
+.card input {
+  flex: 1; min-width: 0; font: inherit; padding: 10px 12px;
+  border: 2px solid #ffc2d9; border-radius: 10px; outline: none;
+}
+.card input:focus { border-color: #ff6fa5; }
+.error { color: #d6336c; min-height: 1.2em; font-weight: bold; }
+.hint { font-size: 13px; color: #8a7480; }
+
+/* ---------- game layout ---------- */
+#game { display: flex; height: 100vh; }
+#worldWrap { flex: 1; position: relative; min-width: 0; background: #8fd16a; }
+#canvas { display: block; width: 100%; height: 100%; }
+
+#panel {
+  width: 320px; flex-shrink: 0; overflow-y: auto;
+  background: #fff8fb; padding: 14px; border-left: 4px solid #ffc2d9;
+}
+#panel h2 { font-size: 17px; margin: 18px 0 8px; color: #e0457b; }
+
+.moneyBox { text-align: center; }
+.moneyBox .label { font-size: 13px; color: #8a7480; }
+#money { font-size: 34px; font-weight: bold; color: #2b8a3e; }
+.sub { font-size: 12px; color: #8a7480; font-weight: normal; }
+#scoopBtn .sub { color: #ffe3ee; }
+
+#scoopBtn { width: 100%; font-size: 20px; padding: 12px; margin-top: 10px; }
+.progress { height: 8px; background: #f1dde6; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+#serveBar { height: 100%; width: 0; background: #ff6fa5; }
+
+.row {
+  display: flex; align-items: center; gap: 8px;
+  background: white; border-radius: 10px; padding: 7px 8px; margin-bottom: 6px;
+  border: 2px solid #f6e3eb;
+}
+.row .scoop {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid rgba(0,0,0,0.15);
+}
+.row .info { flex: 1; min-width: 0; }
+.row .name { font-weight: bold; font-size: 14px; }
+.row .meta { font-size: 12px; color: #8a7480; }
+.row button { font-size: 12px; padding: 6px 8px; white-space: nowrap; }
+.row.owned { border-color: #b2f2bb; }
+.row .owned-tag { font-size: 12px; color: #2b8a3e; font-weight: bold; }
+
+.badge {
+  display: inline-block; font-size: 10px; font-weight: bold; color: white;
+  padding: 1px 6px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.badge.secret { background: linear-gradient(90deg, #111, #555, #111); }
+.badge.mythic { background: linear-gradient(90deg, #f44336, #ff79b0); }
+
+#leaderboard { padding-left: 22px; margin: 0; }
+#leaderboard li { padding: 3px 0; font-size: 14px; }
+#leaderboard li.me { font-weight: bold; color: #e0457b; }
+
+#toast {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(40, 20, 35, 0.85); color: white; padding: 10px 18px;
+  border-radius: 12px; font-weight: bold; opacity: 0; transition: opacity 0.3s;
+  pointer-events: none; text-align: center; max-width: 90%;
+}
+#toast.show { opacity: 1; }
+
+@media (max-width: 760px) {
+  body { overflow: auto; height: auto; }
+  #game { flex-direction: column; height: auto; }
+  #worldWrap { height: 58vw; flex: none; }
+  #panel { width: 100%; border-left: none; border-top: 4px solid #ffc2d9; }
+}
