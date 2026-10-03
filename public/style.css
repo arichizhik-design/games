@@ -172,6 +172,35 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   display: flex; align-items: center; justify-content: center; font-weight: bold;
 }
 
+/* flavor effects on icons (hotbar, inventory, shop, flavor guide) */
+.fx-fire.scoop, .fx-fire .ball { box-shadow: 0 0 8px 3px rgba(255, 50, 0, 0.85); animation: fxFire 0.35s infinite alternate; }
+@keyframes fxFire { to { box-shadow: 0 0 14px 6px rgba(255, 150, 0, 0.95); } }
+.fx-void.scoop, .fx-void .ball {
+  background: radial-gradient(circle at 35% 35%, #6a2bd9, #0b0033 70%) !important;
+  box-shadow: 0 0 10px 3px rgba(130, 40, 255, 0.8); animation: fxPulse 1.4s infinite alternate;
+}
+@keyframes fxPulse { to { box-shadow: 0 0 16px 6px rgba(170, 90, 255, 0.95); } }
+.fx-stars.scoop, .fx-stars .ball {
+  background: radial-gradient(#fff 1px, transparent 1.6px) 0 0 / 7px 7px, radial-gradient(circle at 35% 35%, #8a6cff, #5b3cc4) !important;
+  box-shadow: 0 0 8px 2px rgba(120, 80, 255, 0.6);
+}
+.fx-gold.scoop, .fx-gold .ball {
+  background: radial-gradient(circle at 30% 30%, #fff6c2, #ffd700 45%, #e0a800) !important;
+  box-shadow: 0 0 8px 2px rgba(255, 200, 0, 0.75);
+}
+.fx-dragon.scoop, .fx-dragon .ball {
+  background: radial-gradient(#2b0a1a 1px, transparent 1.6px) 0 0 / 6px 6px, #ff3cac !important;
+  box-shadow: 0 0 8px 2px rgba(255, 60, 172, 0.6);
+}
+.fx-unicorn.scoop, .fx-unicorn .ball { box-shadow: 0 0 10px 3px #ffb3f0; animation: fxHue 3s linear infinite; }
+@keyframes fxHue { to { filter: hue-rotate(360deg); } }
+.fx-sherbet.scoop, .fx-sherbet .ball {
+  background: linear-gradient(#ff8a5c 0 25%, #ffd56b 0 50%, #ff9ad5 0 75%, #9be08a 0) !important;
+}
+.fx-fluff.scoop, .fx-fluff .ball { box-shadow: 6px -4px 0 -3px #ffc6ea, -6px -3px 0 -3px #ffc6ea, 0 0 6px #ffd6f0; }
+.fx-frost.scoop, .fx-frost .ball { box-shadow: 0 0 6px 1px #e0fbff; }
+.fx-chips.scoop, .fx-chips .ball { background: radial-gradient(#5a3a1e 1.4px, transparent 2px) 0 0 / 7px 7px, #e6c79c !important; }
+
 /* ---------- shop and inventory windows ---------- */
 .modal {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;

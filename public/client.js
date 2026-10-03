@@ -74,7 +74,8 @@
   // HTML icon of an ice cream cone for the hotbar, inventory and shop
   function iconHtml(flavorId) {
     const f = flavorById[flavorId];
-    return `<div class="icon"><div class="ball" style="background:${f.color}"></div><div class="cone"></div></div>`;
+    const fx = f.effect ? ` fx-${f.effect}` : '';
+    return `<div class="icon${fx}"><div class="ball" style="background:${f.color}"></div><div class="cone"></div></div>`;
   }
 
   // ---------- joining ----------
@@ -344,7 +345,9 @@
     for (const f of FLAVORS) {
       const hidden = isSecretHidden(f, s);
       f.row.querySelector('.name').textContent = hidden ? '???' : f.name;
-      f.row.querySelector('.scoop').style.background = hidden ? '#222' : f.color;
+      const dot = f.row.querySelector('.scoop');
+      dot.style.background = hidden ? '#222' : f.color;
+      dot.className = 'scoop' + (!hidden && f.effect ? ` fx-${f.effect}` : '');
     }
 
     for (const [key, u] of Object.entries(UPGRADES)) {
@@ -362,6 +365,10 @@
     const box = $('eventBox');
     const ev = gameEvent.id && mutationById[gameEvent.id];
     box.classList.toggle('active', !!ev);
+    // light-colored mutations get dark text so it stays readable
+    const light = ev && ['heavenly', 'frozen', 'diamond', 'godly', 'gold'].includes(ev.id);
+    box.style.color = light ? '#5a4300' : '';
+    box.style.textShadow = light ? '0 1px 2px rgba(255,255,255,0.8)' : '';
     if (ev) {
       box.style.background = mutGradient(ev);
       box.innerHTML = `<div class="big">${ev.emoji} ${ev.name.toUpperCase()} MUTATION!</div>
@@ -871,9 +878,12 @@
     // tub
     ctx.fillStyle = '#e9ecef';
     roundRect(p.x - 9, p.y, 18, 9, 2); ctx.fill();
-    // scoop grows bigger until it's ready
-    ctx.fillStyle = f.color;
-    ctx.beginPath(); ctx.arc(p.x, p.y + 1, 3 + 6.5 * progress, Math.PI, 0); ctx.fill();
+    // scoop grows bigger until it's ready; special effects show once it's grown
+    const sr = 3 + 6.5 * progress;
+    const ready = tub.grow <= 0;
+    if (ready && f.effect) drawFlavorFx(f, p.x, p.y - sr * 0.3, sr * 0.85, true, i);
+    fillScoop(ready ? f : { color: f.color }, p.x, p.y + 1, sr, true);
+    if (ready && f.effect) drawFlavorFx(f, p.x, p.y - sr * 0.3, sr * 0.85, false, i);
     if (tub.grow > 0) {
       ctx.strokeStyle = '#2fb344';
       ctx.lineWidth = 2.5;
@@ -884,9 +894,6 @@
         ctx.fillStyle = '#1b5e20';
         ctx.fillText(tub.grow >= 60 ? `${Math.ceil(tub.grow / 60)}m` : `${Math.ceil(tub.grow)}s`, p.x, p.y - 10);
       }
-    } else if (f.rarity === 'secret' || f.rarity === 'mythic' || f.rarity === 'legendary') {
-      ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 5 + i)})`;
-      ctx.beginPath(); ctx.arc(p.x + 3, p.y - 4, 1.8, 0, Math.PI * 2); ctx.fill();
     }
   }
 
@@ -993,22 +1000,170 @@
     ctx.lineTo(x, y + size * 1.4);
     ctx.fill();
     const cx = x, cy = y - size * 0.2, r = size * 0.75;
-    if (flavor.stripes) {
-      // real rainbow scoop: soft color bands from red on top to violet at the bottom
+    if (flavor.effect) drawFlavorFx(flavor, cx, cy, r, true);
+    fillScoop(flavor, cx, cy, r, false);
+    if (flavor.effect) drawFlavorFx(flavor, cx, cy, r, false);
+  }
+
+  // ---------- flavor effects (Phoenix Fire flames, Galaxy stars, Void aura...) ----------
+  const SHERBET = ['#ff8a5c', '#ffd56b', '#ff9ad5', '#9be08a'];
+  let nowSec = 0; // set every frame
+
+  // a scoop: full circle, or the top half (ice cream in a tub)
+  function fillScoop(f, x, y, r, half) {
+    const outline = () => { ctx.beginPath(); if (half) ctx.arc(x, y, r, Math.PI, 0); else ctx.arc(x, y, r, 0, Math.PI * 2); };
+    const stripes = f.stripes || (f.effect === 'sherbet' ? SHERBET : null);
+    if (stripes) {
+      // striped scoop (Rainbow Sherbet, or the Rainbow mutation)
       ctx.save();
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
-      const band = (2 * r) / flavor.stripes.length;
-      flavor.stripes.forEach((c, i) => {
-        ctx.fillStyle = c;
-        ctx.fillRect(cx - r, cy - r + i * band, 2 * r, band + 0.5);
-      });
+      outline(); ctx.closePath(); ctx.clip();
+      const band = (2 * r) / stripes.length;
+      stripes.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(x - r, y - r + i * band, 2 * r, band + 0.5); });
       ctx.fillStyle = 'rgba(255,255,255,0.35)'; // shine
-      ctx.beginPath(); ctx.arc(cx - r * 0.35, cy - r * 0.35, r * 0.35, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.4, r * 0.3, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       return;
     }
-    ctx.fillStyle = flavor.color;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    if (f.effect === 'void' || f.effect === 'stars') {
+      const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+      g.addColorStop(0, f.effect === 'void' ? '#5a1fb8' : '#8a6cff');
+      g.addColorStop(1, f.color);
+      ctx.fillStyle = g;
+    } else ctx.fillStyle = f.color;
+    outline(); ctx.fill();
+  }
+
+  // soft glow; rgb like '255, 30, 0' (fades to the same color, so no grey edge)
+  function glow(x, y, radius, rgb, alpha) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    g.addColorStop(0, `rgba(${rgb}, ${alpha})`);
+    g.addColorStop(1, `rgba(${rgb}, 0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function sparkle(x, y, s, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y - s); ctx.lineTo(x + s * 0.25, y - s * 0.25); ctx.lineTo(x + s, y);
+    ctx.lineTo(x + s * 0.25, y + s * 0.25); ctx.lineTo(x, y + s); ctx.lineTo(x - s * 0.25, y + s * 0.25);
+    ctx.lineTo(x - s, y); ctx.lineTo(x - s * 0.25, y - s * 0.25);
+    ctx.fill();
+  }
+
+  function flame(x, baseY, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x - w, baseY);
+    ctx.quadraticCurveTo(x - w * 0.9, baseY - h * 0.6, x, baseY - h);
+    ctx.quadraticCurveTo(x + w * 0.9, baseY - h * 0.6, x + w, baseY);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // dots floating up and fading (embers, bubbles)
+  function risers(x, y, r, t, color, n) {
+    for (let k = 0; k < n; k++) {
+      const ph = (t * 0.7 + k / n) % 1;
+      ctx.globalAlpha = 1 - ph;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x + Math.sin(t * 3 + k * 2.1) * r * 0.7, y - r * 0.8 - ph * r * 3, Math.max(0.6, r * 0.14), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // things circling around the scoop
+  function orbit(x, y, r, t, color, n, size) {
+    for (let k = 0; k < n; k++) {
+      const a = t * 2 + (k / n) * Math.PI * 2;
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 0.7, size, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // back = true draws glows behind the scoop, false draws sparkles on top
+  function drawFlavorFx(f, x, y, r, back, seed = 0) {
+    const t = nowSec + seed * 0.37;
+    const pulse = 0.5 + 0.5 * Math.sin(t * 4);
+    switch (f.effect) {
+      case 'fire': // Phoenix Fire: red glow, flickering flames and rising embers
+        if (back) {
+          glow(x, y, r * 3.2, '255, 30, 0', 0.55 + 0.3 * pulse);
+          for (let k = -1; k <= 1; k++) {
+            const h = r * (2.1 + 0.7 * Math.sin(t * 13 + k * 2)) * (k ? 0.75 : 1);
+            flame(x + k * r * 0.6, y - r * 0.2, r * 0.5, h, '#ff3a00');
+            flame(x + k * r * 0.6, y - r * 0.2, r * 0.3, h * 0.7, k ? '#ff9a00' : '#ffe14d');
+          }
+        } else risers(x, y, r, t, '#ffb000', 3);
+        break;
+      case 'void': // Cosmic Void: dark purple aura with things orbiting it
+        if (back) {
+          glow(x, y, r * 3.2, '110, 0, 200', 0.45 + 0.25 * pulse);
+          ctx.strokeStyle = `rgba(190, 120, 255, ${0.5 + 0.3 * pulse})`;
+          ctx.lineWidth = Math.max(1, r * 0.12);
+          ctx.beginPath(); ctx.ellipse(x, y, r * 1.6, r * 0.7, 0, 0, Math.PI * 2); ctx.stroke();
+        } else {
+          orbit(x, y, r, t, '#e0c3ff', 3, Math.max(0.8, r * 0.15));
+          sparkle(x - r * 0.3, y - r * 0.3, r * 0.3 * pulse, '#ffffff');
+        }
+        break;
+      case 'stars': // Galaxy Swirl: purple glow and twinkling stars
+        if (back) glow(x, y, r * 2.4, '120, 80, 255', 0.5);
+        else for (let k = 0; k < 3; k++) {
+          const tw = 0.5 + 0.5 * Math.sin(t * 5 + k * 2);
+          sparkle(x + [-0.4, 0.35, 0][k] * r, y + [-0.2, 0.1, -0.55][k] * r, r * 0.28 * tw, '#ffffff');
+        }
+        break;
+      case 'gold': // Golden Caramel: warm golden glow and a shiny glint
+        if (back) glow(x, y, r * 2.4, '255, 200, 0', 0.45 + 0.25 * pulse);
+        else sparkle(x + r * 0.35, y - r * 0.4, r * 0.55 * Math.max(0, Math.sin(t * 3)), '#ffffff');
+        break;
+      case 'dragon': // Dragon Fruit: pink glow with little black seeds
+        if (back) glow(x, y, r * 2.2, '255, 60, 172', 0.45);
+        else {
+          ctx.fillStyle = '#2b0a1a';
+          for (const [dx, dy] of [[-0.4, -0.2], [0.3, -0.45], [0.1, 0.1], [-0.1, -0.6], [0.5, 0]]) {
+            ctx.beginPath(); ctx.ellipse(x + dx * r, y + dy * r, r * 0.08, r * 0.13, 0.4, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        break;
+      case 'unicorn': // Unicorn Dream: color-changing glow and pastel sparkles
+        if (back) {
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.6);
+          const hue = (t * 90) % 360;
+          g.addColorStop(0, `hsla(${hue}, 90%, 75%, 0.65)`);
+          g.addColorStop(1, `hsla(${hue}, 90%, 75%, 0)`);
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(x, y, r * 2.6, 0, Math.PI * 2); ctx.fill();
+        }
+        else {
+          sparkle(x + Math.cos(t * 2) * r * 1.3, y + Math.sin(t * 2) * r * 0.8, r * 0.35, '#fff6a8');
+          sparkle(x - Math.cos(t * 2) * r * 1.3, y - Math.sin(t * 2) * r * 0.8, r * 0.3, '#ffc6f5');
+        }
+        break;
+      case 'fluff': // Cotton Candy: soft fluffy puffs
+        if (back) {
+          ctx.fillStyle = 'rgba(255, 190, 235, 0.6)';
+          for (let k = 0; k < 3; k++) {
+            const a = k * 2.1 + Math.sin(t) * 0.3;
+            ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * 0.9, y + Math.sin(a) * r * 0.6, r * 0.55, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        break;
+      case 'frost': // Mint Chip: icy sparkle
+        if (!back) sparkle(x + r * 0.4, y - r * 0.45, r * 0.4 * (0.4 + 0.6 * pulse), '#ffffff');
+        break;
+      case 'chips': // Cookie Dough: chocolate chunks
+        if (!back) {
+          ctx.fillStyle = '#5a3a1e';
+          for (const [dx, dy] of [[-0.4, -0.3], [0.35, -0.4], [0.05, 0.05], [0.45, 0.1]]) {
+            ctx.fillRect(x + dx * r - r * 0.12, y + dy * r - r * 0.12, r * 0.24, r * 0.24);
+          }
+        }
+        break;
+    }
   }
 
   // a rainbow arc, like the real thing: red on the outside, violet inside, faded and see-through
@@ -1065,11 +1220,25 @@
     const flavor = flavorById[c.flavor];
     if (c.served && c.mutation) {
       const m = mutationById[c.mutation];
-      ctx.fillStyle = m.id === 'rainbow' ? 'rgba(255,255,255,0.8)' : mutColor(m, time + c.id);
+      const col = mutScoopColor(m, time + c.id);
+      if (m.id === 'heavenly') {
+        // little angel wings
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        for (const side of [-1, 1]) {
+          ctx.beginPath(); ctx.ellipse(x + 12 + side * 8, y - 5, 6, 3, side * -0.5, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.fillStyle = m.id === 'rainbow' || m.id === 'heavenly' ? 'rgba(255,255,255,0.8)' : col;
       ctx.globalAlpha = 0.5 + (m.id === 'rainbow' ? 0.2 * Math.sin(time * 3 + c.id) : 0);
       ctx.beginPath(); ctx.arc(x + 12, y - 4, 11, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
-      drawCone(x + 12, y - 2, m.id === 'rainbow' ? { stripes: m.colors } : { color: mutColor(m, time) }, 7);
+      drawCone(x + 12, y - 2, m.id === 'rainbow' ? { stripes: m.colors } : { color: col }, 7);
+      if (m.id === 'godly' || m.id === 'heavenly') {
+        // glowing halo above the scoop
+        ctx.strokeStyle = m.id === 'godly' ? '#ffcc00' : '#fff6b0';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.ellipse(x + 12, y - 13 + Math.sin(time * 3) * 0.8, 5, 1.8, 0, 0, Math.PI * 2); ctx.stroke();
+      }
     } else if (c.served) {
       drawCone(x + 12, y - 2, flavor, 6);
     } else if (c.state === 'waiting') {
@@ -1133,32 +1302,114 @@
   }
 
   // colored sky, falling sparkles and a banner while a mutation is happening
+  // the color of a mutated scoop (Impossible cycles through every color)
+  function mutScoopColor(m, time) {
+    if (m.id === 'impossible') return `hsl(${(time * 240) % 360}, 100%, 60%)`;
+    return mutColor(m, time);
+  }
+
+  const pickColor = m => m.colors[Math.floor(Math.random() * m.colors.length)];
+
   function drawEventEffects(time, dt) {
     const m = gameEvent.id && mutationById[gameEvent.id];
     if (m && m.id === 'rainbow') {
       drawSunShower(dt);
     } else if (m) {
-      ctx.globalAlpha = m.id === 'bloodmoon' ? 0.22 : 0.13;
-      ctx.fillStyle = m.colors[0];
-      ctx.fillRect(0, 0, world.width, world.height);
-      ctx.globalAlpha = 1;
-      for (let i = 0; i < 2; i++) {
-        if (Math.random() < dt * 20) {
-          ambient.push({ x: Math.random() * world.width, y: -10, vy: 40 + Math.random() * 60,
-            vx: (Math.random() - 0.5) * 30, r: 2 + Math.random() * 3,
-            color: m.colors[Math.floor(Math.random() * m.colors.length)] });
-        }
+      const tint = { bloodmoon: 0.22, shadow: 0.32, molten: 0.16, godly: 0.1, heavenly: 0, impossible: 0.1 }[m.id] ?? 0.13;
+      if (tint) {
+        ctx.globalAlpha = tint;
+        ctx.fillStyle = m.id === 'impossible' ? `hsl(${(time * 120) % 360}, 100%, 50%)` : m.colors[0];
+        ctx.fillRect(0, 0, world.width, world.height);
+        ctx.globalAlpha = 1;
       }
+      for (let i = 0; i < 2; i++) {
+        if (Math.random() >= dt * 20) continue;
+        const p = { x: Math.random() * world.width, y: -10, vy: 40 + Math.random() * 60,
+          vx: (Math.random() - 0.5) * 30, r: 2 + Math.random() * 3, color: pickColor(m), shape: 'dot' };
+        if (m.id === 'godly' || m.id === 'molten') { p.y = world.height + 10; p.vy = -p.vy; } // rising sparks
+        if (m.id === 'heavenly') { p.shape = 'feather'; p.r += 3; p.vy *= 0.6; }
+        if (m.id === 'impossible') {
+          // sparks fly out in every direction
+          const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 120;
+          Object.assign(p, { y: Math.random() * world.height, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+            life: 1.5, color: `hsl(${Math.random() * 360}, 100%, 60%)` });
+        }
+        ambient.push(p);
+      }
+      if (m.id === 'impossible') drawGlitch(time);
     }
     for (let i = ambient.length - 1; i >= 0; i--) {
       const p = ambient[i];
       p.x += p.vx * dt; p.y += p.vy * dt;
-      if (p.y > world.height + 10) { ambient.splice(i, 1); continue; }
+      if (p.life !== undefined) p.life -= dt;
+      if (p.y > world.height + 20 || p.y < -20 || p.life <= 0) { ambient.splice(i, 1); continue; }
       ctx.fillStyle = p.color;
-      ctx.globalAlpha = 0.8;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.7 + 0.3 * Math.sin(time * 8 + i)), 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = p.life !== undefined ? Math.min(0.9, p.life) : 0.8;
+      if (p.shape === 'feather') {
+        // a white feather gently rocking as it falls
+        ctx.save();
+        ctx.translate(p.x + Math.sin(time * 2 + i) * 10, p.y);
+        ctx.rotate(Math.sin(time * 2 + i) * 0.6);
+        ctx.beginPath(); ctx.ellipse(0, 0, p.r * 0.45, p.r * 1.3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(180,190,210,0.8)'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(0, -p.r * 1.3); ctx.lineTo(0, p.r * 1.5); ctx.stroke();
+        ctx.restore();
+      } else {
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.7 + 0.3 * Math.sin(time * 8 + i)), 0, Math.PI * 2); ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
+  }
+
+  // Impossible mutation: the world glitches with soft colored bars (changes a few times a second, not flashing)
+  function drawGlitch(time) {
+    let seed = Math.floor(time * 4) * 9301;
+    const rand = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    for (let k = 0; k < 5; k++) {
+      ctx.globalAlpha = 0.08 + rand() * 0.07;
+      ctx.fillStyle = `hsl(${rand() * 360}, 100%, 55%)`;
+      ctx.fillRect(0, rand() * world.height, world.width, 6 + rand() * 30);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Godly: golden light rays from the sky. Heavenly: soft light beams and clouds. (drawn behind the stands)
+  function drawHolySky(time, id) {
+    if (id === 'godly') {
+      const cx = world.width / 2, cy = -150;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(time * 0.05);
+      for (let k = 0; k < 16; k++) {
+        ctx.rotate(Math.PI / 8);
+        ctx.fillStyle = k % 2 ? 'rgba(255, 215, 0, 0.13)' : 'rgba(255, 245, 190, 0.09)';
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-90, 1700); ctx.lineTo(90, 1700); ctx.fill();
+      }
+      ctx.restore();
+      glow(cx, 0, 420, '255, 230, 120', 0.45);
+    } else if (id === 'heavenly') {
+      const haze = ctx.createLinearGradient(0, 0, 0, world.height);
+      haze.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
+      haze.addColorStop(1, 'rgba(225, 240, 255, 0.15)');
+      ctx.fillStyle = haze;
+      ctx.fillRect(0, 0, world.width, world.height);
+      for (let k = 0; k < 4; k++) {
+        const bx = ((k * 340 + time * 15) % (world.width + 300)) - 150;
+        const beam = ctx.createLinearGradient(bx, 0, bx + 120, 0);
+        beam.addColorStop(0, 'rgba(255,255,240,0)');
+        beam.addColorStop(0.5, 'rgba(255,255,240,0.3)');
+        beam.addColorStop(1, 'rgba(255,255,240,0)');
+        ctx.fillStyle = beam;
+        ctx.fillRect(bx, 0, 120, world.height);
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (let k = 0; k < 5; k++) {
+        const x = ((k * 300 + time * 12) % (world.width + 260)) - 130, y = 30 + (k % 3) * 25;
+        for (const [dx, dy, r] of [[0, 0, 34], [30, 6, 26], [-30, 8, 24], [12, -14, 24]]) {
+          ctx.beginPath(); ctx.arc(x + dx, y + dy, r, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    }
   }
 
   // the mutation banner stays at the top of the screen (screen coordinates)
@@ -1171,7 +1422,13 @@
     const w = ctx.measureText(text).width + 30;
     ctx.fillStyle = 'rgba(30, 15, 25, 0.75)';
     roundRect(view.w / 2 - w / 2, 8, w, 32, 12); ctx.fill();
-    ctx.strokeStyle = mutColor(m, time); ctx.lineWidth = 3; ctx.stroke();
+    ctx.strokeStyle = mutScoopColor(m, time); ctx.lineWidth = 3; ctx.stroke();
+    if (m.id === 'impossible') {
+      // glitchy text
+      const j = Math.sin(time * 20) * 1.5;
+      ctx.fillStyle = 'rgba(0,255,255,0.8)'; ctx.fillText(text, view.w / 2 - 2 + j, 30);
+      ctx.fillStyle = 'rgba(255,0,255,0.8)'; ctx.fillText(text, view.w / 2 + 2 - j, 30);
+    }
     ctx.fillStyle = '#fff';
     ctx.fillText(text, view.w / 2, 30);
   }
@@ -1213,6 +1470,7 @@
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     const time = now / 1000;
+    nowSec = time;
 
     updatePlayer(dt);
     updateCamera();
@@ -1226,6 +1484,7 @@
 
     drawPark(time);
     if (gameEvent.id === 'rainbow') drawRainbowSky(time); // behind everything, like a real rainbow
+    if (gameEvent.id === 'godly' || gameEvent.id === 'heavenly') drawHolySky(time, gameEvent.id);
     drawShop(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
@@ -1295,7 +1554,7 @@
         const g = ctx.createLinearGradient(f.x - w / 2, 0, f.x + w / 2, 0);
         f.mutation.colors.forEach((c, i, a) => g.addColorStop(i / (a.length - 1), c));
         ctx.fillStyle = g;
-      } else ctx.fillStyle = f.mutation ? mutColor(f.mutation, time) : f.color;
+      } else ctx.fillStyle = f.mutation ? mutScoopColor(f.mutation, time) : f.color;
       ctx.fillText(f.text, f.x, f.y - f.t * 40);
     }
     ctx.globalAlpha = 1;

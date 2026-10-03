@@ -37,14 +37,21 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 
   | Mutation | Money | Mutation | Money |
   |---|---|---|---|
-  | 🪙 Gold | x2 | 🌌 Aurora | x10 |
+  | 🪙 Gold | x2 | 🌑 Shadow | x12 |
   | 🍬 Candy | x3 | 🪐 Galaxy | x15 |
   | ❄️ Frozen | x3 | ☯️ Yin Yang | x20 |
   | 💎 Diamond | x5 | 🌕 Blood Moon | x25 |
-  | ⚡ Thunder | x6 | 🌈 **Rainbow** | **x30** |
+  | ⚡ Thunder | x6 | 🌈 Rainbow | x30 |
+  | 🌋 Molten | x8 | ⚜️ **Godly** | **x50** |
+  | 🌌 Aurora | x10 | 😇 **Heavenly** | **x75** |
+  | | | ♾️ **Impossible** | **x100** |
 
-  Rarer mutations (bigger money) come up less often. **Rainbow** is the best and rarest: a real
-  rainbow arches over the park during a light sun shower, and scoops come out rainbow-striped.
+  Rarer mutations (bigger money) come up less often. Rainbow brings a real rainbow over the park,
+  Godly fills the sky with golden light rays, Heavenly brings clouds, light beams and falling feathers,
+  and Impossible (the rarest of all) makes the whole park glitch with color.
+- **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
+  Cosmic Void has a dark purple aura, Galaxy Swirl twinkles with stars, Golden Caramel shines,
+  Unicorn Dream glows in changing colors, and more.
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.
 
@@ -57,7 +64,7 @@ gold crown with an [ADMIN] tag, and get an **Admin commands** panel. You can use
 |---|---|
 | `/money 5t` | Adds money (use k, m, b or t, like `500k`, `2b`, `5t`) |
 | `/give rainbow sherbet 10` | Puts any ice cream in your hotbar, even if the shop is sold out |
-| `/mutation rainbow` | Starts that mutation for everyone right now (`/mutation` alone picks one at random) |
+| `/mutation impossible` | Starts that mutation for everyone right now (`/mutation` alone picks one at random) |
 | `/mutation end` | Ends the current mutation |
 | `/restock` | Gives the shop new stock right now |
 | `/grow` | Finishes growing every tub on your stand |
