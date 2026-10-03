@@ -1024,9 +1024,27 @@
       ctx.restore();
       return;
     }
-    if (f.effect === 'void' || f.effect === 'stars') {
+    if (f.effect === 'void') {
+      // pitch-black middle fading to deep purple, with tiny stars inside
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, '#000000');
+      g.addColorStop(0.55, '#12002e');
+      g.addColorStop(1, '#5a1fb8');
+      ctx.fillStyle = g;
+      outline(); ctx.fill();
+      ctx.save();
+      outline(); ctx.clip();
+      for (let k = 0; k < 6; k++) {
+        const a = nowSec * 0.6 + k * 1.05, d = r * (0.25 + (k % 3) * 0.22);
+        ctx.fillStyle = `rgba(255,255,255,${0.4 + 0.6 * Math.abs(Math.sin(nowSec * 3 + k))})`;
+        ctx.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d, Math.max(0.6, r * 0.09), Math.max(0.6, r * 0.09));
+      }
+      ctx.restore();
+      return;
+    }
+    if (f.effect === 'stars') {
       const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
-      g.addColorStop(0, f.effect === 'void' ? '#5a1fb8' : '#8a6cff');
+      g.addColorStop(0, '#8a6cff');
       g.addColorStop(1, f.color);
       ctx.fillStyle = g;
     } else ctx.fillStyle = f.color;
@@ -1098,15 +1116,43 @@
           }
         } else risers(x, y, r, t, '#ffb000', 3);
         break;
-      case 'void': // Cosmic Void: dark purple aura with things orbiting it
+      case 'void': // Cosmic Void, the best ice cream: a tiny black hole
         if (back) {
-          glow(x, y, r * 3.2, '110, 0, 200', 0.45 + 0.25 * pulse);
-          ctx.strokeStyle = `rgba(190, 120, 255, ${0.5 + 0.3 * pulse})`;
-          ctx.lineWidth = Math.max(1, r * 0.12);
-          ctx.beginPath(); ctx.ellipse(x, y, r * 1.6, r * 0.7, 0, 0, Math.PI * 2); ctx.stroke();
+          // big pulsing purple glow
+          glow(x, y, r * 4.2, '120, 0, 220', 0.5 + 0.3 * pulse);
+          glow(x, y, r * 2.2, '255, 80, 230', 0.25 + 0.15 * pulse);
+          // swirling disk: two glowing spiral arms spinning around
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(1, 0.45);
+          ctx.rotate(t * 1.6);
+          ctx.lineCap = 'round';
+          for (let arm = 0; arm < 2; arm++) {
+            ctx.rotate(Math.PI);
+            for (let k = 0; k < 10; k++) {
+              const a0 = k * 0.32, rad = r * (2.4 - k * 0.12);
+              ctx.strokeStyle = `rgba(${200 + k * 5}, ${110 + k * 10}, 255, ${0.85 - k * 0.07})`;
+              ctx.lineWidth = Math.max(1, r * (0.32 - k * 0.02));
+              ctx.beginPath(); ctx.arc(0, 0, rad, a0, a0 + 0.4); ctx.stroke();
+            }
+          }
+          ctx.restore();
         } else {
-          orbit(x, y, r, t, '#e0c3ff', 3, Math.max(0.8, r * 0.15));
-          sparkle(x - r * 0.3, y - r * 0.3, r * 0.3 * pulse, '#ffffff');
+          // sparkles getting pulled in, spinning faster as they fall toward the middle
+          for (let k = 0; k < 7; k++) {
+            const ph = (t * 0.45 + k / 7) % 1;
+            const a = k * 0.9 + t * 1.2 + ph * 5;
+            const rad = r * 3 * (1 - ph);
+            ctx.globalAlpha = Math.min(1, ph * 2) * (1 - ph * 0.3);
+            ctx.fillStyle = k % 2 ? '#e8d0ff' : '#ff9cf5';
+            ctx.beginPath(); ctx.arc(x + Math.cos(a) * rad, y + Math.sin(a) * rad * 0.5, Math.max(0.7, r * 0.14), 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          // bright edge of the black hole
+          ctx.strokeStyle = `rgba(230, 180, 255, ${0.6 + 0.4 * pulse})`;
+          ctx.lineWidth = Math.max(1, r * 0.13);
+          ctx.beginPath(); ctx.arc(x, y, r * 1.02, 0, Math.PI * 2); ctx.stroke();
+          sparkle(x - r * 0.35, y - r * 0.35, r * 0.35 * pulse, '#ffffff');
         }
         break;
       case 'stars': // Galaxy Swirl: purple glow and twinkling stars

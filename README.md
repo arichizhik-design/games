@@ -50,7 +50,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   Godly fills the sky with golden light rays, Heavenly brings clouds, light beams and falling feathers,
   and Impossible (the rarest of all) makes the whole park glitch with color.
 - **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
-  Cosmic Void has a dark purple aura, Galaxy Swirl twinkles with stars, Golden Caramel shines,
+  Cosmic Void (the best ice cream) is a tiny black hole with a spinning purple disk, Galaxy Swirl twinkles with stars, Golden Caramel shines,
   Unicorn Dream glows in changing colors, and more.
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.

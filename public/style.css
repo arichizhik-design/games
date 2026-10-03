@@ -176,9 +176,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .fx-fire.scoop, .fx-fire .ball { box-shadow: 0 0 8px 3px rgba(255, 50, 0, 0.85); animation: fxFire 0.35s infinite alternate; }
 @keyframes fxFire { to { box-shadow: 0 0 14px 6px rgba(255, 150, 0, 0.95); } }
 .fx-void.scoop, .fx-void .ball {
-  background: radial-gradient(circle at 35% 35%, #6a2bd9, #0b0033 70%) !important;
-  box-shadow: 0 0 10px 3px rgba(130, 40, 255, 0.8); animation: fxPulse 1.4s infinite alternate;
+  /* black hole: dark middle with a spinning purple and pink swirl around it */
+  background: radial-gradient(circle, #000 0 32%, rgba(0,0,0,0) 46%),
+    conic-gradient(#2a0060, #c46bff, #12002e, #ff6be8, #2a0060) !important;
+  box-shadow: 0 0 10px 4px rgba(150, 50, 255, 0.9), 0 0 20px 8px rgba(255, 90, 230, 0.4);
+  animation: fxSpin 2.5s linear infinite, fxPulse 1.4s infinite alternate;
 }
+@keyframes fxSpin { to { transform: rotate(360deg); } }
 @keyframes fxPulse { to { box-shadow: 0 0 16px 6px rgba(170, 90, 255, 0.95); } }
 .fx-stars.scoop, .fx-stars .ball {
   background: radial-gradient(#fff 1px, transparent 1.6px) 0 0 / 7px 7px, radial-gradient(circle at 35% 35%, #8a6cff, #5b3cc4) !important;
