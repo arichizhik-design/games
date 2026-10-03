@@ -127,6 +127,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #adminFlavor { flex: 1; }
 #adminCount { width: 64px; }
 #adminCmd { flex: 1; }
+#adminMutChips { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 6px; }
+#adminPanel .mutChip { background: #fff8e1; color: #8a5a00; border: 2px solid #f2b705; font-size: 12px; padding: 3px 7px; }
+#adminPanel .mutChip.on { background: #e8a200; color: #fff; }
+
+/* Avatar Shop window */
+#avatarPreview { display: block; margin: 4px auto 8px; }
+.avRow { margin-bottom: 8px; }
+.avLabel { font-weight: bold; font-size: 14px; color: #1c7ed6; margin-bottom: 4px; }
+.avOpts { display: flex; flex-wrap: wrap; gap: 5px; }
+.avOpt { background: #e7f5ff; color: #1c7ed6; border: 2px solid #a5d8ff; font-size: 12px; padding: 5px 8px; }
+.avOpt.swatch { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 3px solid #dee2e6; }
+.avOpt.on { border-color: #ff2e7e; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #ff2e7e; }
+.avOpt:not(.swatch).on { background: #1c7ed6; color: #fff; }
 #testTools button { background: #845ef7; font-size: 13px; }
 #testTools select { font: inherit; font-size: 13px; padding: 6px; border-radius: 8px; border: 2px solid #d0bfff; }
 
@@ -293,6 +306,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <div id="shopList"></div>
       </div>
 
+      <div id="avatarModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">👕 Avatar Shop</div>
+          <button id="avatarClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Pick how your character looks. Everyone in the park will see it!</p>
+        <canvas id="avatarPreview" width="200" height="190"></canvas>
+        <div id="avatarOptions"></div>
+      </div>
+
       <div id="invModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">🎒 Inventory</div>
@@ -324,16 +347,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <select id="adminFlavor"></select>
           <input id="adminCount" type="number" min="1" max="990" value="10">
           <button id="adminGiveBtn">Give</button>
+          <button id="adminSpawnBtn" title="Put it straight on your stand, fully grown">Spawn</button>
         </div>
+        <div class="sub">Turn on as many mutations as you want at once:</div>
+        <div id="adminMutChips"></div>
         <div class="adminRow">
-          <button id="adminEndBtn">End mutation</button>
+          <button id="adminMutBtn">Turn on</button>
+          <button id="adminEndBtn">End all mutations</button>
         </div>
         <div class="adminRow">
           <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
           <button id="adminRunBtn" type="button">Run</button>
         </div>
-        <div class="sub">Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end ·
-          /restock · /grow · /help</div>
+        <div class="sub">Commands: /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly ·
+          /mutation end · /restock · /grow · /help</div>
       </div>
       <div id="testTools" class="hidden">
         <div class="label">🧪 Test buttons</div>
@@ -369,10 +396,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     common:    { name: 'Common',    color: '#b0b0b0', order: 0, growSec: 10,  stock: { chance: 1,    min: 5, max: 10 } },
     uncommon:  { name: 'Uncommon',  color: '#4caf50', order: 1, growSec: 30,  stock: { chance: 0.8,  min: 3, max: 6 } },
     rare:      { name: 'Rare',      color: '#2196f3', order: 2, growSec: 60,  stock: { chance: 0.6,  min: 2, max: 4 } },
-    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 120, stock: { chance: 0.4,  min: 1, max: 3 } },
-    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.25, min: 1, max: 2 } },
-    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.12, min: 1, max: 1 } },
-    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.05, min: 1, max: 1 } },
+    // the really good ones are really rare in the shop
+    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 120, stock: { chance: 0.2,   min: 1, max: 2 } },
+    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.07,  min: 1, max: 1 } },
+    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.02,  min: 1, max: 1 } },
+    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.004, min: 1, max: 1 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -448,7 +476,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const STORAGE_SIZE = 30;  // the Inventory chest on your plot
   const MAX_STACK = 99;     // tubs of one flavor per slot
 
-  const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME,
+  // Avatar Shop choices (the first of each is the default; shirt 'stand' = your stand's color)
+  const AVATAR = {
+    shirt: ['stand', '#ff6b6b', '#4dabf7', '#51cf66', '#fcc419', '#cc5de8', '#ff922b', '#212529', '#ffffff', '#f06595'],
+    pants: ['#3b3b58', '#1c7ed6', '#2b8a3e', '#5c3d2e', '#868e96', '#e64980'],
+    skin:  ['#f8d5b8', '#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524'],
+    hat:   ['cap', 'none', 'tophat', 'beanie', 'party', 'cowboy', 'wizard', 'bunny', 'cone'],
+    face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
+  };
+
+  const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
@@ -463,15 +500,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost,
+  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
   // ---------- park layout (shared with the browser for drawing and clicking) ----------
   const WORLD = { width: 1280, height: 1180 };
   const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
+  const AVATAR_SHOP = { x: 1020, y: 125 }; // the Avatar Shop next to it
   const REACH = 230;                 // how close you must stand to use something
-  const ADMIN_NAMES = ['coolkid'];   // these names get admin commands
+  const ADMIN_NAMES = ['coolkid'];   // these names get admin commands (only on the first device that used them)
   const ADMIN_MONEY = 1e12;          // admins start with $1 trillion
   const MAX_QUEUE = 5;
   const WALK_SPEED = 170;            // customers
@@ -549,20 +587,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return out;
   }
 
+  // keep only avatar choices that exist
+  function fixAvatar(a) {
+    const out = {};
+    for (const [part, options] of Object.entries(AVATAR)) {
+      out[part] = a && options.includes(a[part]) ? a[part] : options[0];
+    }
+    return out;
+  }
+
   function createGame({ saves = {}, allowTest = false } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
     let nextId = 1;
 
-    // mutation event: either one is active, or we count down to the next one (seconds)
-    const event = { id: null, left: 0, next: pick(MUTATION_GAPS_MIN) * 60 };
+    // mutation events: the ones going on now (admins can run several at once),
+    // and the countdown (seconds) to the next natural one
+    const event = { active: [], next: pick(MUTATION_GAPS_MIN) * 60 };
     // the shop's stock is the same for everyone; each player can buy up to that many of each
     const shop = { stock: rollStock(), left: RESTOCK_SEC };
 
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
-        upgrades: s.upgrades, mutations: s.mutations };
+        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar,
+        ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
     function snapshotSaves() {
@@ -598,6 +647,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         seen: saved.seen ?? [...new Set(tubs.filter(Boolean).map(t => t.flavor))], // flavors you've had
         upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, saved.upgrades?.[k] ?? 0])),
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
+        avatar: fixAvatar(saved.avatar),
+        adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
         x: s.x + 60, y: s.y + 110,        // the player's character
         hand: -1,                         // hotbar slot in hand, -1 = nothing
@@ -651,11 +702,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const flavor = flavorById[c.flavor];
       let amount = flavor.price * (1 + 0.1 * stand.upgrades.tips);
       if (c.golden) amount *= 3;
-      if (event.id && Math.random() < MUTATION_CHANCE) {
-        c.mutation = event.id;
-        amount *= mutationById[event.id].mult;
-        stand.mutations[event.id] = (stand.mutations[event.id] || 0) + 1;
+      // every mutation going on gets its own chance; several can stack on one scoop
+      c.mutations = event.active.filter(() => Math.random() < MUTATION_CHANCE).map(e => e.id);
+      for (const id of c.mutations) {
+        amount *= mutationById[id].mult;
+        stand.mutations[id] = (stand.mutations[id] || 0) + 1;
       }
+      c.mutation = c.mutations[0] || null;
       amount = Math.round(amount * 100) / 100;
       stand.money += amount;
       stand.totalEarned += amount;
@@ -663,14 +716,23 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       c.served = true;
       sendOffCustomer(c);
       broadcast({ type: 'sale', standId: stand.id, customerId: c.id, flavor: c.flavor,
-        amount, golden: c.golden, mutation: c.mutation });
+        amount, golden: c.golden, mutation: c.mutation, mutations: c.mutations });
     }
 
-    function startMutation(id) {
+    // start a mutation; stack = keep the ones already going (admins only)
+    function startMutation(id, stack = false) {
       const m = mutationById[id] || pickMutation();
-      event.id = m.id;
-      event.left = MUTATION_LENGTH_MIN * 60;
+      if (!stack) endMutations();
+      const running = event.active.find(e => e.id === m.id);
+      if (running) running.left = MUTATION_LENGTH_MIN * 60;
+      else event.active.push({ id: m.id, left: MUTATION_LENGTH_MIN * 60 });
       broadcast({ type: 'mutationStart', mutation: m.id });
+    }
+
+    function endMutations() {
+      for (const e of event.active) broadcast({ type: 'mutationEnd', mutation: e.id });
+      if (event.active.length) event.next = pick(MUTATION_GAPS_MIN) * 60;
+      event.active = [];
     }
 
     function restock() {
@@ -681,13 +743,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
 
     function updateTimers(dt) {
-      if (event.id) {
-        event.left -= dt;
-        if (event.left <= 0) {
-          broadcast({ type: 'mutationEnd', mutation: event.id });
-          event.id = null;
-          event.next = pick(MUTATION_GAPS_MIN) * 60;
-        }
+      if (event.active.length) {
+        for (const e of event.active) e.left -= dt;
+        for (const e of event.active.filter(e => e.left <= 0)) broadcast({ type: 'mutationEnd', mutation: e.id });
+        event.active = event.active.filter(e => e.left > 0);
+        if (!event.active.length) event.next = pick(MUTATION_GAPS_MIN) * 60;
       } else {
         event.next -= dt;
         if (event.next <= 0) startMutation();
@@ -743,19 +803,25 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
       broadcast({
         type: 'state',
-        event: { id: event.id, left: Math.ceil(event.left), next: Math.ceil(event.next) },
+        event: {
+          id: event.active[0]?.id || null,
+          ids: event.active.map(e => e.id),
+          left: Math.ceil(Math.max(0, ...event.active.map(e => e.left))),
+          next: Math.ceil(event.next),
+        },
         shop: { stock: shop.stock, left: Math.ceil(shop.left) },
         stands: [...stands.values()].map(s => ({
           id: s.id, name: s.name, slot: s.slot, color: s.color,
           money: s.money, totalEarned: s.totalEarned, sold: s.sold,
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
-          x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin,
+          x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
           id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor,
-          golden: c.golden, mutation: c.mutation, state: c.state, look: c.look, served: !!c.served,
+          golden: c.golden, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
+          served: !!c.served,
         })),
       });
     }
@@ -772,13 +838,22 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       if (msg.type === 'join' && !stand) {
         const name = String(msg.name || '').replace(/[^\w \-]/g, '').trim().slice(0, 16);
         if (!name) return err('Please pick a name.');
-        if ([...stands.values()].some(s => s.key === name.toLowerCase())) {
+        const key = name.toLowerCase();
+        if ([...stands.values()].some(s => s.key === key)) {
           return err('Someone with that name is already playing.');
+        }
+        // admin names belong to the first device that used them
+        const device = String(msg.device || '').slice(0, 64);
+        const isAdminName = ADMIN_NAMES.includes(key);
+        const lockedTo = saves[key]?.adminDevice;
+        if (isAdminName && lockedTo && lockedTo !== device) {
+          return err('That name is taken. Please pick a different name.');
         }
         const s = createStand(conn, name);
         if (!s) return err('The park is full (12 stands). Try again later!');
         conn.standId = s.id;
-        s.admin = ADMIN_NAMES.includes(s.key);
+        s.admin = isAdminName;
+        if (s.admin && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS,
           returning: !!saves[s.key], allowTest, admin: s.admin });
@@ -794,6 +869,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       } else if (msg.type === 'hold') {
         const i = Number(msg.slot);
         stand.hand = Number.isInteger(i) && i >= 0 && i < HOTBAR_SIZE ? i : -1;
+      } else if (msg.type === 'setAvatar') {
+        stand.avatar = fixAvatar({ ...stand.avatar, ...(msg.avatar || {}) });
       } else if (msg.type === 'scoop') {
         stand.clicks++;
       } else if (msg.type === 'buy') {
@@ -870,10 +947,25 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Gave you ${count - left} ${f.name}` + (left ? ` (${left} didn't fit)` : '') });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
-        if (event.id) event.left = 0.01;
+        endMutations();
+      } else if (stand.admin && msg.type === 'adminMutations') {
+        // turn on one or more mutations at once, on top of the ones already going
+        const ids = (Array.isArray(msg.ids) ? msg.ids : []).filter(id => mutationById[id]).slice(0, MUTATIONS.length);
+        for (const id of ids) startMutation(id, true);
+      } else if (stand.admin && msg.type === 'adminSpawn') {
+        // put any ice cream straight onto your stand, fully grown
+        const f = flavorById[msg.flavor];
+        if (!f) return err('No ice cream with that name.');
+        let want = Math.min(stand.spaces, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        let placed = 0;
+        for (let i = 0; i < stand.tubs.length && placed < want; i++) {
+          if (!stand.tubs[i]) { stand.tubs[i] = { flavor: f.id, grow: 0 }; placed++; }
+        }
+        if (!placed) return err('Your stand is full! Take a tub off or buy Extra Space.');
+        if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+        conn.send({ type: 'admin', text: `Spawned ${placed} ${f.name} on your stand` });
       } else if ((allowTest || stand.admin) && msg.type === 'testMutation') {
         // test button: start a (new) mutation event right away
-        if (event.id) broadcast({ type: 'mutationEnd', mutation: event.id });
         startMutation(msg.id);
       } else if ((allowTest || stand.admin) && msg.type === 'testMoney') {
         stand.money += 1000;
@@ -895,7 +987,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return { handle, leave, tick, snapshotSaves };
   }
 
-  const Engine = { createGame, WORLD, SLOTS, SHOP, REACH, chestPos, tubPos };
+  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, REACH, chestPos, tubPos };
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   else root.Engine = Engine;
 })(this);
@@ -904,13 +996,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   <script>
 (() => {
   const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE,
-    HOTBAR_SIZE, STORAGE_SIZE } = window.GameData;
-  const { SHOP, REACH, chestPos, tubPos } = window.Engine;
+    HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
+  const { SHOP, AVATAR_SHOP, REACH, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
 
   const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
+  let ctx = canvas.getContext('2d');
   const $ = id => document.getElementById(id);
 
   let ws = null;
@@ -925,7 +1017,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const particles = [];
   let view = { scale: 1, ox: 0, oy: 0, w: 0, h: 0 };
   let spaceBtn = null; // Extra Space button area (world coords) while it's showing
-  let gameEvent = { id: null, left: 0, next: 0 }; // current mutation event
+  let gameEvent = { id: null, ids: [], left: 0, next: 0 }; // mutation events going on now
+  const activeMuts = () => (gameEvent.ids || []).map(id => mutationById[id]).filter(Boolean);
   let shop = { stock: {}, left: 0 };
 
   // your character (moved here in the browser, then sent to the server)
@@ -1001,12 +1094,24 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       'Single-player test version: your progress is saved in this browser.';
   }
 
+  // a random id saved on this device, so admin names stay locked to the device that first used them
+  function deviceId() {
+    try {
+      let d = localStorage.getItem('icecream-device');
+      if (!d) {
+        d = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('icecream-device', d);
+      }
+      return d;
+    } catch (e) { return ''; }
+  }
+
   function connect(name) {
     $('joinError').textContent = '';
     if (window.SOLO) return startSolo(name);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = () => send({ type: 'join', name });
+    ws.onopen = () => send({ type: 'join', name, device: deviceId() });
     ws.onmessage = e => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
@@ -1038,7 +1143,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     setInterval(save, 5000);
     window.addEventListener('pagehide', save);
     document.addEventListener('visibilitychange', save);
-    send({ type: 'join', name });
+    send({ type: 'join', name, device: deviceId() });
   }
 
   function onMessage(msg) {
@@ -1136,12 +1241,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (msg.golden) {
       floaters.push({ x: slot.x, y: slot.y - 36, text: '⭐ LUCKY x3!', color: '#e6a800', size: 18, t: 0 });
     }
-    if (msg.mutation) {
-      const m = mutationById[msg.mutation];
-      floaters.push({ x: slot.x, y: slot.y - (msg.golden ? 60 : 36), text: `${m.emoji} ${m.name.toUpperCase()} x${m.mult}!`,
+    const muts = (msg.mutations || (msg.mutation ? [msg.mutation] : [])).map(id => mutationById[id]);
+    muts.forEach((m, k) => {
+      floaters.push({ x: slot.x, y: slot.y - (msg.golden ? 60 : 36) - k * 22, text: `${m.emoji} ${m.name.toUpperCase()} x${m.mult}!`,
         mutation: m, size: 19, t: 0 });
-      if (msg.standId === myId) confetti(slot.x, slot.y - 40, 20);
+    });
+    if (muts.length > 1) {
+      const total = muts.reduce((p, m) => p * m.mult, 1);
+      floaters.push({ x: slot.x, y: slot.y - (msg.golden ? 60 : 36) - muts.length * 22, text: `COMBO x${total.toLocaleString()}!`,
+        color: '#ff2e7e', size: 21, t: 0 });
     }
+    if (muts.length && msg.standId === myId) confetti(slot.x, slot.y - 40, 20 * muts.length);
     if (msg.standId === myId && rarity.order >= 4) confetti(slot.x, slot.y - 40, 25);
   }
 
@@ -1267,13 +1377,18 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
 
     const box = $('eventBox');
-    const ev = gameEvent.id && mutationById[gameEvent.id];
+    const evs = activeMuts();
+    const ev = evs[0];
     box.classList.toggle('active', !!ev);
     // light-colored mutations get dark text so it stays readable
-    const light = ev && ['heavenly', 'frozen', 'diamond', 'godly', 'gold'].includes(ev.id);
+    const light = evs.length === 1 && ['heavenly', 'frozen', 'diamond', 'godly', 'gold'].includes(ev.id);
     box.style.color = light ? '#5a4300' : '';
     box.style.textShadow = light ? '0 1px 2px rgba(255,255,255,0.8)' : '';
-    if (ev) {
+    if (evs.length > 1) {
+      box.style.background = `linear-gradient(90deg, ${evs.map(m => m.colors[0]).join(', ')})`;
+      box.innerHTML = `<div class="big">${evs.map(m => m.emoji).join(' ')} ${evs.length} MUTATIONS!</div>
+        ${evs.map(m => `${m.name} x${m.mult}`).join(' · ')}<br>Each one has a ${Math.round(MUTATION_CHANCE * 100)}% chance, and they stack! · ${clock(gameEvent.left)} left`;
+    } else if (ev) {
       box.style.background = mutGradient(ev);
       box.innerHTML = `<div class="big">${ev.emoji} ${ev.name.toUpperCase()} MUTATION!</div>
         ${Math.round(MUTATION_CHANCE * 100)}% of scoops turn ${ev.name} (x${ev.mult}) · ${clock(gameEvent.left)} left`;
@@ -1284,7 +1399,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     for (const m of MUTATIONS) {
       const n = s.mutations[m.id] || 0;
       m.row.querySelector('.count').textContent = n ? `${n} sold` : 'not yet';
-      m.row.classList.toggle('active-mut', gameEvent.id === m.id);
+      m.row.classList.toggle('active-mut', (gameEvent.ids || []).includes(m.id));
     }
 
     const lb = $('leaderboard');
@@ -1359,9 +1474,77 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     openWindow = null;
     $('shopModal').classList.add('hidden');
     $('invModal').classList.add('hidden');
+    $('avatarModal').classList.add('hidden');
+  }
+
+  // ---------- Avatar Shop ----------
+  const AVATAR_LABELS = {
+    hat: { cap: 'Cap', none: 'No hat', tophat: 'Top hat', beanie: 'Beanie', party: 'Party hat',
+      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat' },
+    face: { happy: 'Happy', cool: 'Sunglasses', wink: 'Wink', silly: 'Silly', wow: 'Wow' },
+  };
+  const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
+
+  function openAvatar() {
+    openWindow = 'avatar';
+    $('shopModal').classList.add('hidden');
+    $('invModal').classList.add('hidden');
+    $('avatarModal').classList.remove('hidden');
+    buildAvatarOptions();
+  }
+
+  function buildAvatarOptions() {
+    const s = me();
+    if (!s) return;
+    const box = $('avatarOptions');
+    box.innerHTML = '';
+    for (const [part, label] of AVATAR_PARTS) {
+      const row = document.createElement('div');
+      row.className = 'avRow';
+      row.innerHTML = `<div class="avLabel">${label}</div>`;
+      const opts = document.createElement('div');
+      opts.className = 'avOpts';
+      for (const value of AVATAR[part]) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
+        b.className = 'avOpt' + (isColor ? ' swatch' : '') + (s.avatar[part] === value ? ' on' : '');
+        if (isColor) {
+          b.style.background = value === 'stand' ? s.color : value;
+          b.title = value === 'stand' ? 'Your stand color' : '';
+        } else b.textContent = AVATAR_LABELS[part][value];
+        b.addEventListener('click', () => {
+          s.avatar[part] = value; // show it right away; the server saves it
+          send({ type: 'setAvatar', avatar: { [part]: value } });
+          buildAvatarOptions();
+        });
+        opts.appendChild(b);
+      }
+      row.appendChild(opts);
+      box.appendChild(row);
+    }
+  }
+
+  // a big picture of your character in the Avatar Shop window
+  function drawAvatarPreview(time) {
+    const c = $('avatarPreview');
+    const s = me();
+    if (!s || openWindow !== 'avatar') return;
+    const pctx = c.getContext('2d');
+    const saved = ctx;
+    ctx = pctx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#ffe3ee';
+    ctx.beginPath(); ctx.arc(c.width / 2, c.height / 2 + 10, 62, 0, Math.PI * 2); ctx.fill();
+    ctx.translate(c.width / 2, c.height / 2 + 30);
+    ctx.scale(2.2, 2.2);
+    drawPlayer({ x: 0, y: 0, facing: 1, moving: false, color: s.color, avatar: s.avatar, name: '', admin: s.admin }, time);
+    ctx = saved;
   }
   $('shopClose').addEventListener('click', closeWindows);
   $('invClose').addEventListener('click', closeWindows);
+  $('avatarClose').addEventListener('click', closeWindows);
 
   function updateShop() {
     const s = me();
@@ -1429,6 +1612,25 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   $('adminGiveBtn').addEventListener('click', () =>
     send({ type: 'adminGive', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
+  $('adminSpawnBtn').addEventListener('click', () =>
+    send({ type: 'adminSpawn', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
+  // pick several mutations, then turn them all on together
+  const pickedMuts = new Set();
+  for (const m of MUTATIONS) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'mutChip';
+    chip.textContent = `${m.emoji} ${m.name}`;
+    chip.addEventListener('click', () => {
+      if (pickedMuts.has(m.id)) pickedMuts.delete(m.id); else pickedMuts.add(m.id);
+      chip.classList.toggle('on', pickedMuts.has(m.id));
+    });
+    $('adminMutChips').appendChild(chip);
+  }
+  $('adminMutBtn').addEventListener('click', () => {
+    if (!pickedMuts.size) return toast('Tap some mutations first, then press Turn on.');
+    send({ type: 'adminMutations', ids: [...pickedMuts] });
+  });
 
   const squash = t => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const findFlavor = t => FLAVORS.find(f => squash(f.id) === squash(t) || squash(f.name) === squash(t));
@@ -1456,16 +1658,35 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (!f) return toast('Try: /give rainbow 5 (any flavor name)');
         return send({ type: 'adminGive', flavor: f.id, count });
       }
-      case 'mutation': case 'mutate': {
+      case 'spawn': {
+        // put an ice cream straight on your stand, fully grown: /spawn void 3
+        let count = 1;
+        if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) count = Number(args.pop());
+        const f = findFlavor(args.join(' '));
+        if (!f) return toast('Try: /spawn void 3 (any flavor name)');
+        return send({ type: 'adminSpawn', flavor: f.id, count });
+      }
+      case 'mutation': case 'mutations': case 'mutate': {
         if (squash(args[0]) === 'end' || squash(args[0]) === 'stop') return send({ type: 'adminEndMutation' });
-        const m = args.length ? findMutation(args.join(' ')) : null;
-        if (args.length && !m) return toast('Try: /mutation rainbow, /mutation blood moon or /mutation end');
-        return send({ type: 'testMutation', id: m && m.id });
+        if (!args.length) return send({ type: 'testMutation' });
+        // several at once: /mutation rainbow godly blood moon
+        const words = args.join(' ').split(/[\s,+]+/).filter(Boolean);
+        const ids = [];
+        for (let i = 0; i < words.length; i++) {
+          let found = null;
+          for (let j = Math.min(words.length, i + 3); j > i && !found; j--) {
+            const m = findMutation(words.slice(i, j).join(' '));
+            if (m) { found = m; i = j - 1; }
+          }
+          if (!found) return toast(`"${words[i]}" isn't a mutation. Try: /mutation rainbow godly blood moon`);
+          ids.push(found.id);
+        }
+        return send({ type: 'adminMutations', ids });
       }
       case 'restock': return send({ type: 'testRestock' });
       case 'grow': return send({ type: 'testGrow' });
       default:
-        return toast('Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end · /restock · /grow');
+        return toast('Commands: /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly · /mutation end · /restock · /grow');
     }
   }
   function runTypedCommand() {
@@ -1525,6 +1746,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (inRect(wx, wy, { x: chest.x - 45, y: chest.y - 62, w: 90, h: 90 })) {
       return goDo(chest, REACH - 40, openInventory);
     }
+    // the Avatar Shop
+    if (inRect(wx, wy, { x: AVATAR_SHOP.x - 110, y: AVATAR_SHOP.y - 95, w: 220, h: 185 })) {
+      return goDo({ x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }, 60, openAvatar);
+    }
     // the Ice Cream Shop
     if (inRect(wx, wy, { x: SHOP.x - 150, y: SHOP.y - 100, w: 300, h: 200 })) {
       return goDo({ x: SHOP.x, y: SHOP.y + 90 }, 60, openShop);
@@ -1583,6 +1808,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // close windows when you walk away
     const s = me();
     if (openWindow === 'shop' && dist(player, { x: SHOP.x, y: SHOP.y + 90 }) > REACH) closeWindows();
+    if (openWindow === 'avatar' && dist(player, { x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }) > REACH) closeWindows();
     if (openWindow === 'inventory' && s && !near(chestPos(slots[s.slot]), 40)) closeWindows();
   }
 
@@ -1641,7 +1867,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     for (let i = 0; i < slots.length; i += 4) {
       for (const x of [22, 326, 952, 1258]) drawTree(x, slots[i].y - 40);
     }
-    for (const x of [60, 180, 300, 980, 1100, 1220]) drawTree(x, 60);
+    for (const x of [60, 180, 300, 1220]) drawTree(x, 60);
   }
 
   function drawTree(x, y) {
@@ -2201,54 +2427,181 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.restore();
   }
 
-  // a player's character: bigger than customers, wears their stand's color, shows their name
+  // a player's character: bigger than customers, dressed the way they picked in the Avatar Shop
   function drawPlayer(p, time) {
+    const av = p.avatar || {};
+    const shirt = !av.shirt || av.shirt === 'stand' ? p.color : av.shirt;
+    const skin = av.skin || '#f8d5b8';
     const bounce = p.moving ? Math.abs(Math.sin(time * 12)) * 3 : 0;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath(); ctx.ellipse(0, 18, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.scale(1.7 * p.facing, 1.7);
+    ctx.scale(1.7 * (p.facing || 1), 1.7);
     const y = -bounce / 1.7;
     // legs
-    ctx.fillStyle = '#3b3b58';
+    ctx.fillStyle = av.pants || '#3b3b58';
     ctx.fillRect(-6, y + 6, 5, 6);
     ctx.fillRect(1, y + 6, 5, 6);
     // body
-    ctx.fillStyle = p.color;
+    ctx.fillStyle = shirt;
     roundRect(-9, y - 7, 18, 15, 5); ctx.fill();
+    if (shirt === '#ffffff') { ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.8; ctx.stroke(); }
     // head
-    ctx.fillStyle = '#f8d5b8';
+    ctx.fillStyle = skin;
     ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
-    // cap
-    ctx.fillStyle = p.color;
-    ctx.beginPath(); ctx.arc(0, y - 16, 8, Math.PI, 0); ctx.fill();
-    ctx.fillRect(0, y - 17, 11, 3);
-    ctx.fillStyle = '#222';
-    ctx.fillRect(2, y - 15, 2, 2.5);
-    ctx.fillRect(5.5, y - 15, 2, 2.5);
+    drawFace(av.face || 'happy', y, time);
+    // admins wear their crown unless they picked a special hat in the Avatar Shop
+    const hat = av.hat || 'cap';
+    const crown = p.admin && (hat === 'cap' || hat === 'none');
+    drawHat(crown ? 'none' : hat, y, shirt);
     // the ice cream in your hand
     if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
-    if (p.admin) {
+    if (crown) {
       // golden crown
       ctx.fillStyle = '#ffd43b';
       ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 0.8;
       ctx.beginPath();
-      ctx.moveTo(-7, y - 23); ctx.lineTo(-7, y - 31); ctx.lineTo(-3.5, y - 27);
-      ctx.lineTo(0, y - 33); ctx.lineTo(3.5, y - 27); ctx.lineTo(7, y - 31); ctx.lineTo(7, y - 23);
+      ctx.moveTo(-7, y - 20); ctx.lineTo(-7, y - 28); ctx.lineTo(-3.5, y - 24);
+      ctx.lineTo(0, y - 30); ctx.lineTo(3.5, y - 24); ctx.lineTo(7, y - 28); ctx.lineTo(7, y - 20);
       ctx.closePath(); ctx.fill(); ctx.stroke();
     }
     ctx.restore();
+    if (!p.name) return;
 
     ctx.font = 'bold 13px Trebuchet MS';
     ctx.textAlign = 'center';
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#fff';
     const label = p.admin ? `👑 ${p.name} [ADMIN]` : p.name;
-    const ly = p.admin ? p.y - 62 : p.y - 46;
+    const ly = p.admin || ['tophat', 'wizard', 'bunny', 'party', 'cone'].includes(av.hat) ? p.y - 66 : p.y - 46;
     ctx.strokeText(label, p.x, ly);
     ctx.fillStyle = p.admin ? '#e8a200' : p.isMe ? '#e0457b' : '#3a2a35';
     ctx.fillText(label, p.x, ly);
+  }
+
+  function drawFace(face, y, time) {
+    ctx.fillStyle = '#222';
+    if (face === 'cool') {
+      // sunglasses
+      ctx.fillRect(0.5, y - 16.5, 8, 3.5);
+      ctx.fillRect(-2, y - 16, 3, 1);
+    } else if (face === 'wink') {
+      ctx.fillRect(2, y - 15, 2, 2.5);
+      ctx.fillRect(5, y - 14, 3, 1.2);
+    } else if (face === 'wow') {
+      ctx.beginPath(); ctx.arc(3, y - 14, 1.5, 0, Math.PI * 2); ctx.arc(6.5, y - 14, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(5, y - 10, 1.4, 0, Math.PI * 2); ctx.fill();
+      return;
+    } else {
+      ctx.fillRect(2, y - 15, 2, 2.5);
+      ctx.fillRect(5.5, y - 15, 2, 2.5);
+    }
+    if (face === 'silly') {
+      ctx.fillStyle = '#ff6b8a';
+      ctx.beginPath(); ctx.arc(5, y - 9.5, 1.6, 0, Math.PI); ctx.fill();
+    }
+    // smile
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.arc(5, y - 11.5, 2, 0.2, Math.PI - 0.2); ctx.stroke();
+  }
+
+  function drawHat(hat, y, shirt) {
+    switch (hat) {
+      case 'cap':
+        ctx.fillStyle = shirt;
+        ctx.beginPath(); ctx.arc(0, y - 16, 8, Math.PI, 0); ctx.fill();
+        ctx.fillRect(0, y - 17, 11, 3);
+        break;
+      case 'tophat':
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-9, y - 21, 18, 2.5);
+        ctx.fillRect(-6, y - 33, 12, 12);
+        ctx.fillStyle = '#e03131';
+        ctx.fillRect(-6, y - 24, 12, 2.5);
+        break;
+      case 'beanie':
+        ctx.fillStyle = '#4dabf7';
+        ctx.beginPath(); ctx.arc(0, y - 16, 8.5, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#1c7ed6';
+        ctx.fillRect(-8.5, y - 18, 17, 3);
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(0, y - 25, 2.5, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'party':
+        ctx.fillStyle = '#cc5de8';
+        ctx.beginPath(); ctx.moveTo(-6, y - 20); ctx.lineTo(0, y - 36); ctx.lineTo(6, y - 20); ctx.fill();
+        ctx.fillStyle = '#ffd43b';
+        ctx.beginPath(); ctx.arc(0, y - 36, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(-3, y - 28, 6, 2);
+        break;
+      case 'cowboy':
+        ctx.fillStyle = '#a0662d';
+        ctx.beginPath(); ctx.ellipse(0, y - 20, 13, 3, 0, 0, Math.PI * 2); ctx.fill();
+        roundRect(-6, y - 29, 12, 9, 3); ctx.fill();
+        ctx.fillStyle = '#5c3d2e';
+        ctx.fillRect(-6, y - 23, 12, 2);
+        break;
+      case 'wizard':
+        ctx.fillStyle = '#5f3dc4';
+        ctx.beginPath(); ctx.moveTo(-10, y - 19); ctx.lineTo(2, y - 40); ctx.lineTo(10, y - 19); ctx.fill();
+        ctx.fillStyle = '#ffd43b';
+        ctx.beginPath(); ctx.arc(0, y - 28, 1.6, 0, Math.PI * 2); ctx.arc(3, y - 23, 1.2, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'bunny':
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.ellipse(-4, y - 28, 2.8, 8, -0.15, 0, Math.PI * 2); ctx.ellipse(4, y - 28, 2.8, 8, 0.15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffb3c6';
+        ctx.beginPath(); ctx.ellipse(-4, y - 28, 1.3, 5.5, -0.15, 0, Math.PI * 2); ctx.ellipse(4, y - 28, 1.3, 5.5, 0.15, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'cone':
+        // a giant ice cream cone hat
+        ctx.fillStyle = '#d9a35b';
+        ctx.beginPath(); ctx.moveTo(-6, y - 20); ctx.lineTo(6, y - 20); ctx.lineTo(0, y - 9); ctx.fill();
+        ctx.fillStyle = '#ff8fab';
+        ctx.beginPath(); ctx.arc(0, y - 25, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e03131';
+        ctx.beginPath(); ctx.arc(1, y - 33, 2, 0, Math.PI * 2); ctx.fill();
+        break;
+    }
+  }
+
+  // the Avatar Shop building next to the Ice Cream Shop
+  function drawAvatarShop(time) {
+    const { x, y } = AVATAR_SHOP;
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 70, 115, 12, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e7f5ff';
+    roundRect(x - 95, y - 35, 190, 105, 8); ctx.fill();
+    ctx.strokeStyle = '#4dabf7'; ctx.lineWidth = 3; ctx.stroke();
+    // door
+    ctx.fillStyle = '#1c7ed6';
+    roundRect(x - 18, y + 15, 36, 55, 6); ctx.fill();
+    // window with clothes on hangers
+    ctx.fillStyle = '#9ad7ff';
+    roundRect(x - 85, y - 15, 55, 45, 6); ctx.fill();
+    roundRect(x + 30, y - 15, 55, 45, 6); ctx.fill();
+    [['#ff6b6b', x - 72], ['#51cf66', x - 52], ['#fcc419', x + 45], ['#cc5de8', x + 65]].forEach(([c, sx]) => {
+      ctx.fillStyle = c;
+      roundRect(sx - 7, y - 4, 14, 16, 3); ctx.fill();
+    });
+    // tiny top hat in the window
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x - 64, y + 20, 12, 3); ctx.fillRect(x - 61, y + 12, 6, 8);
+    // roof
+    ctx.fillStyle = '#4dabf7';
+    ctx.beginPath(); ctx.moveTo(x - 110, y - 33); ctx.lineTo(x, y - 85); ctx.lineTo(x + 110, y - 33); ctx.fill();
+    // sign
+    ctx.fillStyle = '#fff';
+    roundRect(x - 75, y - 60, 150, 26, 8); ctx.fill();
+    ctx.strokeStyle = '#4dabf7'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#1c7ed6';
+    ctx.font = 'bold 15px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.fillText('👕 AVATAR SHOP', x, y - 41);
+    if (dist(player, { x, y: y + 85 }) <= REACH && openWindow !== 'avatar') {
+      drawBubbleButton(x, y + 98, '👕 Tap to change your look', '#4dabf7', time);
+    }
   }
 
   // colored sky, falling sparkles and a banner while a mutation is happening
@@ -2261,11 +2614,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const pickColor = m => m.colors[Math.floor(Math.random() * m.colors.length)];
 
   function drawEventEffects(time, dt) {
-    const m = gameEvent.id && mutationById[gameEvent.id];
-    if (m && m.id === 'rainbow') {
+    const muts = activeMuts();
+    // with several mutations going, each one gets a share of the tint and sparkles
+    const share = 1 / Math.max(1, muts.length);
+    for (const m of muts) drawOneMutation(m, time, dt * Math.max(share, 0.5), share);
+    drawAmbient(time, dt);
+  }
+
+  function drawOneMutation(m, time, dt, share) {
+    if (m.id === 'rainbow') {
       drawSunShower(dt);
     } else if (m) {
-      const tint = { bloodmoon: 0.22, shadow: 0.32, molten: 0.16, godly: 0.1, heavenly: 0, impossible: 0.1 }[m.id] ?? 0.13;
+      const tint = ({ bloodmoon: 0.22, shadow: 0.32, molten: 0.16, godly: 0.1, heavenly: 0, impossible: 0.1 }[m.id] ?? 0.13) *
+        Math.max(share, 0.5);
       if (tint) {
         ctx.globalAlpha = tint;
         ctx.fillStyle = m.id === 'impossible' ? `hsl(${(time * 120) % 360}, 100%, 50%)` : m.colors[0];
@@ -2288,6 +2649,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       }
       if (m.id === 'impossible') drawGlitch(time);
     }
+  }
+
+  function drawAmbient(time, dt) {
     for (let i = ambient.length - 1; i >= 0; i--) {
       const p = ambient[i];
       p.x += p.vx * dt; p.y += p.vy * dt;
@@ -2364,16 +2728,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // the mutation banner stays at the top of the screen (screen coordinates)
   function drawEventBanner(time) {
-    const m = gameEvent.id && mutationById[gameEvent.id];
+    const muts = activeMuts();
+    const m = muts[0];
     if (!m) return;
-    const text = `${m.emoji} ${m.name.toUpperCase()} MUTATION · x${m.mult} · ${clock(gameEvent.left)}`;
+    const text = muts.length > 1
+      ? `${muts.map(x => `${x.emoji} ${x.name.toUpperCase()}`).join(' + ')} · ${clock(gameEvent.left)}`
+      : `${m.emoji} ${m.name.toUpperCase()} MUTATION · x${m.mult} · ${clock(gameEvent.left)}`;
     ctx.font = 'bold 16px Trebuchet MS';
     ctx.textAlign = 'center';
     const w = ctx.measureText(text).width + 30;
     ctx.fillStyle = 'rgba(30, 15, 25, 0.75)';
     roundRect(view.w / 2 - w / 2, 8, w, 32, 12); ctx.fill();
     ctx.strokeStyle = mutScoopColor(m, time); ctx.lineWidth = 3; ctx.stroke();
-    if (m.id === 'impossible') {
+    if (muts.some(x => x.id === 'impossible')) {
       // glitchy text
       const j = Math.sin(time * 20) * 1.5;
       ctx.fillStyle = 'rgba(0,255,255,0.8)'; ctx.fillText(text, view.w / 2 - 2 + j, 30);
@@ -2433,9 +2800,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.beginPath(); ctx.rect(0, 0, world.width, world.height); ctx.clip();
 
     drawPark(time);
-    if (gameEvent.id === 'rainbow') drawRainbowSky(time); // behind everything, like a real rainbow
-    if (gameEvent.id === 'godly' || gameEvent.id === 'heavenly') drawHolySky(time, gameEvent.id);
+    const ids = gameEvent.ids || [];
+    if (ids.includes('rainbow')) drawRainbowSky(time); // behind everything, like a real rainbow
+    for (const id of ['godly', 'heavenly']) if (ids.includes(id)) drawHolySky(time, id);
     drawShop(time);
+    drawAvatarShop(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);
@@ -2511,6 +2880,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
     ctx.restore();
     drawEventBanner(time);
+    drawAvatarPreview(time);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

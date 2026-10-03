@@ -30,6 +30,11 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 | Secret    | ??? (buy it to find out!)        | $1,200          |
 
 - **Stand spaces:** your stand starts with 5 spaces for tubs. When they're all full, an **Extra Space** button appears on top of your stand. Buy it to get 3 more spaces ($300, then $6,000, then $75,000).
+- **Avatar Shop:** walk to the blue Avatar Shop next to the Ice Cream Shop and tap it to change your
+  character's shirt, pants, skin, hat (cap, top hat, beanie, party hat, cowboy hat, wizard hat, bunny ears,
+  ice cream hat) and face. Everyone in the park sees your look, and it's saved with your name.
+- **Shop odds:** the really good ice creams are really rare. After each restock the shop has an Epic
+  flavor 20% of the time, a Legendary 7%, a Mythic 2% and the Secret flavor only 0.4%.
 - **Upgrades:** Bigger Sign (more customers), Tip Jar (+10% money per level).
 - ⭐ Sometimes a **lucky golden customer** shows up and pays triple.
 - **Mutations:** every 30, 45 or 50 minutes a mutation event hits the whole park for 5 minutes.
@@ -64,13 +69,22 @@ gold crown with an [ADMIN] tag, and get an **Admin commands** panel. You can use
 |---|---|
 | `/money 5t` | Adds money (use k, m, b or t, like `500k`, `2b`, `5t`) |
 | `/give rainbow sherbet 10` | Puts any ice cream in your hotbar, even if the shop is sold out |
-| `/mutation impossible` | Starts that mutation for everyone right now (`/mutation` alone picks one at random) |
-| `/mutation end` | Ends the current mutation |
+| `/spawn void 3` | Puts any ice cream straight onto your stand, already grown |
+| `/mutation rainbow godly blood moon` | Turns on one or more mutations at once, on top of any already going (`/mutation` alone starts a random one) |
+| `/mutation end` | Ends all mutations |
 | `/restock` | Gives the shop new stock right now |
 | `/grow` | Finishes growing every tub on your stand |
 
-Admin names are listed in `ADMIN_NAMES` in `public/engine.js`. In multiplayer, anyone who types an
-admin name gets admin, so keep it a secret or change it.
+The admin panel also has mutation buttons: tap as many as you like, then **Turn on**. When several
+mutations are going, each one has its own chance on every scoop, and they stack (a scoop can be Rainbow
+*and* Godly for x1,500).
+
+**Admin is locked to your device.** The first device that joins as coolkid becomes the admin device. In
+multiplayer, anyone else who types coolkid on a different device is told the name is taken. To move admin
+to a new device, delete the `adminDevice` line for coolkid in `data/players.json` while the server is
+stopped. (The single-file test version runs only on the device that opens it, so it has its own admin.)
+
+Admin names are listed in `ADMIN_NAMES` in `public/engine.js`.
 
 ## Quick test (no install)
 

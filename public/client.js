@@ -1,12 +1,12 @@
 (() => {
   const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE,
-    HOTBAR_SIZE, STORAGE_SIZE } = window.GameData;
-  const { SHOP, REACH, chestPos, tubPos } = window.Engine;
+    HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
+  const { SHOP, AVATAR_SHOP, REACH, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
 
   const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
+  let ctx = canvas.getContext('2d');
   const $ = id => document.getElementById(id);
 
   let ws = null;
@@ -21,7 +21,8 @@
   const particles = [];
   let view = { scale: 1, ox: 0, oy: 0, w: 0, h: 0 };
   let spaceBtn = null; // Extra Space button area (world coords) while it's showing
-  let gameEvent = { id: null, left: 0, next: 0 }; // current mutation event
+  let gameEvent = { id: null, ids: [], left: 0, next: 0 }; // mutation events going on now
+  const activeMuts = () => (gameEvent.ids || []).map(id => mutationById[id]).filter(Boolean);
   let shop = { stock: {}, left: 0 };
 
   // your character (moved here in the browser, then sent to the server)
@@ -97,12 +98,24 @@
       'Single-player test version: your progress is saved in this browser.';
   }
 
+  // a random id saved on this device, so admin names stay locked to the device that first used them
+  function deviceId() {
+    try {
+      let d = localStorage.getItem('icecream-device');
+      if (!d) {
+        d = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('icecream-device', d);
+      }
+      return d;
+    } catch (e) { return ''; }
+  }
+
   function connect(name) {
     $('joinError').textContent = '';
     if (window.SOLO) return startSolo(name);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = () => send({ type: 'join', name });
+    ws.onopen = () => send({ type: 'join', name, device: deviceId() });
     ws.onmessage = e => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
@@ -134,7 +147,7 @@
     setInterval(save, 5000);
     window.addEventListener('pagehide', save);
     document.addEventListener('visibilitychange', save);
-    send({ type: 'join', name });
+    send({ type: 'join', name, device: deviceId() });
   }
 
   function onMessage(msg) {
@@ -232,12 +245,17 @@
     if (msg.golden) {
       floaters.push({ x: slot.x, y: slot.y - 36, text: '⭐ LUCKY x3!', color: '#e6a800', size: 18, t: 0 });
     }
-    if (msg.mutation) {
-      const m = mutationById[msg.mutation];
-      floaters.push({ x: slot.x, y: slot.y - (msg.golden ? 60 : 36), text: `${m.emoji} ${m.name.toUpperCase()} x${m.mult}!`,
+    const muts = (msg.mutations || (msg.mutation ? [msg.mutation] : [])).map(id => mutationById[id]);
+    muts.forEach((m, k) => {
+      floaters.push({ x: slot.x, y: slot.y - (msg.golden ? 60 : 36) - k * 22, text: `${m.emoji} ${m.name.toUpperCase()} x${m.mult}!`,
         mutation: m, size: 19, t: 0 });
-      if (msg.standId === myId) confetti(slot.x, slot.y - 40, 20);
+    });
+    if (muts.length > 1) {
+      const total = muts.reduce((p, m) => p * m.mult, 1);
+      floaters.push({ x: slot.x, y: slot.y - (msg.golden ? 60 : 36) - muts.length * 22, text: `COMBO x${total.toLocaleString()}!`,
+        color: '#ff2e7e', size: 21, t: 0 });
     }
+    if (muts.length && msg.standId === myId) confetti(slot.x, slot.y - 40, 20 * muts.length);
     if (msg.standId === myId && rarity.order >= 4) confetti(slot.x, slot.y - 40, 25);
   }
 
@@ -363,13 +381,18 @@
     }
 
     const box = $('eventBox');
-    const ev = gameEvent.id && mutationById[gameEvent.id];
+    const evs = activeMuts();
+    const ev = evs[0];
     box.classList.toggle('active', !!ev);
     // light-colored mutations get dark text so it stays readable
-    const light = ev && ['heavenly', 'frozen', 'diamond', 'godly', 'gold'].includes(ev.id);
+    const light = evs.length === 1 && ['heavenly', 'frozen', 'diamond', 'godly', 'gold'].includes(ev.id);
     box.style.color = light ? '#5a4300' : '';
     box.style.textShadow = light ? '0 1px 2px rgba(255,255,255,0.8)' : '';
-    if (ev) {
+    if (evs.length > 1) {
+      box.style.background = `linear-gradient(90deg, ${evs.map(m => m.colors[0]).join(', ')})`;
+      box.innerHTML = `<div class="big">${evs.map(m => m.emoji).join(' ')} ${evs.length} MUTATIONS!</div>
+        ${evs.map(m => `${m.name} x${m.mult}`).join(' · ')}<br>Each one has a ${Math.round(MUTATION_CHANCE * 100)}% chance, and they stack! · ${clock(gameEvent.left)} left`;
+    } else if (ev) {
       box.style.background = mutGradient(ev);
       box.innerHTML = `<div class="big">${ev.emoji} ${ev.name.toUpperCase()} MUTATION!</div>
         ${Math.round(MUTATION_CHANCE * 100)}% of scoops turn ${ev.name} (x${ev.mult}) · ${clock(gameEvent.left)} left`;
@@ -380,7 +403,7 @@
     for (const m of MUTATIONS) {
       const n = s.mutations[m.id] || 0;
       m.row.querySelector('.count').textContent = n ? `${n} sold` : 'not yet';
-      m.row.classList.toggle('active-mut', gameEvent.id === m.id);
+      m.row.classList.toggle('active-mut', (gameEvent.ids || []).includes(m.id));
     }
 
     const lb = $('leaderboard');
@@ -455,9 +478,77 @@
     openWindow = null;
     $('shopModal').classList.add('hidden');
     $('invModal').classList.add('hidden');
+    $('avatarModal').classList.add('hidden');
+  }
+
+  // ---------- Avatar Shop ----------
+  const AVATAR_LABELS = {
+    hat: { cap: 'Cap', none: 'No hat', tophat: 'Top hat', beanie: 'Beanie', party: 'Party hat',
+      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat' },
+    face: { happy: 'Happy', cool: 'Sunglasses', wink: 'Wink', silly: 'Silly', wow: 'Wow' },
+  };
+  const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
+
+  function openAvatar() {
+    openWindow = 'avatar';
+    $('shopModal').classList.add('hidden');
+    $('invModal').classList.add('hidden');
+    $('avatarModal').classList.remove('hidden');
+    buildAvatarOptions();
+  }
+
+  function buildAvatarOptions() {
+    const s = me();
+    if (!s) return;
+    const box = $('avatarOptions');
+    box.innerHTML = '';
+    for (const [part, label] of AVATAR_PARTS) {
+      const row = document.createElement('div');
+      row.className = 'avRow';
+      row.innerHTML = `<div class="avLabel">${label}</div>`;
+      const opts = document.createElement('div');
+      opts.className = 'avOpts';
+      for (const value of AVATAR[part]) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
+        b.className = 'avOpt' + (isColor ? ' swatch' : '') + (s.avatar[part] === value ? ' on' : '');
+        if (isColor) {
+          b.style.background = value === 'stand' ? s.color : value;
+          b.title = value === 'stand' ? 'Your stand color' : '';
+        } else b.textContent = AVATAR_LABELS[part][value];
+        b.addEventListener('click', () => {
+          s.avatar[part] = value; // show it right away; the server saves it
+          send({ type: 'setAvatar', avatar: { [part]: value } });
+          buildAvatarOptions();
+        });
+        opts.appendChild(b);
+      }
+      row.appendChild(opts);
+      box.appendChild(row);
+    }
+  }
+
+  // a big picture of your character in the Avatar Shop window
+  function drawAvatarPreview(time) {
+    const c = $('avatarPreview');
+    const s = me();
+    if (!s || openWindow !== 'avatar') return;
+    const pctx = c.getContext('2d');
+    const saved = ctx;
+    ctx = pctx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#ffe3ee';
+    ctx.beginPath(); ctx.arc(c.width / 2, c.height / 2 + 10, 62, 0, Math.PI * 2); ctx.fill();
+    ctx.translate(c.width / 2, c.height / 2 + 30);
+    ctx.scale(2.2, 2.2);
+    drawPlayer({ x: 0, y: 0, facing: 1, moving: false, color: s.color, avatar: s.avatar, name: '', admin: s.admin }, time);
+    ctx = saved;
   }
   $('shopClose').addEventListener('click', closeWindows);
   $('invClose').addEventListener('click', closeWindows);
+  $('avatarClose').addEventListener('click', closeWindows);
 
   function updateShop() {
     const s = me();
@@ -525,6 +616,25 @@
   $('adminGiveBtn').addEventListener('click', () =>
     send({ type: 'adminGive', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
+  $('adminSpawnBtn').addEventListener('click', () =>
+    send({ type: 'adminSpawn', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
+  // pick several mutations, then turn them all on together
+  const pickedMuts = new Set();
+  for (const m of MUTATIONS) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'mutChip';
+    chip.textContent = `${m.emoji} ${m.name}`;
+    chip.addEventListener('click', () => {
+      if (pickedMuts.has(m.id)) pickedMuts.delete(m.id); else pickedMuts.add(m.id);
+      chip.classList.toggle('on', pickedMuts.has(m.id));
+    });
+    $('adminMutChips').appendChild(chip);
+  }
+  $('adminMutBtn').addEventListener('click', () => {
+    if (!pickedMuts.size) return toast('Tap some mutations first, then press Turn on.');
+    send({ type: 'adminMutations', ids: [...pickedMuts] });
+  });
 
   const squash = t => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const findFlavor = t => FLAVORS.find(f => squash(f.id) === squash(t) || squash(f.name) === squash(t));
@@ -552,16 +662,35 @@
         if (!f) return toast('Try: /give rainbow 5 (any flavor name)');
         return send({ type: 'adminGive', flavor: f.id, count });
       }
-      case 'mutation': case 'mutate': {
+      case 'spawn': {
+        // put an ice cream straight on your stand, fully grown: /spawn void 3
+        let count = 1;
+        if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) count = Number(args.pop());
+        const f = findFlavor(args.join(' '));
+        if (!f) return toast('Try: /spawn void 3 (any flavor name)');
+        return send({ type: 'adminSpawn', flavor: f.id, count });
+      }
+      case 'mutation': case 'mutations': case 'mutate': {
         if (squash(args[0]) === 'end' || squash(args[0]) === 'stop') return send({ type: 'adminEndMutation' });
-        const m = args.length ? findMutation(args.join(' ')) : null;
-        if (args.length && !m) return toast('Try: /mutation rainbow, /mutation blood moon or /mutation end');
-        return send({ type: 'testMutation', id: m && m.id });
+        if (!args.length) return send({ type: 'testMutation' });
+        // several at once: /mutation rainbow godly blood moon
+        const words = args.join(' ').split(/[\s,+]+/).filter(Boolean);
+        const ids = [];
+        for (let i = 0; i < words.length; i++) {
+          let found = null;
+          for (let j = Math.min(words.length, i + 3); j > i && !found; j--) {
+            const m = findMutation(words.slice(i, j).join(' '));
+            if (m) { found = m; i = j - 1; }
+          }
+          if (!found) return toast(`"${words[i]}" isn't a mutation. Try: /mutation rainbow godly blood moon`);
+          ids.push(found.id);
+        }
+        return send({ type: 'adminMutations', ids });
       }
       case 'restock': return send({ type: 'testRestock' });
       case 'grow': return send({ type: 'testGrow' });
       default:
-        return toast('Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end · /restock · /grow');
+        return toast('Commands: /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly · /mutation end · /restock · /grow');
     }
   }
   function runTypedCommand() {
@@ -621,6 +750,10 @@
     if (inRect(wx, wy, { x: chest.x - 45, y: chest.y - 62, w: 90, h: 90 })) {
       return goDo(chest, REACH - 40, openInventory);
     }
+    // the Avatar Shop
+    if (inRect(wx, wy, { x: AVATAR_SHOP.x - 110, y: AVATAR_SHOP.y - 95, w: 220, h: 185 })) {
+      return goDo({ x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }, 60, openAvatar);
+    }
     // the Ice Cream Shop
     if (inRect(wx, wy, { x: SHOP.x - 150, y: SHOP.y - 100, w: 300, h: 200 })) {
       return goDo({ x: SHOP.x, y: SHOP.y + 90 }, 60, openShop);
@@ -679,6 +812,7 @@
     // close windows when you walk away
     const s = me();
     if (openWindow === 'shop' && dist(player, { x: SHOP.x, y: SHOP.y + 90 }) > REACH) closeWindows();
+    if (openWindow === 'avatar' && dist(player, { x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }) > REACH) closeWindows();
     if (openWindow === 'inventory' && s && !near(chestPos(slots[s.slot]), 40)) closeWindows();
   }
 
@@ -737,7 +871,7 @@
     for (let i = 0; i < slots.length; i += 4) {
       for (const x of [22, 326, 952, 1258]) drawTree(x, slots[i].y - 40);
     }
-    for (const x of [60, 180, 300, 980, 1100, 1220]) drawTree(x, 60);
+    for (const x of [60, 180, 300, 1220]) drawTree(x, 60);
   }
 
   function drawTree(x, y) {
@@ -1297,54 +1431,181 @@
     ctx.restore();
   }
 
-  // a player's character: bigger than customers, wears their stand's color, shows their name
+  // a player's character: bigger than customers, dressed the way they picked in the Avatar Shop
   function drawPlayer(p, time) {
+    const av = p.avatar || {};
+    const shirt = !av.shirt || av.shirt === 'stand' ? p.color : av.shirt;
+    const skin = av.skin || '#f8d5b8';
     const bounce = p.moving ? Math.abs(Math.sin(time * 12)) * 3 : 0;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath(); ctx.ellipse(0, 18, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.scale(1.7 * p.facing, 1.7);
+    ctx.scale(1.7 * (p.facing || 1), 1.7);
     const y = -bounce / 1.7;
     // legs
-    ctx.fillStyle = '#3b3b58';
+    ctx.fillStyle = av.pants || '#3b3b58';
     ctx.fillRect(-6, y + 6, 5, 6);
     ctx.fillRect(1, y + 6, 5, 6);
     // body
-    ctx.fillStyle = p.color;
+    ctx.fillStyle = shirt;
     roundRect(-9, y - 7, 18, 15, 5); ctx.fill();
+    if (shirt === '#ffffff') { ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.8; ctx.stroke(); }
     // head
-    ctx.fillStyle = '#f8d5b8';
+    ctx.fillStyle = skin;
     ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
-    // cap
-    ctx.fillStyle = p.color;
-    ctx.beginPath(); ctx.arc(0, y - 16, 8, Math.PI, 0); ctx.fill();
-    ctx.fillRect(0, y - 17, 11, 3);
-    ctx.fillStyle = '#222';
-    ctx.fillRect(2, y - 15, 2, 2.5);
-    ctx.fillRect(5.5, y - 15, 2, 2.5);
+    drawFace(av.face || 'happy', y, time);
+    // admins wear their crown unless they picked a special hat in the Avatar Shop
+    const hat = av.hat || 'cap';
+    const crown = p.admin && (hat === 'cap' || hat === 'none');
+    drawHat(crown ? 'none' : hat, y, shirt);
     // the ice cream in your hand
     if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
-    if (p.admin) {
+    if (crown) {
       // golden crown
       ctx.fillStyle = '#ffd43b';
       ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 0.8;
       ctx.beginPath();
-      ctx.moveTo(-7, y - 23); ctx.lineTo(-7, y - 31); ctx.lineTo(-3.5, y - 27);
-      ctx.lineTo(0, y - 33); ctx.lineTo(3.5, y - 27); ctx.lineTo(7, y - 31); ctx.lineTo(7, y - 23);
+      ctx.moveTo(-7, y - 20); ctx.lineTo(-7, y - 28); ctx.lineTo(-3.5, y - 24);
+      ctx.lineTo(0, y - 30); ctx.lineTo(3.5, y - 24); ctx.lineTo(7, y - 28); ctx.lineTo(7, y - 20);
       ctx.closePath(); ctx.fill(); ctx.stroke();
     }
     ctx.restore();
+    if (!p.name) return;
 
     ctx.font = 'bold 13px Trebuchet MS';
     ctx.textAlign = 'center';
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#fff';
     const label = p.admin ? `👑 ${p.name} [ADMIN]` : p.name;
-    const ly = p.admin ? p.y - 62 : p.y - 46;
+    const ly = p.admin || ['tophat', 'wizard', 'bunny', 'party', 'cone'].includes(av.hat) ? p.y - 66 : p.y - 46;
     ctx.strokeText(label, p.x, ly);
     ctx.fillStyle = p.admin ? '#e8a200' : p.isMe ? '#e0457b' : '#3a2a35';
     ctx.fillText(label, p.x, ly);
+  }
+
+  function drawFace(face, y, time) {
+    ctx.fillStyle = '#222';
+    if (face === 'cool') {
+      // sunglasses
+      ctx.fillRect(0.5, y - 16.5, 8, 3.5);
+      ctx.fillRect(-2, y - 16, 3, 1);
+    } else if (face === 'wink') {
+      ctx.fillRect(2, y - 15, 2, 2.5);
+      ctx.fillRect(5, y - 14, 3, 1.2);
+    } else if (face === 'wow') {
+      ctx.beginPath(); ctx.arc(3, y - 14, 1.5, 0, Math.PI * 2); ctx.arc(6.5, y - 14, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(5, y - 10, 1.4, 0, Math.PI * 2); ctx.fill();
+      return;
+    } else {
+      ctx.fillRect(2, y - 15, 2, 2.5);
+      ctx.fillRect(5.5, y - 15, 2, 2.5);
+    }
+    if (face === 'silly') {
+      ctx.fillStyle = '#ff6b8a';
+      ctx.beginPath(); ctx.arc(5, y - 9.5, 1.6, 0, Math.PI); ctx.fill();
+    }
+    // smile
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.arc(5, y - 11.5, 2, 0.2, Math.PI - 0.2); ctx.stroke();
+  }
+
+  function drawHat(hat, y, shirt) {
+    switch (hat) {
+      case 'cap':
+        ctx.fillStyle = shirt;
+        ctx.beginPath(); ctx.arc(0, y - 16, 8, Math.PI, 0); ctx.fill();
+        ctx.fillRect(0, y - 17, 11, 3);
+        break;
+      case 'tophat':
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-9, y - 21, 18, 2.5);
+        ctx.fillRect(-6, y - 33, 12, 12);
+        ctx.fillStyle = '#e03131';
+        ctx.fillRect(-6, y - 24, 12, 2.5);
+        break;
+      case 'beanie':
+        ctx.fillStyle = '#4dabf7';
+        ctx.beginPath(); ctx.arc(0, y - 16, 8.5, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#1c7ed6';
+        ctx.fillRect(-8.5, y - 18, 17, 3);
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(0, y - 25, 2.5, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'party':
+        ctx.fillStyle = '#cc5de8';
+        ctx.beginPath(); ctx.moveTo(-6, y - 20); ctx.lineTo(0, y - 36); ctx.lineTo(6, y - 20); ctx.fill();
+        ctx.fillStyle = '#ffd43b';
+        ctx.beginPath(); ctx.arc(0, y - 36, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(-3, y - 28, 6, 2);
+        break;
+      case 'cowboy':
+        ctx.fillStyle = '#a0662d';
+        ctx.beginPath(); ctx.ellipse(0, y - 20, 13, 3, 0, 0, Math.PI * 2); ctx.fill();
+        roundRect(-6, y - 29, 12, 9, 3); ctx.fill();
+        ctx.fillStyle = '#5c3d2e';
+        ctx.fillRect(-6, y - 23, 12, 2);
+        break;
+      case 'wizard':
+        ctx.fillStyle = '#5f3dc4';
+        ctx.beginPath(); ctx.moveTo(-10, y - 19); ctx.lineTo(2, y - 40); ctx.lineTo(10, y - 19); ctx.fill();
+        ctx.fillStyle = '#ffd43b';
+        ctx.beginPath(); ctx.arc(0, y - 28, 1.6, 0, Math.PI * 2); ctx.arc(3, y - 23, 1.2, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'bunny':
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.ellipse(-4, y - 28, 2.8, 8, -0.15, 0, Math.PI * 2); ctx.ellipse(4, y - 28, 2.8, 8, 0.15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffb3c6';
+        ctx.beginPath(); ctx.ellipse(-4, y - 28, 1.3, 5.5, -0.15, 0, Math.PI * 2); ctx.ellipse(4, y - 28, 1.3, 5.5, 0.15, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'cone':
+        // a giant ice cream cone hat
+        ctx.fillStyle = '#d9a35b';
+        ctx.beginPath(); ctx.moveTo(-6, y - 20); ctx.lineTo(6, y - 20); ctx.lineTo(0, y - 9); ctx.fill();
+        ctx.fillStyle = '#ff8fab';
+        ctx.beginPath(); ctx.arc(0, y - 25, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e03131';
+        ctx.beginPath(); ctx.arc(1, y - 33, 2, 0, Math.PI * 2); ctx.fill();
+        break;
+    }
+  }
+
+  // the Avatar Shop building next to the Ice Cream Shop
+  function drawAvatarShop(time) {
+    const { x, y } = AVATAR_SHOP;
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 70, 115, 12, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e7f5ff';
+    roundRect(x - 95, y - 35, 190, 105, 8); ctx.fill();
+    ctx.strokeStyle = '#4dabf7'; ctx.lineWidth = 3; ctx.stroke();
+    // door
+    ctx.fillStyle = '#1c7ed6';
+    roundRect(x - 18, y + 15, 36, 55, 6); ctx.fill();
+    // window with clothes on hangers
+    ctx.fillStyle = '#9ad7ff';
+    roundRect(x - 85, y - 15, 55, 45, 6); ctx.fill();
+    roundRect(x + 30, y - 15, 55, 45, 6); ctx.fill();
+    [['#ff6b6b', x - 72], ['#51cf66', x - 52], ['#fcc419', x + 45], ['#cc5de8', x + 65]].forEach(([c, sx]) => {
+      ctx.fillStyle = c;
+      roundRect(sx - 7, y - 4, 14, 16, 3); ctx.fill();
+    });
+    // tiny top hat in the window
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x - 64, y + 20, 12, 3); ctx.fillRect(x - 61, y + 12, 6, 8);
+    // roof
+    ctx.fillStyle = '#4dabf7';
+    ctx.beginPath(); ctx.moveTo(x - 110, y - 33); ctx.lineTo(x, y - 85); ctx.lineTo(x + 110, y - 33); ctx.fill();
+    // sign
+    ctx.fillStyle = '#fff';
+    roundRect(x - 75, y - 60, 150, 26, 8); ctx.fill();
+    ctx.strokeStyle = '#4dabf7'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#1c7ed6';
+    ctx.font = 'bold 15px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.fillText('👕 AVATAR SHOP', x, y - 41);
+    if (dist(player, { x, y: y + 85 }) <= REACH && openWindow !== 'avatar') {
+      drawBubbleButton(x, y + 98, '👕 Tap to change your look', '#4dabf7', time);
+    }
   }
 
   // colored sky, falling sparkles and a banner while a mutation is happening
@@ -1357,11 +1618,19 @@
   const pickColor = m => m.colors[Math.floor(Math.random() * m.colors.length)];
 
   function drawEventEffects(time, dt) {
-    const m = gameEvent.id && mutationById[gameEvent.id];
-    if (m && m.id === 'rainbow') {
+    const muts = activeMuts();
+    // with several mutations going, each one gets a share of the tint and sparkles
+    const share = 1 / Math.max(1, muts.length);
+    for (const m of muts) drawOneMutation(m, time, dt * Math.max(share, 0.5), share);
+    drawAmbient(time, dt);
+  }
+
+  function drawOneMutation(m, time, dt, share) {
+    if (m.id === 'rainbow') {
       drawSunShower(dt);
     } else if (m) {
-      const tint = { bloodmoon: 0.22, shadow: 0.32, molten: 0.16, godly: 0.1, heavenly: 0, impossible: 0.1 }[m.id] ?? 0.13;
+      const tint = ({ bloodmoon: 0.22, shadow: 0.32, molten: 0.16, godly: 0.1, heavenly: 0, impossible: 0.1 }[m.id] ?? 0.13) *
+        Math.max(share, 0.5);
       if (tint) {
         ctx.globalAlpha = tint;
         ctx.fillStyle = m.id === 'impossible' ? `hsl(${(time * 120) % 360}, 100%, 50%)` : m.colors[0];
@@ -1384,6 +1653,9 @@
       }
       if (m.id === 'impossible') drawGlitch(time);
     }
+  }
+
+  function drawAmbient(time, dt) {
     for (let i = ambient.length - 1; i >= 0; i--) {
       const p = ambient[i];
       p.x += p.vx * dt; p.y += p.vy * dt;
@@ -1460,16 +1732,19 @@
 
   // the mutation banner stays at the top of the screen (screen coordinates)
   function drawEventBanner(time) {
-    const m = gameEvent.id && mutationById[gameEvent.id];
+    const muts = activeMuts();
+    const m = muts[0];
     if (!m) return;
-    const text = `${m.emoji} ${m.name.toUpperCase()} MUTATION · x${m.mult} · ${clock(gameEvent.left)}`;
+    const text = muts.length > 1
+      ? `${muts.map(x => `${x.emoji} ${x.name.toUpperCase()}`).join(' + ')} · ${clock(gameEvent.left)}`
+      : `${m.emoji} ${m.name.toUpperCase()} MUTATION · x${m.mult} · ${clock(gameEvent.left)}`;
     ctx.font = 'bold 16px Trebuchet MS';
     ctx.textAlign = 'center';
     const w = ctx.measureText(text).width + 30;
     ctx.fillStyle = 'rgba(30, 15, 25, 0.75)';
     roundRect(view.w / 2 - w / 2, 8, w, 32, 12); ctx.fill();
     ctx.strokeStyle = mutScoopColor(m, time); ctx.lineWidth = 3; ctx.stroke();
-    if (m.id === 'impossible') {
+    if (muts.some(x => x.id === 'impossible')) {
       // glitchy text
       const j = Math.sin(time * 20) * 1.5;
       ctx.fillStyle = 'rgba(0,255,255,0.8)'; ctx.fillText(text, view.w / 2 - 2 + j, 30);
@@ -1529,9 +1804,11 @@
     ctx.beginPath(); ctx.rect(0, 0, world.width, world.height); ctx.clip();
 
     drawPark(time);
-    if (gameEvent.id === 'rainbow') drawRainbowSky(time); // behind everything, like a real rainbow
-    if (gameEvent.id === 'godly' || gameEvent.id === 'heavenly') drawHolySky(time, gameEvent.id);
+    const ids = gameEvent.ids || [];
+    if (ids.includes('rainbow')) drawRainbowSky(time); // behind everything, like a real rainbow
+    for (const id of ['godly', 'heavenly']) if (ids.includes(id)) drawHolySky(time, id);
     drawShop(time);
+    drawAvatarShop(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);
@@ -1607,6 +1884,7 @@
 
     ctx.restore();
     drawEventBanner(time);
+    drawAvatarPreview(time);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

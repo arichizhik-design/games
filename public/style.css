@@ -120,6 +120,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #adminFlavor { flex: 1; }
 #adminCount { width: 64px; }
 #adminCmd { flex: 1; }
+#adminMutChips { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 6px; }
+#adminPanel .mutChip { background: #fff8e1; color: #8a5a00; border: 2px solid #f2b705; font-size: 12px; padding: 3px 7px; }
+#adminPanel .mutChip.on { background: #e8a200; color: #fff; }
+
+/* Avatar Shop window */
+#avatarPreview { display: block; margin: 4px auto 8px; }
+.avRow { margin-bottom: 8px; }
+.avLabel { font-weight: bold; font-size: 14px; color: #1c7ed6; margin-bottom: 4px; }
+.avOpts { display: flex; flex-wrap: wrap; gap: 5px; }
+.avOpt { background: #e7f5ff; color: #1c7ed6; border: 2px solid #a5d8ff; font-size: 12px; padding: 5px 8px; }
+.avOpt.swatch { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 3px solid #dee2e6; }
+.avOpt.on { border-color: #ff2e7e; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #ff2e7e; }
+.avOpt:not(.swatch).on { background: #1c7ed6; color: #fff; }
 #testTools button { background: #845ef7; font-size: 13px; }
 #testTools select { font: inherit; font-size: 13px; padding: 6px; border-radius: 8px; border: 2px solid #d0bfff; }
 

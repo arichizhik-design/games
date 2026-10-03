@@ -4,15 +4,16 @@
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost,
+  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
   // ---------- park layout (shared with the browser for drawing and clicking) ----------
   const WORLD = { width: 1280, height: 1180 };
   const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
+  const AVATAR_SHOP = { x: 1020, y: 125 }; // the Avatar Shop next to it
   const REACH = 230;                 // how close you must stand to use something
-  const ADMIN_NAMES = ['coolkid'];   // these names get admin commands
+  const ADMIN_NAMES = ['coolkid'];   // these names get admin commands (only on the first device that used them)
   const ADMIN_MONEY = 1e12;          // admins start with $1 trillion
   const MAX_QUEUE = 5;
   const WALK_SPEED = 170;            // customers
@@ -90,20 +91,31 @@
     return out;
   }
 
+  // keep only avatar choices that exist
+  function fixAvatar(a) {
+    const out = {};
+    for (const [part, options] of Object.entries(AVATAR)) {
+      out[part] = a && options.includes(a[part]) ? a[part] : options[0];
+    }
+    return out;
+  }
+
   function createGame({ saves = {}, allowTest = false } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
     let nextId = 1;
 
-    // mutation event: either one is active, or we count down to the next one (seconds)
-    const event = { id: null, left: 0, next: pick(MUTATION_GAPS_MIN) * 60 };
+    // mutation events: the ones going on now (admins can run several at once),
+    // and the countdown (seconds) to the next natural one
+    const event = { active: [], next: pick(MUTATION_GAPS_MIN) * 60 };
     // the shop's stock is the same for everyone; each player can buy up to that many of each
     const shop = { stock: rollStock(), left: RESTOCK_SEC };
 
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
-        upgrades: s.upgrades, mutations: s.mutations };
+        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar,
+        ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
     function snapshotSaves() {
@@ -139,6 +151,8 @@
         seen: saved.seen ?? [...new Set(tubs.filter(Boolean).map(t => t.flavor))], // flavors you've had
         upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, saved.upgrades?.[k] ?? 0])),
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
+        avatar: fixAvatar(saved.avatar),
+        adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
         x: s.x + 60, y: s.y + 110,        // the player's character
         hand: -1,                         // hotbar slot in hand, -1 = nothing
@@ -192,11 +206,13 @@
       const flavor = flavorById[c.flavor];
       let amount = flavor.price * (1 + 0.1 * stand.upgrades.tips);
       if (c.golden) amount *= 3;
-      if (event.id && Math.random() < MUTATION_CHANCE) {
-        c.mutation = event.id;
-        amount *= mutationById[event.id].mult;
-        stand.mutations[event.id] = (stand.mutations[event.id] || 0) + 1;
+      // every mutation going on gets its own chance; several can stack on one scoop
+      c.mutations = event.active.filter(() => Math.random() < MUTATION_CHANCE).map(e => e.id);
+      for (const id of c.mutations) {
+        amount *= mutationById[id].mult;
+        stand.mutations[id] = (stand.mutations[id] || 0) + 1;
       }
+      c.mutation = c.mutations[0] || null;
       amount = Math.round(amount * 100) / 100;
       stand.money += amount;
       stand.totalEarned += amount;
@@ -204,14 +220,23 @@
       c.served = true;
       sendOffCustomer(c);
       broadcast({ type: 'sale', standId: stand.id, customerId: c.id, flavor: c.flavor,
-        amount, golden: c.golden, mutation: c.mutation });
+        amount, golden: c.golden, mutation: c.mutation, mutations: c.mutations });
     }
 
-    function startMutation(id) {
+    // start a mutation; stack = keep the ones already going (admins only)
+    function startMutation(id, stack = false) {
       const m = mutationById[id] || pickMutation();
-      event.id = m.id;
-      event.left = MUTATION_LENGTH_MIN * 60;
+      if (!stack) endMutations();
+      const running = event.active.find(e => e.id === m.id);
+      if (running) running.left = MUTATION_LENGTH_MIN * 60;
+      else event.active.push({ id: m.id, left: MUTATION_LENGTH_MIN * 60 });
       broadcast({ type: 'mutationStart', mutation: m.id });
+    }
+
+    function endMutations() {
+      for (const e of event.active) broadcast({ type: 'mutationEnd', mutation: e.id });
+      if (event.active.length) event.next = pick(MUTATION_GAPS_MIN) * 60;
+      event.active = [];
     }
 
     function restock() {
@@ -222,13 +247,11 @@
     }
 
     function updateTimers(dt) {
-      if (event.id) {
-        event.left -= dt;
-        if (event.left <= 0) {
-          broadcast({ type: 'mutationEnd', mutation: event.id });
-          event.id = null;
-          event.next = pick(MUTATION_GAPS_MIN) * 60;
-        }
+      if (event.active.length) {
+        for (const e of event.active) e.left -= dt;
+        for (const e of event.active.filter(e => e.left <= 0)) broadcast({ type: 'mutationEnd', mutation: e.id });
+        event.active = event.active.filter(e => e.left > 0);
+        if (!event.active.length) event.next = pick(MUTATION_GAPS_MIN) * 60;
       } else {
         event.next -= dt;
         if (event.next <= 0) startMutation();
@@ -284,19 +307,25 @@
 
       broadcast({
         type: 'state',
-        event: { id: event.id, left: Math.ceil(event.left), next: Math.ceil(event.next) },
+        event: {
+          id: event.active[0]?.id || null,
+          ids: event.active.map(e => e.id),
+          left: Math.ceil(Math.max(0, ...event.active.map(e => e.left))),
+          next: Math.ceil(event.next),
+        },
         shop: { stock: shop.stock, left: Math.ceil(shop.left) },
         stands: [...stands.values()].map(s => ({
           id: s.id, name: s.name, slot: s.slot, color: s.color,
           money: s.money, totalEarned: s.totalEarned, sold: s.sold,
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
-          x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin,
+          x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
           id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor,
-          golden: c.golden, mutation: c.mutation, state: c.state, look: c.look, served: !!c.served,
+          golden: c.golden, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
+          served: !!c.served,
         })),
       });
     }
@@ -313,13 +342,22 @@
       if (msg.type === 'join' && !stand) {
         const name = String(msg.name || '').replace(/[^\w \-]/g, '').trim().slice(0, 16);
         if (!name) return err('Please pick a name.');
-        if ([...stands.values()].some(s => s.key === name.toLowerCase())) {
+        const key = name.toLowerCase();
+        if ([...stands.values()].some(s => s.key === key)) {
           return err('Someone with that name is already playing.');
+        }
+        // admin names belong to the first device that used them
+        const device = String(msg.device || '').slice(0, 64);
+        const isAdminName = ADMIN_NAMES.includes(key);
+        const lockedTo = saves[key]?.adminDevice;
+        if (isAdminName && lockedTo && lockedTo !== device) {
+          return err('That name is taken. Please pick a different name.');
         }
         const s = createStand(conn, name);
         if (!s) return err('The park is full (12 stands). Try again later!');
         conn.standId = s.id;
-        s.admin = ADMIN_NAMES.includes(s.key);
+        s.admin = isAdminName;
+        if (s.admin && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS,
           returning: !!saves[s.key], allowTest, admin: s.admin });
@@ -335,6 +373,8 @@
       } else if (msg.type === 'hold') {
         const i = Number(msg.slot);
         stand.hand = Number.isInteger(i) && i >= 0 && i < HOTBAR_SIZE ? i : -1;
+      } else if (msg.type === 'setAvatar') {
+        stand.avatar = fixAvatar({ ...stand.avatar, ...(msg.avatar || {}) });
       } else if (msg.type === 'scoop') {
         stand.clicks++;
       } else if (msg.type === 'buy') {
@@ -411,10 +451,25 @@
         if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Gave you ${count - left} ${f.name}` + (left ? ` (${left} didn't fit)` : '') });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
-        if (event.id) event.left = 0.01;
+        endMutations();
+      } else if (stand.admin && msg.type === 'adminMutations') {
+        // turn on one or more mutations at once, on top of the ones already going
+        const ids = (Array.isArray(msg.ids) ? msg.ids : []).filter(id => mutationById[id]).slice(0, MUTATIONS.length);
+        for (const id of ids) startMutation(id, true);
+      } else if (stand.admin && msg.type === 'adminSpawn') {
+        // put any ice cream straight onto your stand, fully grown
+        const f = flavorById[msg.flavor];
+        if (!f) return err('No ice cream with that name.');
+        let want = Math.min(stand.spaces, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        let placed = 0;
+        for (let i = 0; i < stand.tubs.length && placed < want; i++) {
+          if (!stand.tubs[i]) { stand.tubs[i] = { flavor: f.id, grow: 0 }; placed++; }
+        }
+        if (!placed) return err('Your stand is full! Take a tub off or buy Extra Space.');
+        if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+        conn.send({ type: 'admin', text: `Spawned ${placed} ${f.name} on your stand` });
       } else if ((allowTest || stand.admin) && msg.type === 'testMutation') {
         // test button: start a (new) mutation event right away
-        if (event.id) broadcast({ type: 'mutationEnd', mutation: event.id });
         startMutation(msg.id);
       } else if ((allowTest || stand.admin) && msg.type === 'testMoney') {
         stand.money += 1000;
@@ -436,7 +491,7 @@
     return { handle, leave, tick, snapshotSaves };
   }
 
-  const Engine = { createGame, WORLD, SLOTS, SHOP, REACH, chestPos, tubPos };
+  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, REACH, chestPos, tubPos };
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   else root.Engine = Engine;
 })(this);

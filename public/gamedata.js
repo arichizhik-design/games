@@ -6,10 +6,11 @@
     common:    { name: 'Common',    color: '#b0b0b0', order: 0, growSec: 10,  stock: { chance: 1,    min: 5, max: 10 } },
     uncommon:  { name: 'Uncommon',  color: '#4caf50', order: 1, growSec: 30,  stock: { chance: 0.8,  min: 3, max: 6 } },
     rare:      { name: 'Rare',      color: '#2196f3', order: 2, growSec: 60,  stock: { chance: 0.6,  min: 2, max: 4 } },
-    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 120, stock: { chance: 0.4,  min: 1, max: 3 } },
-    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.25, min: 1, max: 2 } },
-    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.12, min: 1, max: 1 } },
-    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.05, min: 1, max: 1 } },
+    // the really good ones are really rare in the shop
+    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 120, stock: { chance: 0.2,   min: 1, max: 2 } },
+    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.07,  min: 1, max: 1 } },
+    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.02,  min: 1, max: 1 } },
+    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.004, min: 1, max: 1 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -85,7 +86,16 @@
   const STORAGE_SIZE = 30;  // the Inventory chest on your plot
   const MAX_STACK = 99;     // tubs of one flavor per slot
 
-  const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME,
+  // Avatar Shop choices (the first of each is the default; shirt 'stand' = your stand's color)
+  const AVATAR = {
+    shirt: ['stand', '#ff6b6b', '#4dabf7', '#51cf66', '#fcc419', '#cc5de8', '#ff922b', '#212529', '#ffffff', '#f06595'],
+    pants: ['#3b3b58', '#1c7ed6', '#2b8a3e', '#5c3d2e', '#868e96', '#e64980'],
+    skin:  ['#f8d5b8', '#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524'],
+    hat:   ['cap', 'none', 'tophat', 'beanie', 'party', 'cowboy', 'wizard', 'bunny', 'cone'],
+    face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
+  };
+
+  const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };

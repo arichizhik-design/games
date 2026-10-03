@@ -42,6 +42,16 @@
         <div id="shopList"></div>
       </div>
 
+      <div id="avatarModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">👕 Avatar Shop</div>
+          <button id="avatarClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Pick how your character looks. Everyone in the park will see it!</p>
+        <canvas id="avatarPreview" width="200" height="190"></canvas>
+        <div id="avatarOptions"></div>
+      </div>
+
       <div id="invModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">🎒 Inventory</div>
@@ -73,16 +83,20 @@
           <select id="adminFlavor"></select>
           <input id="adminCount" type="number" min="1" max="990" value="10">
           <button id="adminGiveBtn">Give</button>
+          <button id="adminSpawnBtn" title="Put it straight on your stand, fully grown">Spawn</button>
         </div>
+        <div class="sub">Turn on as many mutations as you want at once:</div>
+        <div id="adminMutChips"></div>
         <div class="adminRow">
-          <button id="adminEndBtn">End mutation</button>
+          <button id="adminMutBtn">Turn on</button>
+          <button id="adminEndBtn">End all mutations</button>
         </div>
         <div class="adminRow">
           <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
           <button id="adminRunBtn" type="button">Run</button>
         </div>
-        <div class="sub">Commands: /money 5t · /give mint 10 · /mutation rainbow · /mutation end ·
-          /restock · /grow · /help</div>
+        <div class="sub">Commands: /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly ·
+          /mutation end · /restock · /grow · /help</div>
       </div>
       <div id="testTools" class="hidden">
         <div class="label">🧪 Test buttons</div>
