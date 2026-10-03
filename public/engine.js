@@ -30,12 +30,12 @@
   // where the Inventory chest sits on a plot
   const chestPos = slot => ({ x: slot.x + 128, y: slot.y + 30 });
 
-  // where flavor space i sits on the stand counter (up to 8 per row)
+  // where flavor space i sits on the stand counter (up to 7 per row)
   function tubPos(slot, i, spaces) {
-    const row = Math.floor(i / 8);
-    const inRow = Math.min(8, spaces - row * 8);
-    const col = i % 8;
-    return { x: slot.x - ((inRow - 1) * 20.5) / 2 + col * 20.5, y: slot.y + 9 + row * 22 };
+    const row = Math.floor(i / 7);
+    const inRow = Math.min(7, spaces - row * 7);
+    const col = i % 7;
+    return { x: slot.x - ((inRow - 1) * 23) / 2 + col * 23, y: slot.y + 9 + row * 26 };
   }
 
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));

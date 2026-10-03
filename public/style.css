@@ -92,13 +92,6 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 }
 .badge.secret { background: linear-gradient(90deg, #111, #555, #111); }
 .badge.mythic { background: linear-gradient(90deg, #f44336, #ff79b0); }
-.badge.godly { background: linear-gradient(90deg, #b07800, #ffd700, #b07800); text-shadow: 0 1px 1px rgba(0,0,0,0.5); }
-.badge.heavenly { background: linear-gradient(90deg, #7cc8ff, #ffffff, #7cc8ff); color: #315a80; }
-.badge.impossible {
-  background: linear-gradient(90deg, #ff00cc, #00ffee, #ffee00, #ff00cc) !important; background-size: 300% 100% !important;
-  animation: fxSlide 2s linear infinite; text-shadow: 0 1px 2px #000;
-}
-@keyframes fxSlide { to { background-position: 300% 0; } }
 
 #eventBox {
   margin-top: 10px; padding: 10px; border-radius: 12px; text-align: center;
@@ -206,28 +199,6 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 }
 .fx-fluff.scoop, .fx-fluff .ball { box-shadow: 6px -4px 0 -3px #ffc6ea, -6px -3px 0 -3px #ffc6ea, 0 0 6px #ffd6f0; }
 .fx-frost.scoop, .fx-frost .ball { box-shadow: 0 0 6px 1px #e0fbff; }
-.fx-divine.scoop, .fx-divine .ball {
-  background: radial-gradient(circle at 30% 30%, #fffbe0, #ffcf33 50%, #d99a00) !important;
-  box-shadow: 0 0 10px 4px rgba(255, 200, 40, 0.9), 0 0 22px 8px rgba(255, 230, 120, 0.5);
-}
-.fx-zeus.scoop, .fx-zeus .ball {
-  background: radial-gradient(circle at 30% 30%, #ffffff, #9fd8ff 55%, #4aa3ff) !important;
-  box-shadow: 0 0 10px 4px rgba(120, 200, 255, 0.9); animation: fxZap 0.6s steps(2) infinite;
-}
-@keyframes fxZap { 50% { box-shadow: 0 0 14px 6px rgba(255, 240, 100, 0.95); } }
-.fx-angel.scoop, .fx-angel .ball { box-shadow: 0 0 10px 5px #ffffff, 0 0 20px 8px rgba(200, 230, 255, 0.8); }
-.fx-starlight.scoop, .fx-starlight .ball {
-  box-shadow: 0 0 10px 4px #fff6c2, 0 0 20px 8px rgba(255, 240, 180, 0.7); animation: fxPulse2 1.2s infinite alternate;
-}
-@keyframes fxPulse2 { to { box-shadow: 0 0 14px 6px #ffffff, 0 0 26px 10px rgba(255, 240, 180, 0.9); } }
-.fx-infinity.scoop, .fx-infinity .ball {
-  background: conic-gradient(#ff0040, #ffee00, #39ff14, #00ffee, #4060ff, #ff00cc, #ff0040) !important;
-  box-shadow: 0 0 12px 5px #ff00cc; animation: fxHue 1.5s linear infinite;
-}
-.fx-glitch.scoop, .fx-glitch .ball {
-  box-shadow: -3px 0 0 #ff00cc, 3px 0 0 #00ffee; animation: fxGlitch 0.4s steps(2) infinite;
-}
-@keyframes fxGlitch { 50% { box-shadow: 3px 0 0 #ff00cc, -3px 0 0 #00ffee; filter: hue-rotate(120deg); } }
 .fx-chips.scoop, .fx-chips .ball { background: radial-gradient(#5a3a1e 1.4px, transparent 2px) 0 0 / 7px 7px, #e6c79c !important; }
 
 /* ---------- shop and inventory windows ---------- */
