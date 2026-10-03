@@ -82,17 +82,31 @@
   // ---------- joining ----------
   // (plain click/Enter handlers instead of a <form>: preview windows often block form submits)
   let joining = false;
+  let adminCode = ''; // the secret admin code; saved on this device once it's right
+  const ADMIN_NAME = 'coolkid';
+  const savedCode = () => { try { return localStorage.getItem('icecream-admin-code') || ''; } catch (e) { return ''; } };
+
+  // show the admin code box when someone types the admin name on a device that doesn't know the code yet
+  function updateCodeBox() {
+    const isAdmin = $('nameInput').value.trim().toLowerCase() === ADMIN_NAME;
+    $('adminCodeRow').classList.toggle('hidden', !isAdmin || !!savedCode());
+  }
+  $('nameInput').addEventListener('input', updateCodeBox);
+
   function join() {
     const name = $('nameInput').value.trim();
     if (!name) { $('joinError').textContent = 'Type your name first!'; return; }
     if (joining) return;
     joining = true;
+    adminCode = $('adminCodeInput').value.trim() || savedCode();
     try { localStorage.setItem('icecream-name', name); } catch (e) {}
     connect(name);
   }
+  $('adminCodeInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
   $('joinBtn').addEventListener('click', join);
   $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
   try { $('nameInput').value = localStorage.getItem('icecream-name') || ''; } catch (e) {}
+  updateCodeBox();
   if (window.SOLO) {
     document.querySelector('.hint').textContent =
       'Single-player test version: your progress is saved in this browser.';
@@ -115,7 +129,7 @@
     if (window.SOLO) return startSolo(name);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = () => send({ type: 'join', name, device: deviceId() });
+    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode });
     ws.onmessage = e => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
@@ -147,7 +161,7 @@
     setInterval(save, 5000);
     window.addEventListener('pagehide', save);
     document.addEventListener('visibilitychange', save);
-    send({ type: 'join', name, device: deviceId() });
+    send({ type: 'join', name, device: deviceId(), adminCode });
   }
 
   function onMessage(msg) {
@@ -163,6 +177,8 @@
         buildHotbar();
         $('testTools').classList.toggle('hidden', !msg.allowTest && !msg.admin);
         $('adminPanel').classList.toggle('hidden', !msg.admin);
+        // remember the admin code on this device, so next time just the name is enough
+        if (msg.admin && adminCode) { try { localStorage.setItem('icecream-admin-code', adminCode); } catch (e) {} }
         resize();
         if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
         else toast(msg.returning ? 'Welcome back! Your stand is open again.'
@@ -170,7 +186,17 @@
         break;
       case 'error':
         if (myId) toast(msg.text);
-        else { $('joinError').textContent = msg.text; joining = false; }
+        else {
+          $('joinError').textContent = msg.text;
+          joining = false;
+          if (msg.needCode) {
+            // the saved code didn't work (or there isn't one): ask for it
+            try { localStorage.removeItem('icecream-admin-code'); } catch (e) {}
+            $('adminCodeRow').classList.remove('hidden');
+            $('adminCodeInput').value = '';
+            $('adminCodeInput').focus();
+          }
+        }
         break;
       case 'admin':
         toast('👑 ' + msg.text);

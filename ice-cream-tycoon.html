@@ -48,6 +48,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .logo { font-size: 64px; }
 .card h1 { margin: 4px 0 8px; color: #e0457b; }
 #joinForm { display: flex; gap: 8px; margin-top: 16px; }
+#adminCodeRow { display: flex; margin-top: 8px; }
+#adminCodeRow.hidden { display: none; }
 .card input {
   flex: 1; min-width: 0; font: inherit; padding: 10px 12px;
   border: 2px solid #ffc2d9; border-radius: 10px; outline: none;
@@ -280,6 +282,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off">
         <button id="joinBtn" type="button">Open my stand</button>
       </div>
+      <div id="adminCodeRow" class="hidden">
+        <input id="adminCodeInput" type="password" maxlength="40" placeholder="Secret admin code" autocomplete="off">
+      </div>
       <p id="joinError" class="error"></p>
       <p class="hint">Use the same name next time to keep your money and flavors.</p>
     </div>
@@ -510,6 +515,22 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const AVATAR_SHOP = { x: 1020, y: 125 }; // the Avatar Shop next to it
   const REACH = 230;                 // how close you must stand to use something
   const ADMIN_NAMES = ['coolkid'];   // these names get admin commands (only on the first device that used them)
+  // admins also need the secret admin code once per device; only a scrambled version of it is kept here
+  const ADMIN_CODE_HASH = '1yeykfo1np5';
+
+  // scrambles text into a short code (cyrb53), so the real admin code isn't written in the game files
+  function scramble(str, seed = 7) {
+    let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+  }
+  const adminCodeOk = code => scramble(String(code || '').toLowerCase().replace(/\s+/g, '')) === ADMIN_CODE_HASH;
   const ADMIN_MONEY = 1e12;          // admins start with $1 trillion
   const MAX_QUEUE = 5;
   const WALK_SPEED = 170;            // customers
@@ -849,6 +870,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (isAdminName && lockedTo && lockedTo !== device) {
           return err('That name is taken. Please pick a different name.');
         }
+        if (isAdminName && !adminCodeOk(msg.adminCode)) {
+          return conn.send({ type: 'error', needCode: true,
+            text: msg.adminCode ? 'Wrong admin code.' : 'That name needs the secret admin code.' });
+        }
         const s = createStand(conn, name);
         if (!s) return err('The park is full (12 stands). Try again later!');
         conn.standId = s.id;
@@ -1078,17 +1103,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // ---------- joining ----------
   // (plain click/Enter handlers instead of a <form>: preview windows often block form submits)
   let joining = false;
+  let adminCode = ''; // the secret admin code; saved on this device once it's right
+  const ADMIN_NAME = 'coolkid';
+  const savedCode = () => { try { return localStorage.getItem('icecream-admin-code') || ''; } catch (e) { return ''; } };
+
+  // show the admin code box when someone types the admin name on a device that doesn't know the code yet
+  function updateCodeBox() {
+    const isAdmin = $('nameInput').value.trim().toLowerCase() === ADMIN_NAME;
+    $('adminCodeRow').classList.toggle('hidden', !isAdmin || !!savedCode());
+  }
+  $('nameInput').addEventListener('input', updateCodeBox);
+
   function join() {
     const name = $('nameInput').value.trim();
     if (!name) { $('joinError').textContent = 'Type your name first!'; return; }
     if (joining) return;
     joining = true;
+    adminCode = $('adminCodeInput').value.trim() || savedCode();
     try { localStorage.setItem('icecream-name', name); } catch (e) {}
     connect(name);
   }
+  $('adminCodeInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
   $('joinBtn').addEventListener('click', join);
   $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
   try { $('nameInput').value = localStorage.getItem('icecream-name') || ''; } catch (e) {}
+  updateCodeBox();
   if (window.SOLO) {
     document.querySelector('.hint').textContent =
       'Single-player test version: your progress is saved in this browser.';
@@ -1111,7 +1150,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (window.SOLO) return startSolo(name);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = () => send({ type: 'join', name, device: deviceId() });
+    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode });
     ws.onmessage = e => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
@@ -1143,7 +1182,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     setInterval(save, 5000);
     window.addEventListener('pagehide', save);
     document.addEventListener('visibilitychange', save);
-    send({ type: 'join', name, device: deviceId() });
+    send({ type: 'join', name, device: deviceId(), adminCode });
   }
 
   function onMessage(msg) {
@@ -1159,6 +1198,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         buildHotbar();
         $('testTools').classList.toggle('hidden', !msg.allowTest && !msg.admin);
         $('adminPanel').classList.toggle('hidden', !msg.admin);
+        // remember the admin code on this device, so next time just the name is enough
+        if (msg.admin && adminCode) { try { localStorage.setItem('icecream-admin-code', adminCode); } catch (e) {} }
         resize();
         if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
         else toast(msg.returning ? 'Welcome back! Your stand is open again.'
@@ -1166,7 +1207,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         break;
       case 'error':
         if (myId) toast(msg.text);
-        else { $('joinError').textContent = msg.text; joining = false; }
+        else {
+          $('joinError').textContent = msg.text;
+          joining = false;
+          if (msg.needCode) {
+            // the saved code didn't work (or there isn't one): ask for it
+            try { localStorage.removeItem('icecream-admin-code'); } catch (e) {}
+            $('adminCodeRow').classList.remove('hidden');
+            $('adminCodeInput').value = '';
+            $('adminCodeInput').focus();
+          }
+        }
         break;
       case 'admin':
         toast('👑 ' + msg.text);
