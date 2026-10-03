@@ -13,9 +13,13 @@
   const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
   const AVATAR_SHOP = { x: 1020, y: 125 }; // the Avatar Shop next to it
   const REACH = 230;                 // how close you must stand to use something
-  const ADMIN_NAMES = ['coolkid'];   // these names get admin commands (only on the first device that used them)
-  // admins also need the secret admin code once per device; only a scrambled version of it is kept here
-  const ADMIN_CODE_HASH = '1aazefnqiv3';
+  // admin names and their secret codes (only a scrambled version of each code is kept here).
+  // Each admin needs their code once per device, and each name only works on the first device that used it.
+  const ADMIN_CODES = {
+    coolkid: '1aazefnqiv3',
+    james: '8itvkdxe00',
+  };
+  const ADMIN_NAMES = Object.keys(ADMIN_CODES);
 
   // scrambles text into a short code (cyrb53), so the real admin code isn't written in the game files
   function scramble(str, seed = 7) {
@@ -29,7 +33,7 @@
     h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
     return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
   }
-  const adminCodeOk = code => scramble(String(code || '').toLowerCase().replace(/\s+/g, '')) === ADMIN_CODE_HASH;
+  const adminCodeOk = (name, code) => scramble(String(code || '').toLowerCase().replace(/\s+/g, '')) === ADMIN_CODES[name];
   const ADMIN_MONEY = 1e12;          // admins start with $1 trillion
   const MAX_QUEUE = 5;
   const WALK_SPEED = 170;            // customers
@@ -369,7 +373,7 @@
         if (isAdminName && lockedTo && lockedTo !== device) {
           return err('That name is taken. Please pick a different name.');
         }
-        if (isAdminName && !adminCodeOk(msg.adminCode)) {
+        if (isAdminName && !adminCodeOk(key, msg.adminCode)) {
           return conn.send({ type: 'error', needCode: true,
             text: msg.adminCode ? 'Wrong admin code.' : 'That name needs the secret admin code.' });
         }

@@ -62,10 +62,10 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 
 ## Admin mode
 
-Join with the name **coolkid** (any capitals) to get admin mode. The first time on a device, a box asks for the
-**secret admin code**; once it's right, that device remembers it and just the name is enough. (The code isn't
-written anywhere in the game files, only a scrambled version of it. To change it, put the new code's scrambled
-value in `ADMIN_CODE_HASH` in `public/engine.js`.) In admin mode, you start with **$1 trillion**, wear a
+There are two admins: **coolkid** and **James** (any capitals). Each has their own secret code. The first
+time on a device, a box asks for that admin's code; once it's right, the device remembers it and just the name is
+enough. (The codes aren't written anywhere in the game files, only scrambled versions of them, in `ADMIN_CODES`
+in `public/engine.js`.) In admin mode, you start with **$1 trillion**, wear a
 gold crown with an [ADMIN] tag, and get an **Admin commands** panel. You can use its buttons or type commands:
 
 | Command | What it does |
@@ -82,13 +82,13 @@ The admin panel also has mutation buttons: tap as many as you like, then **Turn 
 mutations are going, each one has its own chance on every scoop, and they stack (a scoop can be Rainbow
 *and* Godly for x1,500).
 
-**Admin is locked to your device.** Without the secret code, coolkid doesn't work at all. In multiplayer,
-the first device that joins as coolkid (with the code) becomes the admin device, and anyone who types coolkid
-on a different device is told the name is taken, even if they know the code. To move admin
-to a new device, delete the `adminDevice` line for coolkid in `data/players.json` while the server is
+**Admin is locked to each admin's device.** Without the right code, an admin name doesn't work at all. In
+multiplayer, the first device that joins with an admin name (and its code) becomes that admin's device, and
+anyone who types that name on a different device is told the name is taken, even if they know the code. To move admin
+to a new device, delete the `adminDevice` line for that name in `data/players.json` while the server is
 stopped. (The single-file test version runs only on the device that opens it, so there the secret code is what keeps admin yours.)
 
-Admin names are listed in `ADMIN_NAMES` in `public/engine.js`.
+
 
 ## Quick test (no install)
 

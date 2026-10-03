@@ -83,12 +83,15 @@
   // (plain click/Enter handlers instead of a <form>: preview windows often block form submits)
   let joining = false;
   let adminCode = ''; // the secret admin code; saved on this device once it's right
-  const ADMIN_NAME = 'coolkid';
-  const savedCode = () => { try { return localStorage.getItem('icecream-admin-code') || ''; } catch (e) { return ''; } };
+  const ADMIN_NAMES = ['coolkid', 'james'];
+  // each admin's code is saved on this device under their own name
+  const typedName = () => $('nameInput').value.trim().toLowerCase();
+  const codeKey = () => 'icecream-admin-code:' + typedName();
+  const savedCode = () => { try { return localStorage.getItem(codeKey()) || ''; } catch (e) { return ''; } };
 
   // show the admin code box when someone types the admin name on a device that doesn't know the code yet
   function updateCodeBox() {
-    const isAdmin = $('nameInput').value.trim().toLowerCase() === ADMIN_NAME;
+    const isAdmin = ADMIN_NAMES.includes(typedName());
     $('adminCodeRow').classList.toggle('hidden', !isAdmin || !!savedCode());
   }
   $('nameInput').addEventListener('input', updateCodeBox);
@@ -178,7 +181,7 @@
         $('testTools').classList.toggle('hidden', !msg.allowTest && !msg.admin);
         $('adminPanel').classList.toggle('hidden', !msg.admin);
         // remember the admin code on this device, so next time just the name is enough
-        if (msg.admin && adminCode) { try { localStorage.setItem('icecream-admin-code', adminCode); } catch (e) {} }
+        if (msg.admin && adminCode) { try { localStorage.setItem(codeKey(), adminCode); } catch (e) {} }
         resize();
         if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
         else toast(msg.returning ? 'Welcome back! Your stand is open again.'
@@ -191,7 +194,7 @@
           joining = false;
           if (msg.needCode) {
             // the saved code didn't work (or there isn't one): ask for it
-            try { localStorage.removeItem('icecream-admin-code'); } catch (e) {}
+            try { localStorage.removeItem(codeKey()); } catch (e) {}
             $('adminCodeRow').classList.remove('hidden');
             $('adminCodeInput').value = '';
             $('adminCodeInput').focus();
