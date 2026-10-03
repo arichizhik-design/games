@@ -70,6 +70,7 @@ gold crown with an [ADMIN] tag, and get an **Admin commands** panel. You can use
 
 | Command | What it does |
 |---|---|
+| `/say Hello!` | **All Server Talk**: your message pops up on everyone's screen (also the 📢 button) |
 | `/money 5t` | Adds money (use k, m, b or t, like `500k`, `2b`, `5t`) |
 | `/give rainbow sherbet 10` | Puts any ice cream in your hotbar, even if the shop is sold out |
 | `/spawn void 3` | Puts any ice cream straight onto your stand, already grown |

@@ -258,6 +258,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 }
 #toast.show { opacity: 1; }
 
+/* All Server Talk announcement */
+#announce {
+  position: absolute; top: 84px; left: 50%; transform: translateX(-50%); z-index: 8;
+  width: min(460px, calc(100% - 24px)); text-align: center; pointer-events: none;
+  background: linear-gradient(135deg, #fff3bf, #ffd43b); border: 3px solid #e8a200; border-radius: 16px;
+  padding: 10px 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); animation: annPop 0.3s ease-out;
+}
+#announce.hidden { display: none; }
+#announce .annFrom { font-size: 13px; font-weight: bold; color: #8a5a00; }
+#announce .annText { font-size: 19px; font-weight: bold; color: #3a2a35; word-wrap: break-word; }
+@keyframes annPop { from { transform: translateX(-50%) scale(0.7); opacity: 0; } }
+#adminPanel .talkBtn { width: 100%; margin-bottom: 6px; background: #f76707; font-size: 15px; }
+#talkRow.hidden { display: none; }
+#talkInput { flex: 1; }
+
 @media (max-width: 760px) {
   body { overflow: auto; height: auto; }
   #game { flex-direction: column; height: auto; }
@@ -294,6 +309,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     <div id="worldWrap">
       <canvas id="canvas"></canvas>
       <div id="toast"></div>
+      <div id="announce" class="hidden"><div class="annFrom"></div><div class="annText"></div></div>
 
       <div id="handLabel"></div>
       <div id="hotbar"></div>
@@ -344,6 +360,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       <div id="eventBox"></div>
       <div id="adminPanel" class="hidden">
         <div class="adminTitle">👑 Admin commands</div>
+        <button id="talkBtn" class="talkBtn" type="button">📢 All Server Talk</button>
+        <div id="talkRow" class="adminRow hidden">
+          <input id="talkInput" maxlength="150" placeholder="Message to everyone in the server" autocomplete="off">
+          <button id="talkSend" type="button">Send</button>
+        </div>
         <div class="adminRow">
           <button data-money="1e9">+$1B</button>
           <button data-money="1e12">+$1T</button>
@@ -364,7 +385,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
           <button id="adminRunBtn" type="button">Run</button>
         </div>
-        <div class="sub">Commands: /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly ·
+        <div class="sub">Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly ·
           /mutation end · /restock · /grow · /help</div>
       </div>
       <div id="testTools" class="hidden">
@@ -975,6 +996,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const left = addItem(stand.storage, f.id, addItem(stand.hotbar, f.id, count));
         if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Gave you ${count - left} ${f.name}` + (left ? ` (${left} didn't fit)` : '') });
+      } else if (stand.admin && msg.type === 'adminAnnounce') {
+        // All Server Talk: an admin's message pops up on everyone's screen
+        const text = String(msg.text || '').replace(/\s+/g, ' ').trim().slice(0, 150);
+        const now = Date.now();
+        if (!text || now - (stand.lastAnnounce || 0) < 1500) return;
+        stand.lastAnnounce = now;
+        broadcast({ type: 'announce', from: stand.name, text });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();
       } else if (stand.admin && msg.type === 'adminMutations') {
@@ -1229,6 +1257,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'admin':
         toast('👑 ' + msg.text);
         break;
+      case 'announce':
+        showAnnouncement(msg.from, msg.text);
+        break;
       case 'state':
         stands = msg.stands;
         gameEvent = msg.event;
@@ -1311,6 +1342,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
     if (muts.length && msg.standId === myId) confetti(slot.x, slot.y - 40, 20 * muts.length);
     if (msg.standId === myId && rarity.order >= 4) confetti(slot.x, slot.y - 40, 25);
+  }
+
+  // All Server Talk: a big message from an admin at the top of everyone's screen
+  let announceTimer = null;
+  function showAnnouncement(from, text) {
+    const el = $('announce');
+    el.querySelector('.annFrom').textContent = `📢 ${from} (admin) says:`;
+    el.querySelector('.annText').textContent = text;
+    el.classList.add('hidden');
+    void el.offsetWidth; // restart the pop animation
+    el.classList.remove('hidden');
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => el.classList.add('hidden'), 4000 + text.length * 60);
   }
 
   function confetti(x, y, n) {
@@ -1670,6 +1714,18 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   $('adminGiveBtn').addEventListener('click', () =>
     send({ type: 'adminGive', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
+  $('talkBtn').addEventListener('click', () => {
+    $('talkRow').classList.toggle('hidden');
+    if (!$('talkRow').classList.contains('hidden')) $('talkInput').focus();
+  });
+  function sendTalk() {
+    const text = $('talkInput').value.trim();
+    if (!text) return;
+    send({ type: 'adminAnnounce', text });
+    $('talkInput').value = '';
+  }
+  $('talkSend').addEventListener('click', sendTalk);
+  $('talkInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendTalk(); } });
   $('adminSpawnBtn').addEventListener('click', () =>
     send({ type: 'adminSpawn', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   // pick several mutations, then turn them all on together
@@ -1741,10 +1797,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         }
         return send({ type: 'adminMutations', ids });
       }
+      case 'say': case 'talk': {
+        const text = line.trim().replace(/^[/;:]?\S+\s*/, '');
+        if (!text) return toast('Try: /say Hello everyone!');
+        return send({ type: 'adminAnnounce', text });
+      }
       case 'restock': return send({ type: 'testRestock' });
       case 'grow': return send({ type: 'testGrow' });
       default:
-        return toast('Commands: /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly · /mutation end · /restock · /grow');
+        return toast('Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly · /mutation end · /restock · /grow');
     }
   }
   function runTypedCommand() {

@@ -474,6 +474,13 @@
         const left = addItem(stand.storage, f.id, addItem(stand.hotbar, f.id, count));
         if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Gave you ${count - left} ${f.name}` + (left ? ` (${left} didn't fit)` : '') });
+      } else if (stand.admin && msg.type === 'adminAnnounce') {
+        // All Server Talk: an admin's message pops up on everyone's screen
+        const text = String(msg.text || '').replace(/\s+/g, ' ').trim().slice(0, 150);
+        const now = Date.now();
+        if (!text || now - (stand.lastAnnounce || 0) < 1500) return;
+        stand.lastAnnounce = now;
+        broadcast({ type: 'announce', from: stand.name, text });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();
       } else if (stand.admin && msg.type === 'adminMutations') {

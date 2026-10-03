@@ -204,6 +204,9 @@
       case 'admin':
         toast('👑 ' + msg.text);
         break;
+      case 'announce':
+        showAnnouncement(msg.from, msg.text);
+        break;
       case 'state':
         stands = msg.stands;
         gameEvent = msg.event;
@@ -286,6 +289,19 @@
     }
     if (muts.length && msg.standId === myId) confetti(slot.x, slot.y - 40, 20 * muts.length);
     if (msg.standId === myId && rarity.order >= 4) confetti(slot.x, slot.y - 40, 25);
+  }
+
+  // All Server Talk: a big message from an admin at the top of everyone's screen
+  let announceTimer = null;
+  function showAnnouncement(from, text) {
+    const el = $('announce');
+    el.querySelector('.annFrom').textContent = `📢 ${from} (admin) says:`;
+    el.querySelector('.annText').textContent = text;
+    el.classList.add('hidden');
+    void el.offsetWidth; // restart the pop animation
+    el.classList.remove('hidden');
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => el.classList.add('hidden'), 4000 + text.length * 60);
   }
 
   function confetti(x, y, n) {
@@ -645,6 +661,18 @@
   $('adminGiveBtn').addEventListener('click', () =>
     send({ type: 'adminGive', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
+  $('talkBtn').addEventListener('click', () => {
+    $('talkRow').classList.toggle('hidden');
+    if (!$('talkRow').classList.contains('hidden')) $('talkInput').focus();
+  });
+  function sendTalk() {
+    const text = $('talkInput').value.trim();
+    if (!text) return;
+    send({ type: 'adminAnnounce', text });
+    $('talkInput').value = '';
+  }
+  $('talkSend').addEventListener('click', sendTalk);
+  $('talkInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendTalk(); } });
   $('adminSpawnBtn').addEventListener('click', () =>
     send({ type: 'adminSpawn', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   // pick several mutations, then turn them all on together
@@ -716,10 +744,15 @@
         }
         return send({ type: 'adminMutations', ids });
       }
+      case 'say': case 'talk': {
+        const text = line.trim().replace(/^[/;:]?\S+\s*/, '');
+        if (!text) return toast('Try: /say Hello everyone!');
+        return send({ type: 'adminAnnounce', text });
+      }
       case 'restock': return send({ type: 'testRestock' });
       case 'grow': return send({ type: 'testGrow' });
       default:
-        return toast('Commands: /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly · /mutation end · /restock · /grow');
+        return toast('Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly · /mutation end · /restock · /grow');
     }
   }
   function runTypedCommand() {

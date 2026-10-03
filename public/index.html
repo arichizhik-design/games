@@ -28,6 +28,7 @@
     <div id="worldWrap">
       <canvas id="canvas"></canvas>
       <div id="toast"></div>
+      <div id="announce" class="hidden"><div class="annFrom"></div><div class="annText"></div></div>
 
       <div id="handLabel"></div>
       <div id="hotbar"></div>
@@ -78,6 +79,11 @@
       <div id="eventBox"></div>
       <div id="adminPanel" class="hidden">
         <div class="adminTitle">👑 Admin commands</div>
+        <button id="talkBtn" class="talkBtn" type="button">📢 All Server Talk</button>
+        <div id="talkRow" class="adminRow hidden">
+          <input id="talkInput" maxlength="150" placeholder="Message to everyone in the server" autocomplete="off">
+          <button id="talkSend" type="button">Send</button>
+        </div>
         <div class="adminRow">
           <button data-money="1e9">+$1B</button>
           <button data-money="1e12">+$1T</button>
@@ -98,7 +104,7 @@
           <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
           <button id="adminRunBtn" type="button">Run</button>
         </div>
-        <div class="sub">Commands: /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly ·
+        <div class="sub">Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly ·
           /mutation end · /restock · /grow · /help</div>
       </div>
       <div id="testTools" class="hidden">

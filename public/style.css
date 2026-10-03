@@ -251,6 +251,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 }
 #toast.show { opacity: 1; }
 
+/* All Server Talk announcement */
+#announce {
+  position: absolute; top: 84px; left: 50%; transform: translateX(-50%); z-index: 8;
+  width: min(460px, calc(100% - 24px)); text-align: center; pointer-events: none;
+  background: linear-gradient(135deg, #fff3bf, #ffd43b); border: 3px solid #e8a200; border-radius: 16px;
+  padding: 10px 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); animation: annPop 0.3s ease-out;
+}
+#announce.hidden { display: none; }
+#announce .annFrom { font-size: 13px; font-weight: bold; color: #8a5a00; }
+#announce .annText { font-size: 19px; font-weight: bold; color: #3a2a35; word-wrap: break-word; }
+@keyframes annPop { from { transform: translateX(-50%) scale(0.7); opacity: 0; } }
+#adminPanel .talkBtn { width: 100%; margin-bottom: 6px; background: #f76707; font-size: 15px; }
+#talkRow.hidden { display: none; }
+#talkInput { flex: 1; }
+
 @media (max-width: 760px) {
   body { overflow: auto; height: auto; }
   #game { flex-direction: column; height: auto; }
