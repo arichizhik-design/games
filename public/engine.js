@@ -76,6 +76,7 @@
   function rollStock() {
     const stock = {};
     for (const f of FLAVORS) {
+      if (f.adminOnly) continue;
       const st = RARITIES[f.rarity].stock;
       stock[f.id] = Math.random() < st.chance
         ? st.min + Math.floor(Math.random() * (st.max - st.min + 1)) : 0;
@@ -403,7 +404,7 @@
         stand.clicks++;
       } else if (msg.type === 'buy') {
         const f = flavorById[msg.flavor];
-        if (!f) return;
+        if (!f || f.adminOnly) return;
         if (!near(SHOP)) return err('Walk to the Ice Cream Shop to buy.');
         if ((shop.stock[f.id] || 0) - (stand.bought[f.id] || 0) <= 0) return err('Sold out! New stock soon.');
         if (stand.money < f.cost) return err('Not enough money!');

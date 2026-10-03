@@ -31,6 +31,10 @@
   const keys = new Set();
   let hand = -1;         // selected hotbar slot
   let openWindow = null; // 'shop' | 'inventory' | null
+  let iAmAdmin = false;   // admins also see the admin-only ice creams in the Flavor guide
+  // flavors shown in the Flavor guide, and flavors sold in the shop
+  const guideFlavors = () => FLAVORS.filter(f => !f.adminOnly || iAmAdmin);
+  const shopFlavors = FLAVORS.filter(f => !f.adminOnly);
 
   // ---------- helpers ----------
   function fmt(n) {
@@ -176,6 +180,7 @@
         slots = msg.slots;
         $('join').classList.add('hidden');
         $('game').classList.remove('hidden');
+        iAmAdmin = !!msg.admin;
         buildPanel();
         buildHotbar();
         $('testTools').classList.toggle('hidden', !msg.allowTest && !msg.admin);
@@ -316,7 +321,7 @@
   function buildPanel() {
     const fl = $('flavors');
     fl.innerHTML = '';
-    for (const f of FLAVORS) {
+    for (const f of guideFlavors()) {
       const r = RARITIES[f.rarity];
       const row = document.createElement('div');
       row.className = 'row';
@@ -366,7 +371,7 @@
     // shop window rows
     const list = $('shopList');
     list.innerHTML = '';
-    for (const f of FLAVORS) {
+    for (const f of shopFlavors) {
       const r = RARITIES[f.rarity];
       const row = document.createElement('div');
       row.className = 'row';
@@ -405,7 +410,7 @@
     $('serveBar').style.width = Math.min(100, s.serve * 100) + '%';
     $('shopTimerSide').textContent = `🛒 Shop restocks in ${clock(shop.left)}`;
 
-    for (const f of FLAVORS) {
+    for (const f of guideFlavors()) {
       const hidden = isSecretHidden(f, s);
       f.row.querySelector('.name').textContent = hidden ? '???' : f.name;
       const dot = f.row.querySelector('.scoop');
@@ -599,7 +604,7 @@
     const s = me();
     if (!s) return;
     $('shopTimer').textContent = `New stock in ${clock(shop.left)}`;
-    for (const f of FLAVORS) {
+    for (const f of shopFlavors) {
       const row = f.shopRow;
       const left = (shop.stock[f.id] || 0) - (s.bought[f.id] || 0);
       const hidden = isSecretHidden(f, s);
@@ -653,7 +658,7 @@
   for (const f of FLAVORS) {
     const opt = document.createElement('option');
     opt.value = f.id;
-    opt.textContent = f.name;
+    opt.textContent = (f.adminOnly ? '👑 ' : '') + f.name;
     $('adminFlavor').appendChild(opt);
   }
   document.querySelectorAll('#adminPanel [data-money]').forEach(btn =>
@@ -1238,6 +1243,29 @@
       ctx.restore();
       return;
     }
+    if (f.effect === 'prism') {
+      // Prism Swirl: a spinning rainbow swirl
+      ctx.save();
+      outline(); ctx.clip();
+      for (let k = 0; k < 12; k++) {
+        const a0 = nowSec * 2 + (k / 12) * Math.PI * 2;
+        ctx.fillStyle = `hsl(${k * 30}, 95%, 62%)`;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r * 1.1, a0, a0 + Math.PI / 6 + 0.02); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.4, r * 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      return;
+    }
+    if (f.effect === 'nova' || f.effect === 'storm' || f.effect === 'crown') {
+      const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+      const stops = { nova: ['#ffffff', '#ffe066', '#ff8a00'], storm: ['#8aa0c8', '#3b4a6b', '#1b2238'],
+        crown: ['#fffbe0', '#ffcf33', '#c98a00'] }[f.effect];
+      stops.forEach((c, k) => g.addColorStop(k / 2, c));
+      ctx.fillStyle = g;
+      outline(); ctx.fill();
+      return;
+    }
     if (f.effect === 'stars') {
       const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
       g.addColorStop(0, '#8a6cff');
@@ -1391,6 +1419,87 @@
           for (let k = 0; k < 3; k++) {
             const a = k * 2.1 + Math.sin(t) * 0.3;
             ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * 0.9, y + Math.sin(a) * r * 0.6, r * 0.55, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        break;
+      case 'crown': // 👑 Crown Jewel: royal gold glow, a little crown and shining gems
+        if (back) glow(x, y, r * 3, '255, 200, 40', 0.55 + 0.25 * pulse);
+        else {
+          const cy = y - r * 1.15, w = r * 0.8;
+          ctx.fillStyle = '#ffd43b';
+          ctx.strokeStyle = '#b07800'; ctx.lineWidth = Math.max(0.6, r * 0.06);
+          ctx.beginPath();
+          ctx.moveTo(x - w, cy + r * 0.35); ctx.lineTo(x - w, cy - r * 0.25); ctx.lineTo(x - w * 0.5, cy + r * 0.05);
+          ctx.lineTo(x, cy - r * 0.45); ctx.lineTo(x + w * 0.5, cy + r * 0.05); ctx.lineTo(x + w, cy - r * 0.25);
+          ctx.lineTo(x + w, cy + r * 0.35); ctx.closePath(); ctx.fill(); ctx.stroke();
+          [['#e03131', -0.45], ['#1c7ed6', 0], ['#2fb344', 0.45]].forEach(([c, dx]) => {
+            ctx.fillStyle = c;
+            ctx.beginPath(); ctx.arc(x + dx * r, y + r * 0.1, r * 0.16, 0, Math.PI * 2); ctx.fill();
+          });
+          sparkle(x + r * 0.5, y - r * 0.4, r * 0.45 * Math.max(0, Math.sin(t * 3)), '#ffffff');
+        }
+        break;
+      case 'storm': // 🌩️ Storm Cloud: dark cloud puffs, rain and lightning flashes
+        if (back) {
+          const flash = Math.sin(t * 6) > 0.85;
+          if (flash) glow(x, y, r * 3.4, '200, 220, 255', 0.8);
+          ctx.fillStyle = '#4b5a7d';
+          for (const [dx, dy, s] of [[-0.8, -0.8, 0.55], [0, -1.05, 0.65], [0.8, -0.8, 0.55]]) {
+            ctx.beginPath(); ctx.arc(x + dx * r, y + dy * r, s * r, 0, Math.PI * 2); ctx.fill();
+          }
+        } else {
+          ctx.strokeStyle = 'rgba(160, 200, 255, 0.85)';
+          ctx.lineWidth = Math.max(0.6, r * 0.07);
+          for (let k = 0; k < 3; k++) {
+            const ph = (t * 1.5 + k / 3) % 1;
+            const dx = (k - 1) * r * 0.6;
+            ctx.beginPath(); ctx.moveTo(x + dx, y + r * (0.9 + ph)); ctx.lineTo(x + dx - r * 0.1, y + r * (1.2 + ph)); ctx.stroke();
+          }
+          if (Math.sin(t * 6) > 0.6) {
+            ctx.strokeStyle = '#fff36b';
+            ctx.lineWidth = Math.max(1, r * 0.14);
+            ctx.beginPath();
+            ctx.moveTo(x + r * 0.2, y - r * 1.4); ctx.lineTo(x - r * 0.15, y - r * 0.5);
+            ctx.lineTo(x + r * 0.15, y - r * 0.45); ctx.lineTo(x - r * 0.2, y + r * 0.4);
+            ctx.stroke();
+          }
+        }
+        break;
+      case 'nova': // 💥 Supernova: a blinding star with shock rings bursting outward
+        if (back) {
+          glow(x, y, r * 3.6, '255, 170, 40', 0.6 + 0.3 * pulse);
+          glow(x, y, r * 1.8, '255, 255, 255', 0.8);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(t * 0.6);
+          ctx.fillStyle = 'rgba(255, 230, 150, 0.6)';
+          for (let k = 0; k < 12; k++) {
+            ctx.rotate(Math.PI / 6);
+            const len = r * (2.2 + 0.6 * Math.sin(t * 5 + k));
+            ctx.beginPath(); ctx.moveTo(-r * 0.12, 0); ctx.lineTo(0, len); ctx.lineTo(r * 0.12, 0); ctx.fill();
+          }
+          ctx.restore();
+        } else {
+          for (let k = 0; k < 2; k++) {
+            const ph = (t * 0.8 + k / 2) % 1;
+            ctx.strokeStyle = `rgba(255, 200, 80, ${1 - ph})`;
+            ctx.lineWidth = Math.max(0.6, r * 0.12 * (1 - ph));
+            ctx.beginPath(); ctx.arc(x, y, r * (1 + ph * 2.2), 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+        break;
+      case 'prism': // 🌈 Prism Swirl: rainbow glow and sparkles in every color circling it
+        if (back) {
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
+          const hue = (t * 100) % 360;
+          g.addColorStop(0, `hsla(${hue}, 100%, 65%, 0.6)`);
+          g.addColorStop(1, `hsla(${hue}, 100%, 65%, 0)`);
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(x, y, r * 3, 0, Math.PI * 2); ctx.fill();
+        } else {
+          for (let k = 0; k < 6; k++) {
+            const a = t * 1.8 + (k / 6) * Math.PI * 2;
+            sparkle(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 0.8, r * 0.3, `hsl(${k * 60}, 100%, 70%)`);
           }
         }
         break;

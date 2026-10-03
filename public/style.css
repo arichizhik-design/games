@@ -94,6 +94,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 }
 .badge.secret { background: linear-gradient(90deg, #111, #555, #111); }
 .badge.mythic { background: linear-gradient(90deg, #f44336, #ff79b0); }
+.badge.admin { background: linear-gradient(90deg, #b07800, #ffd43b, #ff6b6b, #b07800) !important; text-shadow: 0 1px 1px rgba(0,0,0,0.5); }
+.badge.admin::before { content: '👑 '; }
 
 #eventBox {
   margin-top: 10px; padding: 10px; border-radius: 12px; text-align: center;
@@ -218,6 +220,25 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 }
 .fx-fluff.scoop, .fx-fluff .ball { box-shadow: 6px -4px 0 -3px #ffc6ea, -6px -3px 0 -3px #ffc6ea, 0 0 6px #ffd6f0; }
 .fx-frost.scoop, .fx-frost .ball { box-shadow: 0 0 6px 1px #e0fbff; }
+.fx-crown.scoop, .fx-crown .ball {
+  background: radial-gradient(circle at 30% 30%, #fffbe0, #ffcf33 50%, #c98a00) !important;
+  box-shadow: 0 0 10px 4px rgba(255, 200, 40, 0.9);
+}
+.fx-storm.scoop, .fx-storm .ball {
+  background: radial-gradient(circle at 30% 30%, #8aa0c8, #3b4a6b 55%, #1b2238) !important;
+  box-shadow: 0 0 8px 3px rgba(120, 160, 255, 0.7); animation: fxZap 1.2s steps(2) infinite;
+}
+@keyframes fxZap { 50% { box-shadow: 0 0 14px 6px rgba(255, 245, 120, 0.95); } }
+.fx-nova.scoop, .fx-nova .ball {
+  background: radial-gradient(circle, #ffffff, #ffe066 45%, #ff8a00) !important;
+  box-shadow: 0 0 12px 5px rgba(255, 170, 40, 0.95), 0 0 24px 10px rgba(255, 230, 150, 0.5);
+  animation: fxPulse3 0.8s infinite alternate;
+}
+@keyframes fxPulse3 { to { box-shadow: 0 0 18px 8px rgba(255, 200, 80, 1), 0 0 32px 14px rgba(255, 240, 180, 0.6); } }
+.fx-prism.scoop, .fx-prism .ball {
+  background: conic-gradient(#ff4040, #ffb000, #ffee00, #39d353, #3d9bff, #9b5cff, #ff4fd8, #ff4040) !important;
+  box-shadow: 0 0 10px 4px rgba(255, 100, 220, 0.8); animation: fxSpin 2s linear infinite;
+}
 .fx-chips.scoop, .fx-chips .ball { background: radial-gradient(#5a3a1e 1.4px, transparent 2px) 0 0 / 7px 7px, #e6c79c !important; }
 
 /* ---------- shop and inventory windows ---------- */

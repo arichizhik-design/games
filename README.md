@@ -28,6 +28,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 | Legendary | Golden Caramel, Dragon Fruit     | $90–$110        |
 | Mythic    | Unicorn Dream, Phoenix Fire      | $300–$350       |
 | Secret    | ??? (buy it to find out!)        | $1,200          |
+| 👑 Admin | Crown Jewel, Storm Cloud, Supernova, Prism Swirl (admins only) | $5,000–$15,000 |
 
 - **Stand spaces:** your stand starts with 5 spaces for tubs. When they're all full, an **Extra Space** button appears on top of your stand. Buy it to get 3 more spaces ($300, then $6,000, then $75,000).
 - **Avatar Shop:** walk to the blue Avatar Shop next to the Ice Cream Shop and tap it to change your
@@ -73,6 +74,7 @@ gold crown with an [ADMIN] tag, and get an **Admin commands** panel. You can use
 | `/say Hello!` | **All Server Talk**: your message pops up on everyone's screen (also the 📢 button) |
 | `/money 5t` | Adds money (use k, m, b or t, like `500k`, `2b`, `5t`) |
 | `/give rainbow sherbet 10` | Puts any ice cream in your hotbar, even if the shop is sold out |
+| `/spawn supernova` | 👑 Admin-only ice creams (Crown Jewel, Storm Cloud, Supernova, Prism Swirl) are never in the shop; admins get them with `/give` or `/spawn` |
 | `/spawn void 3` | Puts any ice cream straight onto your stand, already grown |
 | `/mutation rainbow godly blood moon` | Turns on one or more mutations at once, on top of any already going (`/mutation` alone starts a random one) |
 | `/mutation end` | Ends all mutations |

@@ -11,6 +11,8 @@
     legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.07,  min: 1, max: 1 } },
     mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.02,  min: 1, max: 1 } },
     secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.004, min: 1, max: 1 } },
+    // admin-only ice creams: never in the shop, only admins can give or spawn them
+    admin:     { name: 'Admin',     color: '#e8a200', order: 7, growSec: 30,  stock: { chance: 0,     min: 0, max: 0 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -29,6 +31,11 @@
     { id: 'unicorn',     name: 'Unicorn Dream',    rarity: 'mythic',    price: 300,  cost: 100000,  color: '#e0bbff', effect: 'unicorn' },
     { id: 'phoenix',     name: 'Phoenix Fire',     rarity: 'mythic',    price: 350,  cost: 200000,  color: '#ff4500', effect: 'fire' },
     { id: 'void',        name: 'Cosmic Void',      rarity: 'secret',    price: 1200, cost: 1000000, color: '#0b0033', effect: 'void' },
+    // 👑 admin-only
+    { id: 'crownjewel',  name: 'Crown Jewel',      rarity: 'admin', price: 5000,  cost: 0, color: '#ffcf33', effect: 'crown', adminOnly: true },
+    { id: 'storm',       name: 'Storm Cloud',      rarity: 'admin', price: 7500,  cost: 0, color: '#3b4a6b', effect: 'storm', adminOnly: true },
+    { id: 'supernova',   name: 'Supernova',        rarity: 'admin', price: 10000, cost: 0, color: '#fff1c2', effect: 'nova',  adminOnly: true },
+    { id: 'prism',       name: 'Prism Swirl',      rarity: 'admin', price: 15000, cost: 0, color: '#ff66cc', effect: 'prism', adminOnly: true },
   ];
 
   // cost of the next level = base * growth^level
@@ -50,7 +57,7 @@
   const SPACE_COSTS = [300, 6000, 75000];
 
   function spaceCost(spaces) {
-    if (spaces >= FLAVORS.length) return null; // already room for every flavor
+    if (spaces >= FLAVORS.filter(f => !f.adminOnly).length) return null; // already room for every shop flavor
     return SPACE_COSTS[Math.round((spaces - START_SPACES) / SPACES_PER_BUY)] ?? null;
   }
 
