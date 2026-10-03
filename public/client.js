@@ -628,7 +628,7 @@
     // a space on your stand
     for (let i = 0; i < s.spaces; i++) {
       const p = tubPos(slot, i, s.spaces);
-      if (Math.hypot(wx - p.x, wy - p.y) < 13) {
+      if (Math.hypot(wx - p.x, wy - p.y) < 10.5) {
         const tub = s.tubs[i];
         if (heldItem() && !tub) return goDo(stub, REACH - 40, () => send({ type: 'place', space: i }));
         if (tub) return goDo(stub, REACH - 40, () => send({ type: 'takeOut', space: i }));
@@ -1024,7 +1024,15 @@
       ctx.restore();
       return;
     }
-    if (f.effect === 'void' || f.effect === 'stars') {
+    if (f.effect === 'infinity') {
+      // Infinity Swirl: every color, swirling
+      const g = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
+      for (let k = 0; k <= 4; k++) g.addColorStop(k / 4, `hsl(${(nowSec * 120 + k * 90) % 360}, 100%, 60%)`);
+      ctx.fillStyle = g;
+    } else if (f.effect === 'glitch') {
+      // Glitch Pop: jumps between neon colors a few times a second
+      ctx.fillStyle = ['#00ffee', '#ff00cc', '#ffee00', '#39ff14'][Math.floor(nowSec * 3) % 4];
+    } else if (f.effect === 'void' || f.effect === 'stars') {
       const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
       g.addColorStop(0, f.effect === 'void' ? '#5a1fb8' : '#8a6cff');
       g.addColorStop(1, f.color);
@@ -1040,6 +1048,12 @@
     g.addColorStop(1, `rgba(${rgb}, 0)`);
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function halo(x, y, r, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, r * 0.18);
+    ctx.beginPath(); ctx.ellipse(x, y + Math.sin(nowSec * 3) * r * 0.08, r * 0.7, r * 0.25, 0, 0, Math.PI * 2); ctx.stroke();
   }
 
   function sparkle(x, y, s, color) {
@@ -1149,6 +1163,101 @@
           for (let k = 0; k < 3; k++) {
             const a = k * 2.1 + Math.sin(t) * 0.3;
             ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * 0.9, y + Math.sin(a) * r * 0.6, r * 0.55, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        break;
+      case 'divine': // Divine Gold: spinning golden light rays and a halo
+        if (back) {
+          glow(x, y, r * 3.4, '255, 200, 40', 0.55);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(t * 0.8);
+          ctx.fillStyle = 'rgba(255, 225, 90, 0.55)';
+          for (let k = 0; k < 8; k++) {
+            ctx.rotate(Math.PI / 4);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-r * 0.25, r * 2.8); ctx.lineTo(r * 0.25, r * 2.8); ctx.fill();
+          }
+          ctx.restore();
+        } else {
+          halo(x, y - r * 1.35, r, '#ffcc00');
+          sparkle(x + r * 0.4, y - r * 0.35, r * 0.5 * Math.max(0, Math.sin(t * 3)), '#ffffff');
+        }
+        break;
+      case 'zeus': // Zeus Thunder: electric blue glow and lightning bolts
+        if (back) glow(x, y, r * 3, '120, 200, 255', 0.5 + 0.3 * pulse);
+        else {
+          halo(x, y - r * 1.35, r, '#ffe14d');
+          if (Math.sin(t * 7) > 0.2) {
+            for (const side of [-1, 1]) {
+              ctx.strokeStyle = '#fff36b';
+              ctx.lineWidth = Math.max(1, r * 0.16);
+              ctx.beginPath();
+              const bx = x + side * r * 1.25, by = y - r * 0.9;
+              ctx.moveTo(bx, by); ctx.lineTo(bx + side * r * 0.35, by + r * 0.5);
+              ctx.lineTo(bx - side * r * 0.05, by + r * 0.6); ctx.lineTo(bx + side * r * 0.3, by + r * 1.2);
+              ctx.stroke();
+            }
+          }
+        }
+        break;
+      case 'angel': // Angel Cloud: fluffy white wings, bright glow and a halo
+        if (back) {
+          glow(x, y, r * 3, '255, 255, 255', 0.8);
+          ctx.fillStyle = '#ffffff';
+          const flap = Math.sin(t * 5) * 0.25;
+          for (const side of [-1, 1]) {
+            ctx.save();
+            ctx.translate(x + side * r * 0.9, y - r * 0.1);
+            ctx.rotate(side * (-0.5 + flap));
+            for (let k = 0; k < 3; k++) {
+              ctx.beginPath(); ctx.ellipse(side * r * (0.45 + k * 0.32), -k * r * 0.12, r * 0.55, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+          }
+        } else halo(x, y - r * 1.35, r, '#fff3a0');
+        break;
+      case 'starlight': // Starlight Halo: a ring of stars circling a soft glow
+        if (back) glow(x, y, r * 3, '255, 245, 200', 0.7);
+        else {
+          halo(x, y - r * 1.35, r, '#fff3a0');
+          for (let k = 0; k < 5; k++) {
+            const a = t * 1.5 + (k / 5) * Math.PI * 2;
+            sparkle(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 0.75, r * 0.32, k % 2 ? '#fff6a8' : '#ffffff');
+          }
+        }
+        break;
+      case 'infinity': // Infinity Swirl: rainbow glow and an infinity loop of sparks
+        if (back) {
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3.2);
+          const hue = (t * 120) % 360;
+          g.addColorStop(0, `hsla(${hue}, 100%, 60%, 0.7)`);
+          g.addColorStop(1, `hsla(${hue}, 100%, 60%, 0)`);
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(x, y, r * 3.2, 0, Math.PI * 2); ctx.fill();
+        } else {
+          for (let k = 0; k < 6; k++) {
+            const a = t * 2.5 + (k / 6) * Math.PI * 2;
+            const lx = x + Math.sin(a) * r * 1.7, ly = y + Math.sin(a * 2) * r * 0.6; // figure eight
+            ctx.fillStyle = `hsl(${(t * 200 + k * 60) % 360}, 100%, 65%)`;
+            ctx.beginPath(); ctx.arc(lx, ly, Math.max(0.8, r * 0.17), 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        break;
+      case 'glitch': // Glitch Pop: shifted color copies and flickering pixels
+        if (back) {
+          const j = Math.sin(t * 17) * r * 0.25;
+          ctx.globalAlpha = 0.6;
+          ctx.fillStyle = '#ff00cc';
+          ctx.beginPath(); ctx.arc(x - r * 0.25 + j, y, r, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#00ffee';
+          ctx.beginPath(); ctx.arc(x + r * 0.25 - j, y, r, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        } else {
+          let seed = Math.floor(t * 6) * 7919 + Math.round(x);
+          const rand = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+          for (let k = 0; k < 5; k++) {
+            ctx.fillStyle = ['#ffffff', '#000000', '#39ff14', '#ffee00'][k % 4];
+            ctx.fillRect(x + (rand() - 0.5) * r * 3, y + (rand() - 0.5) * r * 2.4, r * 0.3, r * 0.3);
           }
         }
         break;

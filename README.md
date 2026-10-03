@@ -13,7 +13,8 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - Tubs you buy go into your **hotbar**: the 10 see-through grey slots at the bottom (keys 1–0 to pick one).
   When you hold a tub, **dashed outlines** show the empty spaces on your stand. Tap one to place it.
 - A placed tub has to **grow** before customers can buy it. Common ones grow fastest; rarer ones grow slower:
-  Common 10s, Uncommon 30s, Rare 1 min, Epic 2 min, Legendary 4 min, Mythic 7 min, Secret 10 min.
+  Common 10s, Uncommon 30s, Rare 1 min, Epic 2 min, Legendary 4 min, Mythic 7 min, Secret 10 min,
+  Godly 15 min, Heavenly 20 min, Impossible 30 min. Godly, Heavenly and Impossible tubs are very rarely in the shop.
   Once it's grown it stays on your stand. Tap a tub (with nothing in your hand) to take it back off.
 - Tap the **Inventory** button on your plot to store tubs: tap a tub in the chest to move it to your hotbar,
   or tap one in your hotbar to put it in the chest.
@@ -28,8 +29,11 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 | Legendary | Golden Caramel, Dragon Fruit     | $90–$110        |
 | Mythic    | Unicorn Dream, Phoenix Fire      | $300–$350       |
 | Secret    | ??? (buy it to find out!)        | $1,200          |
+| **Godly** | Divine Gold, Zeus Thunder        | $5,000–$6,500   |
+| **Heavenly** | Angel Cloud, Starlight Halo   | $18,000–$25,000 |
+| **Impossible** | Infinity Swirl, Glitch Pop  | $80,000–$120,000 |
 
-- **Stand spaces:** your stand starts with 5 spaces for tubs. When they're all full, an **Extra Space** button appears on top of your stand. Buy it to get 3 more spaces ($300, then $6,000, then $75,000).
+- **Stand spaces:** your stand starts with 5 spaces for tubs. When they're all full, an **Extra Space** button appears on top of your stand. Buy it to get 3 more spaces ($300, $6,000, $75,000, $1M, then $20M, up to 20 spaces).
 - **Upgrades:** Bigger Sign (more customers), Tip Jar (+10% money per level).
 - ⭐ Sometimes a **lucky golden customer** shows up and pays triple.
 - **Mutations:** every 30, 45 or 50 minutes a mutation event hits the whole park for 5 minutes.
@@ -51,7 +55,8 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   and Impossible (the rarest of all) makes the whole park glitch with color.
 - **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
   Cosmic Void has a dark purple aura, Galaxy Swirl twinkles with stars, Golden Caramel shines,
-  Unicorn Dream glows in changing colors, and more.
+  Unicorn Dream glows in changing colors, Divine Gold shines with spinning light rays, Angel Cloud
+  has flapping wings, Zeus Thunder crackles with lightning, Infinity Swirl spins through every color, and more.
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.
 
