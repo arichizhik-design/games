@@ -8,7 +8,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - Your plot has your stand and an **Inventory** chest. Everyone starts with **Chocolate** and **Vanilla** on their stand.
 - AI customers walk up to your stand, show which flavor they want, and pay when they're served.
   Press **Scoop!** (or the Space bar) to serve them faster.
-- Walk to the **Ice Cream Shop** at the top of the park and tap it to buy tubs of ice cream.
+- Walk to the **Supplies Shop** in the middle of the park and tap it to buy tubs of ice cream.
   The shop's stock changes every **3 minutes**, and rare flavors aren't always in stock.
 - Tubs you buy go into your **hotbar**: the 10 see-through grey slots at the bottom (keys 1–0 to pick one).
   When you hold a tub, **dashed outlines** show the empty spaces on your stand. Tap one to place it.
@@ -31,7 +31,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 | 👑 Admin | Crown Jewel, Storm Cloud, Supernova, Prism Swirl (admins only) | $5,000–$15,000 |
 
 - **Stand spaces:** your stand starts with 5 spaces for tubs. When they're all full, an **Extra Space** button appears on top of your stand. Buy it to get 3 more spaces ($300, then $6,000, then $75,000).
-- **Avatar Shop:** walk to the blue Avatar Shop next to the Ice Cream Shop and tap it to change your
+- **Avatar Shop:** walk to the blue Avatar Shop at the bottom of the middle plaza and tap it to change your
   character's shirt, pants, skin, hat (cap, top hat, beanie, party hat, cowboy hat, wizard hat, bunny ears,
   ice cream hat) and face. Everyone in the park sees your look, and it's saved with your name.
 - **Shop odds:** the really good ice creams are really rare. After each restock the shop has an Epic
@@ -62,8 +62,16 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   shop, buy a tub, hold it, place it). Skip it any time, or replay it with the 📖 Tutorial button.
 - **💬 Chat:** the chat box in the top left corner talks to everyone in the park (press Enter to type).
   Mean words get turned into ****. Press — to hide it.
-- **🎁 Gift:** press the Gift button, pick someone who is playing right now, then send them money
-  or ice cream from your hotbar or Inventory. It lands in their hotbar (or Inventory if the hotbar is full).
+- **🍒 Toppings:** the Supplies Shop has a Toppings square on the side. Hold a topping and tap an ice cream
+  on your stand: every scoop of it sells for more (Sprinkles +25% up to Stardust +400%). One topping per ice cream;
+  you get it back if you take the ice cream off.
+- **🐾 Pet Shop:** at the top of the middle plaza. Open lucky blocks (Wooden, Iron, Gold, Diamond, Rainbow) for a
+  random pet. Your pet follows you with cool effects and gives you more money from every scoop. Pets go from the
+  Puppy (+5%) up to the 🐉 **Dragon** (+500%, fire aura and fire breath), the best pet, which only comes from a
+  Rainbow Block (1% chance). Press **🐾 My Pets** to pick which one follows you.
+- **🎁 Gift & Trade:** pick someone who is playing right now. **Gift** sends them any amount of money
+  (type 500, 25k, 3m, 1b or 1t), ice cream, toppings or pets. **Trade** lets you pick what you give and what you
+  want back; they get a pop-up and can Accept or say No thanks.
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.
 
@@ -77,6 +85,7 @@ gold crown with an [ADMIN] tag, and get an **Admin commands** panel. You can use
 
 | Command | What it does |
 |---|---|
+| 🐾 **Pets** button | Shows every pet from most common to rarest. Tap one, press **Spawn**, and it goes in your pets. `/pet dragon 2` works too. Only admins can do this. |
 | 🚫 **Ban Players** button | Lists every player (playing now or away). Tap **Ban** twice on someone and they lose everything and start over. Admins can't be banned. |
 | `/say Hello!` | **All Server Talk**: your message pops up on everyone's screen (also the 📢 button) |
 | `/money 5t` | Adds money (use k, m, b or t, like `500k`, `2b`, `5t`) |

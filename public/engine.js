@@ -4,14 +4,16 @@
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
   // ---------- park layout (shared with the browser for drawing and clicking) ----------
-  const WORLD = { width: 1280, height: 1180 };
-  const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
-  const AVATAR_SHOP = { x: 1020, y: 125 }; // the Avatar Shop next to it
+  // two columns of plots on each side, and a plaza with the shops down the middle
+  const WORLD = { width: 1800, height: 1070 };
+  const PET_SHOP = { x: 900, y: 230 };    // 🐾 Pet Shop (top of the plaza)
+  const SHOP = { x: 900, y: 530 };        // 🛒 Supplies Shop, right in the middle of the park
+  const AVATAR_SHOP = { x: 900, y: 830 }; // 👕 Avatar Shop (bottom of the plaza)
   const REACH = 230;                 // how close you must stand to use something
   // admin names and their secret codes (only a scrambled version of each code is kept here).
   // Each admin needs their code once per device, and each name only works on the first device that used it.
@@ -40,11 +42,11 @@
   const COLORS = ['#ff6b6b', '#4dabf7', '#51cf66', '#fcc419', '#cc5de8', '#ff922b',
     '#20c997', '#f06595', '#748ffc', '#94d82d', '#fd7e14', '#22b8cf'];
 
-  // 4 x 3 grid of plots below the shop
+  // 4 x 3 grid of plots: two columns left of the plaza, two columns right of it
   const SLOTS = [];
   for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 4; col++) {
-      SLOTS.push({ x: 170 + col * 313, y: 340 + row * 300 });
+    for (const x of [170, 483, 1317, 1630]) {
+      SLOTS.push({ x, y: 230 + row * 300 });
     }
   }
 
@@ -60,6 +62,21 @@
   }
 
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
+  const toppingById = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
+  const itemById = { ...flavorById, ...toppingById }; // things that go in the hotbar and Inventory
+  const petById = Object.fromEntries(PETS.map(p => [p.id, p]));
+  const blockById = Object.fromEntries(LUCKY_BLOCKS.map(b => [b.id, b]));
+
+  // open a lucky block: roll a rarity with the block's odds, then a pet of that rarity
+  function rollPet(block) {
+    let r = Math.random() * 100;
+    let rarity = Object.keys(block.odds)[0];
+    for (const [k, chance] of Object.entries(block.odds)) {
+      r -= chance;
+      if (r <= 0) { rarity = k; break; }
+    }
+    return pick(PETS.filter(p => p.rarity === rarity));
+  }
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -117,7 +134,7 @@
   function fixSlots(list, size) {
     const out = Array(size).fill(null);
     (list || []).slice(0, size).forEach((s, i) => {
-      if (s && flavorById[s.flavor] && s.count > 0) out[i] = { flavor: s.flavor, count: s.count };
+      if (s && itemById[s.flavor] && s.count > 0) out[i] = { flavor: s.flavor, count: s.count };
     });
     return out;
   }
@@ -131,9 +148,84 @@
     return out;
   }
 
+  // ---------- gifts and trades ----------
+  // a bundle is { money, items: { itemId: count }, pets: { petId: count } }
+  function cleanBundle(b) {
+    b = b || {};
+    const out = { money: Math.min(1e18, Math.max(0, Math.floor(Number(b.money) || 0))), items: {}, pets: {} };
+    for (const [id, n] of Object.entries(b.items || {})) {
+      const c = Math.min(99999, Math.floor(Number(n) || 0));
+      if (itemById[id] && c > 0) out.items[id] = c;
+    }
+    for (const [id, n] of Object.entries(b.pets || {})) {
+      const c = Math.min(MAX_PETS, Math.floor(Number(n) || 0));
+      if (petById[id] && c > 0) out.pets[id] = c;
+    }
+    return out;
+  }
+  const bundleEmpty = b => !b.money && !Object.keys(b.items).length && !Object.keys(b.pets).length;
+
+  const countItem = (who, id) => [...who.hotbar, ...who.storage].reduce((n, s) => n + (s && s.flavor === id ? s.count : 0), 0);
+
+  // take a bundle out of someone's stuff; returns an error message if they don't have it all
+  function takeBundle(who, b) {
+    if (b.money > who.money) return `${who.name} doesn't have that much money.`;
+    for (const [id, n] of Object.entries(b.items)) {
+      if (countItem(who, id) < n) return `${who.name} doesn't have ${n} ${itemById[id].name}.`;
+    }
+    for (const [id, n] of Object.entries(b.pets)) {
+      if (who.pets.filter(p => p === id).length < n) return `${who.name} doesn't have ${n} ${petById[id].name}.`;
+    }
+    who.money -= b.money;
+    for (const [id, n] of Object.entries(b.items)) {
+      let left = n;
+      for (const list of [who.hotbar, who.storage]) {
+        for (let i = 0; i < list.length && left > 0; i++) {
+          const s = list[i];
+          if (!s || s.flavor !== id) continue;
+          const k = Math.min(left, s.count);
+          s.count -= k; left -= k;
+          if (s.count <= 0) list[i] = null;
+        }
+      }
+    }
+    for (const [id, n] of Object.entries(b.pets)) {
+      for (let k = 0; k < n; k++) who.pets.splice(who.pets.indexOf(id), 1);
+    }
+    return null;
+  }
+
+  // add a bundle to someone's stuff; returns an error message if it doesn't fit
+  function addBundle(who, b) {
+    who.money += b.money;
+    for (const [id, n] of Object.entries(b.items)) {
+      if (addItem(who.storage, id, addItem(who.hotbar, id, n)) > 0) return `${who.name}'s inventory is too full!`;
+    }
+    for (const [id, n] of Object.entries(b.pets)) for (let k = 0; k < n; k++) who.pets.push(id);
+    if (who.pets.length > MAX_PETS) return `${who.name} has too many pets (the most is ${MAX_PETS})!`;
+    return null;
+  }
+
+  // swap bundles between two players all at once: either everything happens, or nothing does
+  function exchange(a, b, fromA, fromB) {
+    const copy = s => ({ name: s.name, money: s.money, pets: [...s.pets],
+      hotbar: s.hotbar.map(x => x && { ...x }), storage: s.storage.map(x => x && { ...x }) });
+    const ca = copy(a), cb = copy(b);
+    const error = takeBundle(ca, fromA) || takeBundle(cb, fromB) || addBundle(cb, fromA) || addBundle(ca, fromB);
+    if (error) return error;
+    for (const [real, c, got] of [[a, ca, fromB], [b, cb, fromA]]) {
+      Object.assign(real, { money: c.money, pets: c.pets, hotbar: c.hotbar, storage: c.storage });
+      if (real.pet && !real.pets.includes(real.pet)) real.pet = null;
+      if (!real.pet && real.pets.length) real.pet = real.pets[0];
+      for (const id of Object.keys(got.items)) if (flavorById[id] && !real.seen.includes(id)) real.seen.push(id);
+    }
+    return null;
+  }
+
   function createGame({ saves = {} } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
+    const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
     let nextId = 1;
 
     // mutation events: the ones going on now (admins can run several at once),
@@ -145,7 +237,7 @@
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
-        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar,
+        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, pet: s.pet,
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -166,7 +258,10 @@
       let tubs = Array(spaces).fill(null);
       const oldFlavors = saved.tubs ? null : (saved.flavors ?? ['vanilla', 'chocolate']); // older saves
       (saved.tubs || oldFlavors.map(f => ({ flavor: f, grow: 0 }))).slice(0, spaces).forEach((t, i) => {
-        if (t && flavorById[t.flavor]) tubs[i] = { flavor: t.flavor, grow: Math.max(0, t.grow || 0) };
+        if (t && flavorById[t.flavor]) {
+          tubs[i] = { flavor: t.flavor, grow: Math.max(0, t.grow || 0) };
+          if (toppingById[t.topping]) tubs[i].topping = t.topping;
+        }
       });
 
       const s = SLOTS[slot];
@@ -183,6 +278,8 @@
         upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, saved.upgrades?.[k] ?? 0])),
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
         avatar: fixAvatar(saved.avatar),
+        pets: (saved.pets || []).filter(id => petById[id]).slice(0, MAX_PETS),
+        pet: petById[saved.pet] ? saved.pet : null, // the pet following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
         x: s.x + 60, y: s.y + 110,        // the player's character
@@ -203,7 +300,7 @@
         tubs: [{ flavor: 'vanilla', grow: 0 }, { flavor: 'chocolate', grow: 0 }, ...Array(START_SPACES - 2).fill(null)],
         hotbar: Array(HOTBAR_SIZE).fill(null), storage: Array(STORAGE_SIZE).fill(null),
         seen: ['vanilla', 'chocolate'], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
-        mutations: {}, avatar: fixAvatar(null), bought: {}, hand: -1, serveProgress: 0,
+        mutations: {}, avatar: fixAvatar(null), pets: [], pet: null, bought: {}, hand: -1, serveProgress: 0,
       };
     }
 
@@ -229,17 +326,20 @@
       // walk in along the path from whichever side of the park is closer
       const slot = SLOTS[stand.slot];
       const fromLeft = slot.x < WORLD.width / 2;
+      const tub = pick(ready);
       const c = {
         id: nextId++,
         x: fromLeft ? -30 : WORLD.width + 30,
         y: slot.y + 95 + Math.random() * 80,
         standId: stand.id,
-        flavor: pick(ready).flavor,
+        flavor: null,
         golden: Math.random() < 0.05, // lucky customer pays triple
         mutation: null,
         state: 'walking',
         look: Math.floor(Math.random() * 6),
       };
+      c.flavor = tub.flavor;
+      c.topping = tub.topping || null; // toppings make the scoop worth more
       customers.set(c.id, c);
       stand.queue.push(c.id);
     }
@@ -256,6 +356,8 @@
       if (!c) return;
       const flavor = flavorById[c.flavor];
       let amount = flavor.price * (1 + 0.1 * stand.upgrades.tips);
+      if (toppingById[c.topping]) amount *= 1 + toppingById[c.topping].bonus;
+      if (petById[stand.pet]) amount *= 1 + petById[stand.pet].boost;
       if (c.golden) amount *= 3;
       // every mutation going on gets its own chance; several can stack on one scoop
       c.mutations = event.active.filter(() => Math.random() < MUTATION_CHANCE).map(e => e.id);
@@ -271,7 +373,7 @@
       c.served = true;
       sendOffCustomer(c);
       broadcast({ type: 'sale', standId: stand.id, customerId: c.id, flavor: c.flavor,
-        amount, golden: c.golden, mutation: c.mutation, mutations: c.mutations });
+        amount, golden: c.golden, mutation: c.mutation, mutations: c.mutations, topping: c.topping, pet: stand.pet });
     }
 
     // start a mutation; stack = keep the ones already going (admins only)
@@ -313,6 +415,13 @@
 
     function tick(dt) {
       updateTimers(dt);
+      for (const [id, t] of trades) {
+        t.left -= dt;
+        if (t.left > 0) continue;
+        trades.delete(id);
+        const from = stands.get(t.from);
+        if (from) from.conn.send({ type: 'tradeDone', ok: false, text: 'Nobody answered your trade in time.' });
+      }
 
       for (const stand of stands.values()) {
         for (const t of stand.tubs) if (t && t.grow > 0) t.grow = Math.max(0, t.grow - dt);
@@ -371,10 +480,11 @@
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
+          pets: s.pets, pet: s.pet,
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
-          id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor,
+          id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor, topping: c.topping,
           golden: c.golden, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
           served: !!c.served,
         })),
@@ -449,6 +559,18 @@
         const item = stand.hotbar[stand.hand];
         if (!item) return err('Pick an ice cream from your hotbar first.');
         if (!near(slot)) return err('Walk to your stand to place ice cream.');
+        const top = toppingById[item.flavor];
+        if (top) {
+          // put a topping on an ice cream that doesn't have one yet
+          let i = Number(msg.space);
+          if (!(i >= 0 && i < stand.spaces && stand.tubs[i] && !stand.tubs[i].topping)) i = stand.tubs.findIndex(t => t && !t.topping);
+          if (i === -1) return err(stand.tubs.some(Boolean) ? 'All your ice creams already have toppings!' : 'Place an ice cream first, then put the topping on it.');
+          stand.tubs[i].topping = top.id;
+          item.count--;
+          if (item.count <= 0) stand.hotbar[stand.hand] = null;
+          conn.send({ type: 'placed', topping: top.id, flavor: stand.tubs[i].flavor });
+          return;
+        }
         let i = Number(msg.space);
         if (!(i >= 0 && i < stand.spaces && !stand.tubs[i])) i = stand.tubs.indexOf(null);
         if (i === -1) return err('Your stand is full! Buy Extra Space or take a tub off.');
@@ -464,6 +586,8 @@
         if (!near(slot)) return err('Walk to your stand to take ice cream off.');
         if (!fits(stand.hotbar, tub.flavor) && !fits(stand.storage, tub.flavor)) return err('Your inventory is full!');
         if (addItem(stand.hotbar, tub.flavor, 1) > 0) addItem(stand.storage, tub.flavor, 1);
+        // the topping comes back too, if there's room
+        if (tub.topping && addItem(stand.hotbar, tub.topping, 1) > 0) addItem(stand.storage, tub.topping, 1);
         stand.tubs[i] = null;
       } else if (msg.type === 'moveItem') {
         // click an item to move it between the hotbar and the Inventory chest
@@ -501,60 +625,94 @@
         if (now - (stand.lastChat || 0) < 1000) return err('Slow down! Wait a second between messages.');
         stand.lastChat = now;
         broadcast({ type: 'chat', id: stand.id, from: stand.name, admin: !!stand.admin, text });
-      } else if (msg.type === 'gift') {
-        // give money or ice cream to another player in the park
+      } else if (msg.type === 'buyTopping') {
+        const t = toppingById[msg.topping];
+        if (!t) return;
+        if (!near(SHOP)) return err('Walk to the Supplies Shop to buy.');
+        const n = Math.min(99, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        if (stand.money < t.cost * n) return err('Not enough money!');
+        const left = addItem(stand.storage, t.id, addItem(stand.hotbar, t.id, n));
+        const got = n - left;
+        if (!got) return err('Your inventory is full!');
+        // only pay for the ones that fit
+        stand.money -= t.cost * got;
+        conn.send({ type: 'boughtTopping', topping: t.id, count: got });
+      } else if (msg.type === 'buyBlock') {
+        // 🐾 open a lucky block for a random pet
+        const b = blockById[msg.block];
+        if (!b) return;
+        if (!near(PET_SHOP)) return err('Walk to the Pet Shop to buy lucky blocks.');
+        if (stand.money < b.cost) return err('Not enough money!');
+        if (stand.pets.length >= MAX_PETS) return err(`You have too many pets (the most is ${MAX_PETS}).`);
+        stand.money -= b.cost;
+        const pet = rollPet(b);
+        stand.pets.push(pet.id);
+        if (!stand.pet || petById[stand.pet].boost < pet.boost) stand.pet = pet.id; // wear your best new pet
+        conn.send({ type: 'petGot', pet: pet.id, block: b.id, equipped: stand.pet === pet.id });
+        if (RARITIES[pet.rarity].order >= 5) {
+          broadcast({ type: 'chat', id: 0, from: '🐾 Pet Shop', admin: false,
+            text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` });
+        }
+      } else if (msg.type === 'equipPet') {
+        if (msg.pet === null) stand.pet = null;
+        else if (stand.pets.includes(msg.pet)) stand.pet = msg.pet;
+      } else if (msg.type === 'gift' || msg.type === 'tradeOffer') {
+        // 🎁 give stuff to another player, or 🤝 offer them a trade
         const target = stands.get(Number(msg.to));
         if (!target || target === stand) return err('That player left the park.');
         const now = Date.now();
-        if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second between gifts.');
-        if (msg.money !== undefined) {
-          const amount = Math.floor(Number(msg.money) || 0);
-          if (amount <= 0) return err('Type how much money to gift.');
-          if (amount > stand.money) return err("You don't have that much money!");
-          stand.money -= amount;
-          target.money += amount;
+        if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second.');
+        const give = cleanBundle(msg.give);
+        if (msg.type === 'gift') {
+          if (bundleEmpty(give)) return err('Pick something to gift first.');
+          const error = exchange(stand, target, give, cleanBundle(null));
+          if (error) return err(error);
           stand.lastGift = now;
-          target.conn.send({ type: 'gift', from: stand.name, money: amount });
-          conn.send({ type: 'giftSent', to: target.name, money: amount });
+          target.conn.send({ type: 'gift', from: stand.name, bundle: give });
+          conn.send({ type: 'giftSent', to: target.name, bundle: give });
           return;
         }
-        const f = flavorById[msg.flavor];
-        if (!f) return;
-        const have = [...stand.hotbar, ...stand.storage]
-          .reduce((n, s) => n + (s && s.flavor === f.id ? s.count : 0), 0);
-        const count = Math.min(have, Math.max(1, Math.floor(Number(msg.count) || 1)));
-        if (!have) return err(`You don't have any ${f.name}.`);
-        // only send what fits in their hotbar and Inventory
-        const room = [...target.hotbar, ...target.storage].reduce((n, s) =>
-          n + (!s ? MAX_STACK : s.flavor === f.id ? MAX_STACK - s.count : 0), 0);
-        const give = Math.min(count, room);
-        if (!give) return err(`${target.name}'s inventory is full!`);
-        let left = give;
-        for (const list of [stand.hotbar, stand.storage]) {
-          for (let i = 0; i < list.length && left > 0; i++) {
-            const s = list[i];
-            if (!s || s.flavor !== f.id) continue;
-            const n = Math.min(left, s.count);
-            s.count -= n; left -= n;
-            if (s.count <= 0) list[i] = null;
-          }
-        }
-        addItem(target.storage, f.id, addItem(target.hotbar, f.id, give));
-        if (!target.seen.includes(f.id)) target.seen.push(f.id);
+        const get = cleanBundle(msg.get);
+        if (bundleEmpty(give) && bundleEmpty(get)) return err('Pick what to trade first.');
+        // make sure you really have what you're offering
+        const test = { name: 'You', money: stand.money, pets: [...stand.pets],
+          hotbar: stand.hotbar.map(x => x && { ...x }), storage: stand.storage.map(x => x && { ...x }) };
+        const error = takeBundle(test, give);
+        if (error) return err(error.replace("You doesn't", "You don't"));
         stand.lastGift = now;
-        target.conn.send({ type: 'gift', from: stand.name, flavor: f.id, count: give });
-        conn.send({ type: 'giftSent', to: target.name, flavor: f.id, count: give });
+        for (const [id, t] of trades) if (t.from === stand.id) trades.delete(id); // one offer at a time
+        const trade = { id: nextId++, from: stand.id, to: target.id, give, get, left: 60 };
+        trades.set(trade.id, trade);
+        target.conn.send({ type: 'tradeOffer', id: trade.id, from: stand.name, give, get });
+        conn.send({ type: 'tradeSent', to: target.name });
+      } else if (msg.type === 'tradeReply') {
+        const trade = trades.get(Number(msg.id));
+        if (!trade || trade.to !== stand.id) return err('That trade is over.');
+        trades.delete(trade.id);
+        const from = stands.get(trade.from);
+        if (!from) return err('That player left the park.');
+        if (!msg.accept) {
+          from.conn.send({ type: 'tradeDone', ok: false, text: `${stand.name} said no to your trade.` });
+          return;
+        }
+        const error = exchange(from, stand, trade.give, trade.get);
+        if (error) {
+          from.conn.send({ type: 'tradeDone', ok: false, text: `Trade didn't work: ${error}` });
+          return err(`Trade didn't work: ${error}`);
+        }
+        from.conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${stand.name} done!` });
+        conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${from.name} done!` });
       } else if (stand.admin && msg.type === 'adminMoney') {
         const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
         stand.money += amount;
         conn.send({ type: 'admin', text: `Added $${amount.toLocaleString()}` });
       } else if (stand.admin && msg.type === 'adminGive') {
         // put any ice cream in your inventory, even if the shop is sold out
-        const f = flavorById[msg.flavor];
+        const f = itemById[msg.flavor];
         if (!f) return err('No ice cream with that name.');
         const count = Math.min(990, Math.max(1, Math.floor(Number(msg.count) || 1)));
         const left = addItem(stand.storage, f.id, addItem(stand.hotbar, f.id, count));
-        if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+        if (flavorById[f.id] && !stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Gave you ${count - left} ${f.name}` + (left ? ` (${left} didn't fit)` : '') });
       } else if (stand.admin && msg.type === 'adminAnnounce') {
         // All Server Talk: an admin's message pops up on everyone's screen
@@ -581,6 +739,15 @@
         } else return err('No player with that name.');
         conn.send({ type: 'admin', text: `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
         conn.send({ type: 'players', players: playerList() });
+      } else if (stand.admin && msg.type === 'adminSpawnPet') {
+        // 🐾 admins can put any pet in their own pet inventory
+        const pet = petById[msg.pet];
+        if (!pet) return err('No pet with that name.');
+        const n = Math.min(MAX_PETS - stand.pets.length, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        if (n <= 0) return err(`You have too many pets (the most is ${MAX_PETS}).`);
+        for (let k = 0; k < n; k++) stand.pets.push(pet.id);
+        if (!stand.pet) stand.pet = pet.id;
+        conn.send({ type: 'admin', text: `Spawned ${n} ${pet.emoji} ${pet.name} in your pets` });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();
       } else if (stand.admin && msg.type === 'adminMutations') {
@@ -617,12 +784,13 @@
       if (!stand) return;
       saves[stand.key] = toSave(stand);
       stands.delete(stand.id);
+      for (const [id, t] of trades) if (t.from === stand.id || t.to === stand.id) trades.delete(id);
     }
 
     return { handle, leave, tick, snapshotSaves };
   }
 
-  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, REACH, chestPos, tubPos };
+  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos };
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   else root.Engine = Engine;
 })(this);

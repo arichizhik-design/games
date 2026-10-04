@@ -1,9 +1,13 @@
 (() => {
-  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE,
-    HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
-  const { SHOP, AVATAR_SHOP, REACH, chestPos, tubPos } = window.Engine;
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
+    MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
+  const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
+  const toppingById = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
+  const itemById = { ...flavorById, ...toppingById }; // hotbar/Inventory things: ice cream tubs and toppings
+  const petById = Object.fromEntries(PETS.map(p => [p.id, p]));
+  const pct = n => `+${Math.round(n * 100)}%`;
 
   const canvas = document.getElementById('canvas');
   let ctx = canvas.getContext('2d');
@@ -11,7 +15,7 @@
 
   let ws = null;
   let myId = null;
-  let world = { width: 1280, height: 1180 };
+  let world = { width: 1800, height: 1070 };
   let slots = [];
   let stands = [];
   const customers = new Map(); // id -> { ...server data, dx, dy (display position) }
@@ -78,6 +82,7 @@
 
   // HTML icon of an ice cream cone for the hotbar, inventory and shop
   function iconHtml(flavorId) {
+    if (toppingById[flavorId]) return `<div class="icon topping">${toppingById[flavorId].emoji}</div>`;
     const f = flavorById[flavorId];
     const fx = f.effect ? ` fx-${f.effect}` : '';
     return `<div class="icon${fx}"><div class="ball" style="background:${f.color}"></div><div class="cone"></div></div>`;
@@ -220,17 +225,31 @@
         addChat(msg);
         break;
       case 'gift':
-        toast(msg.money !== undefined
-          ? `🎁 ${msg.from} gave you ${fmt(msg.money)}!`
-          : `🎁 ${msg.from} gave you ${msg.count} ${flavorById[msg.flavor].name}!`);
-        if (s) confetti(s.x, s.y - 30, 30);
+        toast(`🎁 ${msg.from} gave you ${describe(msg.bundle)}!`);
+        confetti(player.x, player.y - 30, 30);
         break;
       case 'giftSent':
-        toast(msg.money !== undefined
-          ? `🎁 You gave ${msg.to} ${fmt(msg.money)}!`
-          : `🎁 You gave ${msg.to} ${msg.count} ${flavorById[msg.flavor].name}!`);
+        toast(`🎁 You gave ${msg.to} ${describe(msg.bundle)}!`);
         giftRefresh = true; // redraw the gift window once the new counts arrive
         break;
+      case 'tradeOffer':
+        showTradeOffer(msg);
+        break;
+      case 'tradeSent':
+        toast(`🤝 Trade offer sent to ${msg.to}! Waiting for them to answer…`);
+        break;
+      case 'tradeDone':
+        toast(msg.text);
+        if (msg.ok) { confetti(player.x, player.y - 30, 30); giftRefresh = true; }
+        break;
+      case 'petGot':
+        revealPet(msg);
+        break;
+      case 'boughtTopping': {
+        const t = toppingById[msg.topping];
+        toast(`You bought ${msg.count} ${t.name}! Hold it and tap an ice cream on your stand.`);
+        break;
+      }
       case 'banned':
         closeWindows();
         hand = -1;
@@ -247,7 +266,9 @@
         syncCustomers(msg.customers);
         updatePanel();
         updateHotbar();
-        if (openWindow === 'shop') updateShop();
+        if (openWindow === 'shop') { updateShop(); updateToppings(); }
+        if (openWindow === 'petshop') updatePetShop();
+        if (openWindow === 'pets') updatePets();
         if (openWindow === 'inventory') updateInventory();
         if (openWindow === 'gift' && giftRefresh && giftTo !== null) { giftRefresh = false; showGiftItems(); }
         break;
@@ -262,13 +283,19 @@
       }
       case 'placed': {
         const f = flavorById[msg.flavor];
+        if (msg.topping) {
+          const t = toppingById[msg.topping];
+          toast(`${t.emoji} ${t.name} on ${f.name}! Its scoops now sell for ${pct(t.bonus)} more.`);
+          if (s) confetti(slots[s.slot].x, slots[s.slot].y, 12);
+          break;
+        }
         toast(`${f.name} is growing! Ready in ${growText(RARITIES[f.rarity].growSec)}.`);
         tut.placed = true;
         if (s) confetti(slots[s.slot].x, slots[s.slot].y, 12);
         break;
       }
       case 'restock':
-        toast('🛒 The Ice Cream Shop has new stock!');
+        toast('🛒 The Supplies Shop has new ice cream stock!');
         break;
       case 'mutationStart': {
         const m = mutationById[msg.mutation];
@@ -516,7 +543,8 @@
     send({ type: 'hold', slot: i });
     updateHotbar();
     const item = heldItem();
-    if (item) toast(`Holding ${flavorById[item.flavor].name}. Tap a dashed space on your stand to place it.`);
+    if (item && toppingById[item.flavor]) toast(`Holding ${itemById[item.flavor].name}. Tap an ice cream on your stand to put it on top.`);
+    else if (item) toast(`Holding ${itemById[item.flavor].name}. Tap a dashed space on your stand to place it.`);
   }
 
   function slotHtml(item) {
@@ -532,24 +560,23 @@
       const content = cell.querySelector('.content');
       if (content.innerHTML !== html) content.innerHTML = html;
       cell.classList.toggle('selected', i === hand && !!item);
-      cell.title = item ? flavorById[item.flavor].name : '';
+      cell.title = item ? itemById[item.flavor].name : '';
     });
-    $('handLabel').textContent = heldItem() ? `In hand: ${flavorById[heldItem().flavor].name}` : '';
+    $('handLabel').textContent = heldItem() ? `In hand: ${itemById[heldItem().flavor].name}` : '';
   }
 
   // ---------- shop and inventory windows ----------
   function openShop() {
+    closeWindows();
     openWindow = 'shop';
-    $('giftModal').classList.add('hidden');
-    $('invModal').classList.add('hidden');
     $('shopModal').classList.remove('hidden');
     updateShop();
+    updateToppings();
   }
 
   function openInventory() {
+    closeWindows();
     openWindow = 'inventory';
-    $('giftModal').classList.add('hidden');
-    $('shopModal').classList.add('hidden');
     $('invModal').classList.remove('hidden');
     updateInventory();
   }
@@ -561,6 +588,9 @@
     $('avatarModal').classList.add('hidden');
     $('banModal').classList.add('hidden');
     $('giftModal').classList.add('hidden');
+    $('petShopModal').classList.add('hidden');
+    $('petsModal').classList.add('hidden');
+    $('adminPetsModal').classList.add('hidden');
   }
 
   // ---------- Ban Players (admins) ----------
@@ -608,21 +638,46 @@
   $('banClose').addEventListener('click', closeWindows);
   $('bannedOk').addEventListener('click', () => $('bannedModal').classList.add('hidden'));
 
-  // ---------- 🎁 Gift: give money or ice cream to another player ----------
-  let giftTo = null; // the stand id of the player you're gifting to
+  // ---------- 🎁 Gift & 🤝 Trade: give or swap money, ice cream, toppings and pets ----------
+  let giftTo = null;     // the stand id of the player you picked
+  let giftMode = 'gift'; // 'gift' or 'trade'
   let giftRefresh = false;
+  let tradeOffer = null; // a trade someone offered you, waiting for your answer
+
+  // "5k", "2.5m", "1b", "3t" or "1,000,000" -> a number
+  function parseMoney(text) {
+    const m = String(text || '').replace(/[,$\s]/g, '').toLowerCase().match(/^(\d*\.?\d+)([kmbtq]?)$/);
+    if (!m) return 0;
+    return Math.floor(Number(m[1]) * { '': 1, k: 1e3, m: 1e6, b: 1e9, t: 1e12, q: 1e15 }[m[2]]);
+  }
+
+  // what someone has: { items: { id: count }, pets: { id: count } }
+  function stuffOf(st) {
+    const items = {}, pets = {};
+    for (const it of [...st.hotbar, ...st.storage]) if (it) items[it.flavor] = (items[it.flavor] || 0) + it.count;
+    for (const id of st.pets || []) pets[id] = (pets[id] || 0) + 1;
+    return { items, pets };
+  }
+
+  const itemName = id => itemById[id].name;
+  function describe(b) {
+    const parts = [];
+    if (b.money) parts.push(fmt(b.money));
+    for (const [id, n] of Object.entries(b.items || {})) parts.push(`${n} ${itemName(id)}`);
+    for (const [id, n] of Object.entries(b.pets || {})) parts.push(`${n} ${petById[id].emoji} ${petById[id].name}`);
+    return parts.join(', ') || 'nothing';
+  }
 
   function openGift() {
     closeWindows();
     openWindow = 'gift';
-    giftTo = null;
     $('giftModal').classList.remove('hidden');
     showGiftPlayers();
   }
 
   function showGiftPlayers() {
     giftTo = null;
-    $('giftSub').textContent = 'Who do you want to give a gift to?';
+    $('giftSub').textContent = 'Who do you want to gift or trade with?';
     const body = $('giftBody');
     body.innerHTML = '';
     const others = stands.filter(st => st.id !== myId);
@@ -638,11 +693,67 @@
     }
   }
 
+  // a list of number boxes for everything someone has; returns a function that reads the picked bundle
+  function buildPicker(parent, owner, emptyText) {
+    const { items, pets } = stuffOf(owner);
+    const rows = [];
+    const addRow = (html, max, read) => {
+      const row = document.createElement('div');
+      row.className = 'row pickRow';
+      row.innerHTML = html + `<input type="number" min="0" max="${max}" value="0"><button type="button" class="maxBtn">All</button>`;
+      const input = row.querySelector('input');
+      row.querySelector('.maxBtn').addEventListener('click', () => { input.value = max; });
+      parent.appendChild(row);
+      rows.push({ input, max, read });
+      return row;
+    };
+
+    // money: type any amount, like 500, 25k, 3m or 1t
+    const moneyRow = document.createElement('div');
+    moneyRow.className = 'row pickRow';
+    moneyRow.innerHTML = `<div class="petEmoji">💵</div><div class="info"><div class="name">Money</div>
+      <div class="meta">Has ${fmt(owner.money)} · type 500, 25k, 3m, 1b or 1t</div></div>
+      <input type="text" placeholder="0" inputmode="decimal"><button type="button" class="maxBtn">All</button>`;
+    const moneyInput = moneyRow.querySelector('input');
+    moneyRow.querySelector('.maxBtn').addEventListener('click', () => { moneyInput.value = Math.floor(owner.money); });
+    parent.appendChild(moneyRow);
+
+    const ids = [...FLAVORS, ...TOPPINGS].map(f => f.id).filter(id => items[id]);
+    for (const id of ids) {
+      const f = itemById[id];
+      const r = RARITIES[f.rarity];
+      const badge = r ? `<span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>`
+        : `<span class="bonus">${pct(f.bonus)} topping</span>`;
+      const row = addRow(`<div class="iconWrap">${iconHtml(id)}</div>
+        <div class="info"><div class="name"></div><div class="meta">${badge} Has ${items[id]}</div></div>`, items[id], n => ['items', id, n]);
+      row.querySelector('.name').textContent = f.name;
+    }
+    const petIds = PETS.map(p => p.id).filter(id => pets[id]).reverse();
+    for (const id of petIds) {
+      const p = petById[id];
+      const r = RARITIES[p.rarity];
+      addRow(`<div class="petEmoji">${p.emoji}</div><div class="info"><div class="name">${p.name}</div>
+        <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
+        Pet · Has ${pets[id]}${owner.pet === id ? ' · wearing it' : ''}</div></div>`, pets[id], n => ['pets', id, n]);
+    }
+    if (!ids.length && !petIds.length) parent.insertAdjacentHTML('beforeend', `<div class="sub">${emptyText}</div>`);
+
+    return () => {
+      const b = { money: Math.min(parseMoney(moneyInput.value), Math.floor(owner.money)), items: {}, pets: {} };
+      for (const r of rows) {
+        const n = Math.min(r.max, Math.max(0, Math.floor(Number(r.input.value) || 0)));
+        if (n > 0) { const [kind, id] = r.read(n); b[kind][id] = n; }
+      }
+      return b;
+    };
+  }
+
+  const bundleEmpty = b => !b.money && !Object.keys(b.items).length && !Object.keys(b.pets).length;
+
   function showGiftItems() {
     const target = stands.find(st => st.id === giftTo);
     const mine = me();
     if (!target || !mine) return showGiftPlayers();
-    $('giftSub').textContent = `What do you want to give ${target.name}?`;
     const body = $('giftBody');
     body.innerHTML = '';
     const back = document.createElement('button');
@@ -652,42 +763,235 @@
     back.addEventListener('click', showGiftPlayers);
     body.appendChild(back);
 
-    body.insertAdjacentHTML('beforeend', `<h3>💵 Money <span class="sub">(you have ${fmt(mine.money)})</span></h3>`);
-    const moneyRow = document.createElement('div');
-    moneyRow.className = 'row moneyRow';
-    moneyRow.innerHTML = '<input type="number" min="1" placeholder="How much?"><button type="button">Send</button>';
-    const moneyInput = moneyRow.querySelector('input');
-    const sendMoney = () => send({ type: 'gift', to: giftTo, money: Math.floor(Number(moneyInput.value) || 0) });
-    moneyRow.querySelector('button').addEventListener('click', sendMoney);
-    moneyInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMoney(); });
-    body.appendChild(moneyRow);
+    const tabs = document.createElement('div');
+    tabs.className = 'giftTabs';
+    tabs.innerHTML = `<button type="button" data-mode="gift">🎁 Gift</button><button type="button" data-mode="trade">🤝 Trade</button>`;
+    tabs.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('on', b.dataset.mode === giftMode);
+      b.addEventListener('click', () => { giftMode = b.dataset.mode; showGiftItems(); });
+    });
+    body.appendChild(tabs);
 
-    // add up each flavor across the hotbar and the Inventory chest
-    const counts = {};
-    for (const it of [...mine.hotbar, ...mine.storage]) if (it) counts[it.flavor] = (counts[it.flavor] || 0) + it.count;
-    body.insertAdjacentHTML('beforeend', '<h3>🍦 Ice cream</h3>');
-    const ids = FLAVORS.map(f => f.id).filter(id => counts[id]);
-    if (!ids.length) body.insertAdjacentHTML('beforeend', '<div class="sub">You don\'t have any ice cream to give. Buy some at the shop!</div>');
-    for (const id of ids) {
-      const f = flavorById[id];
-      const r = RARITIES[f.rarity];
-      const row = document.createElement('div');
-      row.className = 'row';
-      row.innerHTML = `<div class="iconWrap">${iconHtml(id)}</div>
-        <div class="info"><div class="name"></div>
-          <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
-            You have ${counts[id]}</div></div>
-        <input type="number" min="1" max="${counts[id]}" value="1">
-        <button type="button">Send</button>`;
-      row.querySelector('.name').textContent = f.name;
-      const input = row.querySelector('input');
-      row.querySelector('button').addEventListener('click', () =>
-        send({ type: 'gift', to: giftTo, flavor: id, count: Math.floor(Number(input.value) || 1) }));
-      body.appendChild(row);
+    if (giftMode === 'gift') {
+      $('giftSub').textContent = `Pick how much of anything to give ${target.name}, then press Send.`;
+      body.insertAdjacentHTML('beforeend', '<h3>🎁 Your stuff</h3>');
+      const read = buildPicker(body, mine, "You don't have any ice cream, toppings or pets yet.");
+      const sendBtn = document.createElement('button');
+      sendBtn.type = 'button';
+      sendBtn.className = 'sendBig';
+      sendBtn.textContent = `🎁 Send gift to ${target.name}`;
+      sendBtn.addEventListener('click', () => {
+        const give = read();
+        if (bundleEmpty(give)) return toast('Type how much to give first (or press All).');
+        send({ type: 'gift', to: giftTo, give });
+      });
+      body.appendChild(sendBtn);
+    } else {
+      $('giftSub').textContent = `Pick what you give and what you want back. ${target.name} has to say yes!`;
+      body.insertAdjacentHTML('beforeend', '<h3>📤 You give</h3>');
+      const readGive = buildPicker(body, mine, "You don't have any ice cream, toppings or pets yet.");
+      const theirs = document.createElement('div');
+      theirs.className = 'theirs';
+      theirs.insertAdjacentHTML('beforeend', `<h3>📥 You want from ${target.name.replace(/</g, '')}</h3>`);
+      body.appendChild(theirs);
+      const readGet = buildPicker(theirs, target, `${target.name} doesn't have any ice cream, toppings or pets yet.`);
+      const sendBtn = document.createElement('button');
+      sendBtn.type = 'button';
+      sendBtn.className = 'sendBig';
+      sendBtn.textContent = `🤝 Send trade offer to ${target.name}`;
+      sendBtn.addEventListener('click', () => {
+        const give = readGive(), get = readGet();
+        if (bundleEmpty(give) && bundleEmpty(get)) return toast('Pick what to trade first.');
+        send({ type: 'tradeOffer', to: giftTo, give, get });
+      });
+      body.appendChild(sendBtn);
     }
   }
   $('giftBtn').addEventListener('click', openGift);
   $('giftClose').addEventListener('click', closeWindows);
+
+  // someone offered you a trade
+  function showTradeOffer(msg) {
+    tradeOffer = msg;
+    $('tradeFrom').textContent = `${msg.from} wants to trade with you:`;
+    const lines = b => {
+      const parts = describe(b).split(', ');
+      return parts.map(p => `<div class="line">• ${p.replace(/</g, '&lt;')}</div>`).join('');
+    };
+    $('tradeGet').innerHTML = lines(msg.give);
+    $('tradeGive').innerHTML = lines(msg.get);
+    $('tradeModal').classList.remove('hidden');
+  }
+  function answerTrade(accept) {
+    if (tradeOffer) send({ type: 'tradeReply', id: tradeOffer.id, accept });
+    tradeOffer = null;
+    $('tradeModal').classList.add('hidden');
+  }
+  $('tradeYes').addEventListener('click', () => answerTrade(true));
+  $('tradeNo').addEventListener('click', () => answerTrade(false));
+
+  // ---------- 🛒 Supplies Shop: Ice Cream / Toppings squares ----------
+  function showShopTab(tab) {
+    $('tabIce').classList.toggle('on', tab === 'ice');
+    $('tabTop').classList.toggle('on', tab === 'top');
+    $('icePane').classList.toggle('hidden', tab !== 'ice');
+    $('topPane').classList.toggle('hidden', tab !== 'top');
+  }
+  $('tabIce').addEventListener('click', () => showShopTab('ice'));
+  $('tabTop').addEventListener('click', () => showShopTab('top'));
+
+  for (const t of TOPPINGS) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<div class="iconWrap">${iconHtml(t.id)}</div>
+      <div class="info"><div class="name">${t.name}</div>
+        <div class="meta"><span class="bonus">${pct(t.bonus)} money</span> per scoop of the ice cream it's on</div></div>
+      <div class="buyBtns"><button type="button" data-n="1">${fmt(t.cost)}</button><button type="button" data-n="10">x10</button></div>`;
+    row.querySelectorAll('button').forEach(b =>
+      b.addEventListener('click', () => send({ type: 'buyTopping', topping: t.id, count: Number(b.dataset.n) })));
+    $('topList').appendChild(row);
+    t.row = row;
+  }
+  function updateToppings() {
+    const s = me();
+    if (!s) return;
+    for (const t of TOPPINGS) {
+      const [one, ten] = t.row.querySelectorAll('button');
+      one.disabled = s.money < t.cost;
+      ten.disabled = s.money < t.cost * 10;
+    }
+  }
+
+  // ---------- 🐾 Pet Shop, lucky blocks and your pets ----------
+  const blockBg = b => b.color === 'rainbow' ? '' : `background:${b.color}`;
+  for (const b of LUCKY_BLOCKS) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const odds = Object.entries(b.odds).map(([r, c]) =>
+      `<b style="color:${RARITIES[r].color === '#111111' ? '#000' : RARITIES[r].color}">${RARITIES[r].name} ${c}%</b>`).join(' · ');
+    row.innerHTML = `<div class="luckyBlock ${b.color === 'rainbow' ? 'rainbow' : ''}" style="${blockBg(b)}"></div>
+      <div class="info"><div class="name">${b.name}</div><div class="odds">${odds}</div></div>
+      <button type="button">${fmt(b.cost)}</button>`;
+    row.querySelector('button').addEventListener('click', () => send({ type: 'buyBlock', block: b.id }));
+    $('blockList').appendChild(row);
+    b.row = row;
+  }
+
+  function openPetShop() {
+    closeWindows();
+    openWindow = 'petshop';
+    $('petShopModal').classList.remove('hidden');
+    updatePetShop();
+  }
+  function updatePetShop() {
+    const s = me();
+    if (!s) return;
+    for (const b of LUCKY_BLOCKS) b.row.querySelector('button').disabled = s.money < b.cost || s.pets.length >= MAX_PETS;
+  }
+  $('petShopClose').addEventListener('click', closeWindows);
+
+  // the lucky block shakes, then pops open to show your new pet
+  let revealTimer = null;
+  function revealPet(msg) {
+    const pet = petById[msg.pet], r = RARITIES[pet.rarity];
+    const block = LUCKY_BLOCKS.find(b => b.id === msg.block);
+    const el = $('revealBlock');
+    el.className = 'luckyBlock shake' + (block.color === 'rainbow' ? ' rainbow' : '');
+    el.style.cssText = blockBg(block);
+    el.classList.remove('hidden');
+    $('revealPet').classList.add('hidden');
+    $('revealOk').classList.add('hidden');
+    $('revealModal').classList.remove('hidden');
+    clearTimeout(revealTimer);
+    revealTimer = setTimeout(() => {
+      el.classList.add('hidden');
+      const box = $('revealPet');
+      box.querySelector('.revealEmoji').textContent = pet.emoji;
+      const badge = box.querySelector('.revealRarity');
+      badge.textContent = r.name.toUpperCase();
+      badge.style.background = r.color;
+      box.querySelector('.revealName').textContent = pet.name;
+      box.querySelector('.revealBoost').textContent = `${pct(pet.boost)} money from every scoop` +
+        (msg.equipped ? ' · it\'s following you now!' : '');
+      box.classList.remove('hidden');
+      $('revealOk').classList.remove('hidden');
+      const s = me();
+      if (s) confetti(player.x, player.y - 40, 15 + r.order * 15);
+    }, 1400);
+  }
+  $('revealOk').addEventListener('click', () => $('revealModal').classList.add('hidden'));
+
+  // My Pets: wear the one you like
+  let petsKey = '';
+  function openPets() {
+    closeWindows();
+    openWindow = 'pets';
+    petsKey = '';
+    $('petsModal').classList.remove('hidden');
+    updatePets();
+  }
+  function updatePets() {
+    const s = me();
+    if (!s) return;
+    const key = s.pets.join() + '|' + s.pet;
+    if (key === petsKey) return;
+    petsKey = key;
+    const pet = petById[s.pet];
+    $('petsSub').textContent = `You have ${s.pets.length}/${MAX_PETS} pets. ` +
+      (pet ? `${pet.emoji} ${pet.name} is following you: ${pct(pet.boost)} money from every scoop!`
+        : 'Get pets from lucky blocks at the 🐾 Pet Shop.');
+    const list = $('petsList');
+    list.innerHTML = '';
+    const counts = stuffOf(s).pets;
+    for (const p of [...PETS].reverse()) {
+      if (!counts[p.id]) continue;
+      const r = RARITIES[p.rarity];
+      const on = s.pet === p.id;
+      const row = document.createElement('div');
+      row.className = 'row petRow' + (on ? ' equipped' : '');
+      row.innerHTML = `<div class="petEmoji">${p.emoji}</div>
+        <div class="info"><div class="name">${p.name}${counts[p.id] > 1 ? ` x${counts[p.id]}` : ''}</div>
+          <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
+            <span class="boost">${pct(p.boost)} money</span></div></div>
+        <button type="button">${on ? 'Take off' : 'Wear'}</button>`;
+      row.querySelector('button').addEventListener('click', () => send({ type: 'equipPet', pet: on ? null : p.id }));
+      list.appendChild(row);
+    }
+  }
+  $('petsBtn').addEventListener('click', openPets);
+  $('petsClose').addEventListener('click', closeWindows);
+
+  // 👑 admins: spawn any pet into your own pets
+  let adminPetPick = null;
+  function openAdminPets() {
+    closeWindows();
+    openWindow = 'adminpets';
+    $('adminPetsModal').classList.remove('hidden');
+    const list = $('adminPetsList');
+    list.innerHTML = '';
+    for (const p of PETS) { // most common first, rarest last
+      const r = RARITIES[p.rarity];
+      const row = document.createElement('div');
+      row.className = 'row petRow' + (adminPetPick === p.id ? ' picked' : '');
+      row.innerHTML = `<div class="petEmoji">${p.emoji}</div>
+        <div class="info"><div class="name">${p.name}</div>
+          <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
+            <span class="boost">${pct(p.boost)} money</span></div></div>`;
+      row.addEventListener('click', () => {
+        adminPetPick = p.id;
+        list.querySelectorAll('.petRow').forEach(x => x.classList.remove('picked'));
+        row.classList.add('picked');
+        $('adminPetSpawn').disabled = false;
+        $('adminPetSpawn').textContent = `Spawn ${p.emoji} ${p.name}`;
+      });
+      list.appendChild(row);
+    }
+  }
+  $('adminPetsBtn').addEventListener('click', openAdminPets);
+  $('adminPetsClose').addEventListener('click', closeWindows);
+  $('adminPetSpawn').addEventListener('click', () => {
+    if (adminPetPick) send({ type: 'adminSpawnPet', pet: adminPetPick, count: Number($('adminPetCount').value) || 1 });
+  });
 
   // ---------- 💬 Chat (top left) ----------
   const STAND_COLORS = id => (stands.find(st => st.id === id) || {}).color;
@@ -734,7 +1038,7 @@
       done: () => tut.start && dist(player, tut.start) > 80 },
     { text: '🍨 Customers walk up to your stand to buy scoops. Press <b>Scoop!</b> (or Space) to serve them faster. Earn <b>$10</b>!',
       target: myStandPos, done: () => (me()?.money || 0) >= 10 },
-    { text: '🛒 Now walk to the <b>Ice Cream Shop</b>. Follow the arrow!',
+    { text: '🛒 Now walk to the <b>Supplies Shop</b> in the middle of the park. Follow the arrow!',
       target: SHOP_DOOR, done: () => dist(player, SHOP_DOOR()) <= REACH },
     { text: '💵 Tap the shop to open it, then buy a tub of ice cream. <span class="sub">Rarer ones sell for more but cost more!</span>',
       target: () => SHOP, done: () => tut.bought },
@@ -743,7 +1047,7 @@
     { text: '🏪 Walk back to your stand and tap a <b>dashed space</b> to put it there. It grows, then customers can buy it!',
       target: myStandPos, done: () => tut.placed },
     { text: '🎉 You did it! More to try: 🎒 the <b>chest</b> on your plot is your Inventory, 👕 the <b>Avatar Shop</b> changes your look, ' +
-      '🎁 <b>Gift</b> sends money or ice cream to friends, and 🌈 <b>mutations</b> make scoops worth way more!', last: true },
+      '🍒 <b>toppings</b> make scoops worth more, 🐾 the <b>Pet Shop</b> has lucky blocks with pets, 🎁 <b>Gift &amp; Trade</b> swaps stuff with friends, and 🌈 <b>mutations</b> make scoops worth way more!', last: true },
   ];
 
   function tutorialDone() { try { return !!localStorage.getItem('icecream-tutorial-done'); } catch (e) { return false; } }
@@ -821,10 +1125,8 @@
   const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
 
   function openAvatar() {
+    closeWindows();
     openWindow = 'avatar';
-    $('giftModal').classList.add('hidden');
-    $('shopModal').classList.add('hidden');
-    $('invModal').classList.add('hidden');
     $('avatarModal').classList.remove('hidden');
     buildAvatarOptions();
   }
@@ -943,6 +1245,12 @@
     opt.textContent = (f.adminOnly ? '👑 ' : '') + f.name;
     $('adminFlavor').appendChild(opt);
   }
+  for (const t of TOPPINGS) {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = `${t.emoji} ${t.name}`;
+    $('adminFlavor').appendChild(opt);
+  }
   document.querySelectorAll('#adminPanel [data-money]').forEach(btn =>
     btn.addEventListener('click', () => send({ type: 'adminMoney', amount: Number(btn.dataset.money) })));
   $('adminGiveBtn').addEventListener('click', () =>
@@ -981,6 +1289,7 @@
   });
 
   const squash = t => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const findTopping = t => TOPPINGS.find(f => squash(f.id) === squash(t) || squash(f.name) === squash(t));
   const findFlavor = t => FLAVORS.find(f => squash(f.id) === squash(t) || squash(f.name) === squash(t));
   const findMutation = t => MUTATIONS.find(m => squash(m.id) === squash(t) || squash(m.name) === squash(t));
 
@@ -1002,9 +1311,17 @@
         // the flavor name can have spaces: /give cookie dough 5
         let count = 1;
         if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) count = Number(args.pop());
-        const f = findFlavor(args.join(' '));
-        if (!f) return toast('Try: /give rainbow 5 (any flavor name)');
+        const f = findFlavor(args.join(' ')) || findTopping(args.join(' '));
+        if (!f) return toast('Try: /give rainbow 5 (any flavor or topping name)');
         return send({ type: 'adminGive', flavor: f.id, count });
+      }
+      case 'pet': case 'pets': {
+        // put any pet in your pets: /pet dragon 2
+        let count = 1;
+        if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) count = Number(args.pop());
+        const p = PETS.find(x => squash(x.id) === squash(args.join(' ')) || squash(x.name) === squash(args.join(' ')));
+        if (!p) return toast('Try: /pet dragon (any pet name)');
+        return send({ type: 'adminSpawnPet', pet: p.id, count });
       }
       case 'spawn': {
         // put an ice cream straight on your stand, fully grown: /spawn void 3
@@ -1107,7 +1424,11 @@
     if (inRect(wx, wy, { x: AVATAR_SHOP.x - 110, y: AVATAR_SHOP.y - 95, w: 220, h: 185 })) {
       return goDo({ x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }, 60, openAvatar);
     }
-    // the Ice Cream Shop
+    // the Pet Shop
+    if (inRect(wx, wy, { x: PET_SHOP.x - 130, y: PET_SHOP.y - 100, w: 260, h: 190 })) {
+      return goDo({ x: PET_SHOP.x, y: PET_SHOP.y + 90 }, 60, openPetShop);
+    }
+    // the Supplies Shop
     if (inRect(wx, wy, { x: SHOP.x - 150, y: SHOP.y - 100, w: 300, h: 200 })) {
       return goDo({ x: SHOP.x, y: SHOP.y + 90 }, 60, openShop);
     }
@@ -1116,6 +1437,9 @@
       const p = tubPos(slot, i, s.spaces);
       if (Math.hypot(wx - p.x, wy - p.y) < 13) {
         const tub = s.tubs[i];
+        if (tub && heldItem() && toppingById[heldItem().flavor]) {
+          return goDo(stub, REACH - 40, () => send({ type: 'place', space: i }));
+        }
         if (heldItem() && !tub) return goDo(stub, REACH - 40, () => send({ type: 'place', space: i }));
         if (tub) return goDo(stub, REACH - 40, () => send({ type: 'takeOut', space: i }));
         return toast('Pick an ice cream in your hotbar, then tap a dashed space to place it.');
@@ -1166,6 +1490,7 @@
     const s = me();
     if (openWindow === 'shop' && dist(player, { x: SHOP.x, y: SHOP.y + 90 }) > REACH) closeWindows();
     if (openWindow === 'avatar' && dist(player, { x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }) > REACH) closeWindows();
+    if (openWindow === 'petshop' && dist(player, { x: PET_SHOP.x, y: PET_SHOP.y + 90 }) > REACH) closeWindows();
     if (openWindow === 'inventory' && s && !near(chestPos(slots[s.slot]), 40)) closeWindows();
   }
 
@@ -1213,18 +1538,41 @@
       ctx.beginPath(); ctx.ellipse(x, y, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
     }
     ctx.fillStyle = '#ecd9b0';
-    // plaza in front of the shop and a path down the middle
-    ctx.fillRect(0, SHOP.y + 75, world.width, 70);
-    ctx.fillRect(SHOP.x - 40, SHOP.y + 75, 80, world.height);
     // paths between rows of stands
     for (let i = 0; i < slots.length; i += 4) {
       ctx.fillRect(0, slots[i].y + 75, world.width, 115);
     }
+    // the shop plaza down the middle of the park, with stone tiles
+    const px = SHOP.x - 245, pw = 490;
+    ctx.fillStyle = '#e8d3a8';
+    ctx.fillRect(px, 0, pw, world.height);
+    ctx.strokeStyle = 'rgba(160, 120, 70, 0.18)';
+    ctx.lineWidth = 2;
+    for (let y = 0; y < world.height; y += 40) {
+      ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke();
+      for (let x = px + ((y / 40) % 2) * 30; x < px + pw; x += 60) {
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 40); ctx.stroke();
+      }
+    }
+    ctx.strokeStyle = '#c9a66b'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, world.height); ctx.moveTo(px + pw, 0); ctx.lineTo(px + pw, world.height); ctx.stroke();
+    // flowers along the plaza edges
+    for (let y = 30; y < world.height; y += 75) {
+      for (const x of [px + 12, px + pw - 12]) {
+        ctx.fillStyle = ['#ff6b6b', '#fcc419', '#cc5de8', '#4dabf7'][(y / 75 | 0) % 4];
+        for (let k = 0; k < 5; k++) {
+          const a = k / 5 * Math.PI * 2;
+          ctx.beginPath(); ctx.arc(x + Math.cos(a) * 4, y + Math.sin(a) * 4, 3.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = '#fff3bf';
+        ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
     // trees in the gaps between stands
     for (let i = 0; i < slots.length; i += 4) {
-      for (const x of [22, 326, 952, 1258]) drawTree(x, slots[i].y - 40);
+      for (const x of [22, 326, 1473, 1778]) drawTree(x, slots[i].y - 40);
     }
-    for (const x of [60, 180, 300, 1220]) drawTree(x, 60);
+    for (const x of [60, 200, 340, 520, 1280, 1460, 1600, 1740]) drawTree(x, 40);
   }
 
   function drawTree(x, y) {
@@ -1269,7 +1617,7 @@
     ctx.fillStyle = '#e0457b';
     ctx.font = 'bold 16px Trebuchet MS';
     ctx.textAlign = 'center';
-    ctx.fillText('ICE CREAM SHOP', x, y - 47);
+    ctx.fillText('SUPPLIES SHOP', x, y - 47);
     // restock timer
     ctx.fillStyle = 'rgba(40, 20, 35, 0.8)';
     roundRect(x - 80, y + 78, 160, 24, 10); ctx.fill();
@@ -1277,7 +1625,7 @@
     ctx.font = 'bold 13px Trebuchet MS';
     ctx.fillText(`New stock in ${clock(shop.left)}`, x, y + 95);
     if (dist(player, { x, y: y + 90 }) <= REACH && openWindow !== 'shop') {
-      drawBubbleButton(x, y + 128, '🛒 Tap the shop to buy', '#ff6fa5', time);
+      drawBubbleButton(x, y + 128, '🛒 Tap the shop: ice cream & toppings', '#ff6fa5', time);
     }
   }
 
@@ -1344,7 +1692,7 @@
     const tub = s.tubs[i];
     const mine = s.id === myId;
     if (!tub) {
-      if (mine && holding) {
+      if (mine && holding === 'tub') {
         // moving dashed outline: "you can place your ice cream here"
         ctx.strokeStyle = '#ff2e7e';
         ctx.lineWidth = 2;
@@ -1371,6 +1719,17 @@
     if (ready && f.effect) drawFlavorFx(f, p.x, p.y - sr * 0.3, sr * 0.85, true, i);
     fillScoop(ready ? f : { color: f.color }, p.x, p.y + 1, sr, true);
     if (ready && f.effect) drawFlavorFx(f, p.x, p.y - sr * 0.3, sr * 0.85, false, i);
+    if (tub.topping) drawTopping(tub.topping, p.x, p.y - sr * 0.55, sr, time, i);
+    if (mine && holding === 'topping' && !tub.topping) {
+      // dashed ring: "you can put your topping on this one"
+      ctx.strokeStyle = '#ff2e7e';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.lineDashOffset = -time * 12;
+      ctx.beginPath(); ctx.arc(p.x, p.y - 1, 13 + Math.sin(time * 5) * 0.8, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
+    }
     if (tub.grow > 0) {
       ctx.strokeStyle = '#2fb344';
       ctx.lineWidth = 2.5;
@@ -1382,6 +1741,207 @@
         ctx.fillText(tub.grow >= 60 ? `${Math.ceil(tub.grow / 60)}m` : `${Math.ceil(tub.grow)}s`, p.x, p.y - 10);
       }
     }
+  }
+
+  // ---------- 🐾 pets in the park, with their effects ----------
+  const petPos = new Map();      // stand id -> where their pet is drawn
+  const petParticles = [];
+  const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+
+  function petSpark(x, y, o) {
+    if (petParticles.length > 400) return;
+    petParticles.push({ x, y, vx: 0, vy: -20, t: 0, life: 1, size: 3, color: '#fff', shape: 'dot', ...o });
+  }
+
+  // a hue (0-360) as '255, 0, 0' for glow()
+  function hueRgb(h) {
+    const f = n => { const k = (n + h / 30) % 12; return Math.round(255 * (0.5 - 0.5 * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
+    return `${f(0)}, ${f(8)}, ${f(4)}`;
+  }
+
+  function drawPet(pet, pp, time, dt, seed) {
+    const r = RARITIES[pet.rarity];
+    const big = pet.id === 'dragon' ? 1.45 : r.order >= 4 ? 1.15 : 1;
+    const hop = pet.fx === 'hop' ? Math.abs(Math.sin(time * 6 + seed)) * 10 : (pp.moving ? Math.abs(Math.sin(time * 10)) * 4 : 0);
+    const float = r.order >= 3 ? 10 + Math.sin(time * 3 + seed) * 4 : 0; // fancy pets float in the air
+    const x = pp.x, y = pp.y - hop - float;
+    const rnd = () => Math.random() - 0.5;
+    const chance = k => Math.random() < dt * k;
+
+    // shadow
+    ctx.fillStyle = '0, 0, 0';
+    ctx.beginPath(); ctx.ellipse(pp.x, pp.y + 10, 12 * big, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+    // effects behind the pet
+    switch (pet.fx) {
+      case 'hearts': if (chance(1.5)) petSpark(x + rnd() * 16, y - 12, { shape: 'heart', color: '#ff6b9a', vy: -25, life: 1.4, size: 7 }); break;
+      case 'embers': glow(x, y - 4, 22, '255, 140, 40', 0.5);
+        if (chance(8)) petSpark(x + rnd() * 18, y, { color: Math.random() < 0.5 ? '#ff922b' : '#ffd43b', vy: -40, vx: rnd() * 20, size: 2.5 }); break;
+      case 'leaves': if (chance(3)) petSpark(x + rnd() * 26, y - 20, { shape: 'leaf', color: '#51cf66', vy: 18, vx: rnd() * 30, life: 1.6, size: 4 }); break;
+      case 'snow': glow(x, y - 4, 26, '160, 230, 255', 0.55);
+        if (chance(6)) petSpark(x + rnd() * 34, y - 24, { shape: 'flake', color: '#fff', vy: 22, vx: rnd() * 10, life: 1.6, size: 3 }); break;
+      case 'moon': glow(x, y - 4, 30, '70, 80, 190', 0.55); {
+          const a = time * 1.5 + seed;
+          ctx.fillStyle = '#fff3bf';
+          ctx.beginPath(); ctx.arc(x + Math.cos(a) * 24, y - 6 + Math.sin(a) * 10, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#3b4cca';
+          ctx.beginPath(); ctx.arc(x + Math.cos(a) * 24 + 2.5, y - 7 + Math.sin(a) * 10, 4.2, 0, Math.PI * 2); ctx.fill();
+          if (chance(3)) petSpark(x + rnd() * 40, y - 10 + rnd() * 30, { shape: 'star', color: '#fff', vy: 0, life: 0.8, size: 3 });
+        } break;
+      case 'rainbow': glow(x, y - 4, 30, hueRgb((time * 120) % 360), 0.55);
+        if (chance(25)) petSpark(x - pp.facing * 10 + rnd() * 6, y + rnd() * 10, { color: `hsl(${(time * 300) % 360},100%,60%)`, vy: 5, vx: -pp.facing * 20, life: 0.9, size: 4 });
+        if (chance(3)) petSpark(x + rnd() * 30, y - 10 + rnd() * 20, { shape: 'star', color: '#fff', vy: -5, life: 0.7, size: 3.5 }); break;
+      case 'shadow': glow(x, y - 4, 32, '90, 30, 140', 0.6);
+        if (chance(12)) petSpark(x + rnd() * 24, y + 4, { shape: 'smoke', color: '40, 10, 60', vy: -18, vx: rnd() * 14, life: 1.3, size: 7 }); break;
+      case 'fire': glow(x, y - 4, 36, '255, 90, 0', 0.65);
+        if (chance(30)) petSpark(x + rnd() * 22, y + 2, { shape: 'flame', color: Math.random() < 0.5 ? '#ff6a00' : '#ffd000', vy: -60, vx: rnd() * 20, life: 0.6, size: 5 }); break;
+      case 'bubbles': glow(x, y - 4, 32, '50, 150, 255', 0.55);
+        if (chance(6)) petSpark(x + rnd() * 30, y + 6, { shape: 'bubble', color: '#a5d8ff', vy: -30, vx: rnd() * 10, life: 1.5, size: 2 + Math.random() * 3 }); break;
+      case 'galaxy': glow(x, y - 4, 38, '120, 60, 255', 0.65);
+        for (let k = 0; k < 3; k++) {
+          const a = time * 2 + k * 2.094 + seed;
+          star(x + Math.cos(a) * 28, y - 4 + Math.sin(a) * 12, 4, ['#fff', '#ffd43b', '#ff8cc6'][k]);
+        }
+        if (chance(5)) petSpark(x + rnd() * 50, y - 10 + rnd() * 40, { shape: 'star', color: '#e5dbff', vy: 0, life: 0.8, size: 3 }); break;
+      case 'cosmic': glow(x - 10, y - 6, 40, '255, 80, 200', 0.5); glow(x + 10, y - 2, 40, '60, 180, 255', 0.5);
+        if (chance(10)) petSpark(x + rnd() * 60, y - 10 + rnd() * 40, { shape: 'star', color: Math.random() < 0.5 ? '#fff' : '#99e9f2', vy: -3, life: 1, size: 3 }); break;
+      case 'dragon': {
+        // the best pet: a huge fiery aura, a ring of flames around it, embers, and fire breath!
+        const pulse = 1 + Math.sin(time * 4) * 0.12;
+        glow(x, y - 8, 60 * pulse, '255, 60, 0', 0.55);
+        glow(x, y - 8, 34 * pulse, '255, 215, 0', 0.5);
+        for (let k = 0; k < 8; k++) {
+          const a = -time * 2.5 + k * Math.PI / 4;
+          const fx = x + Math.cos(a) * 40, fy = y - 8 + Math.sin(a) * 16;
+          glow(fx, fy, 7, k % 2 ? '255, 200, 0' : '255, 80, 0', 0.9);
+        }
+        if (chance(20)) petSpark(x + rnd() * 40, y + 4, { shape: 'flame', color: Math.random() < 0.5 ? '#ff4800' : '#ffc300', vy: -70, vx: rnd() * 30, life: 0.8, size: 5 });
+        // breathe fire every few seconds
+        const breath = (time + seed) % 4;
+        if (breath < 1.1) {
+          for (let k = 0; k < 4; k++) {
+            petSpark(x + pp.facing * 22, y - 12, { shape: 'flame', color: ['#ff2a00', '#ff8c00', '#ffd000', '#fff3b0'][k],
+              vx: pp.facing * (140 + Math.random() * 120), vy: rnd() * 60 - 10, life: 0.45, size: 4 + Math.random() * 5 });
+          }
+        }
+        break;
+      }
+    }
+
+    // the pet itself
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(-pp.facing * big, big); // pet emojis face left, so flip them to face where they walk
+    ctx.font = `30px ${EMOJI_FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (r.order >= 2) { ctx.shadowColor = r.color === '#111111' ? '#ff5a00' : r.color; ctx.shadowBlur = 14; }
+    ctx.fillText(pet.emoji, 0, -6);
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function drawPetParticles(dt) {
+    for (let i = petParticles.length - 1; i >= 0; i--) {
+      const p = petParticles[i];
+      p.t += dt;
+      if (p.t > p.life) { petParticles.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const a = 1 - p.t / p.life;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.color;
+      switch (p.shape) {
+        case 'heart':
+          ctx.font = `bold ${p.size * 2}px sans-serif`; ctx.textAlign = 'center';
+          ctx.fillText('♥', p.x, p.y);
+          break;
+        case 'leaf':
+          ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size / 2, p.t * 4, 0, Math.PI * 2); ctx.fill();
+          break;
+        case 'flake':
+          ctx.strokeStyle = p.color; ctx.lineWidth = 1.2;
+          for (let k = 0; k < 3; k++) {
+            const an = k * Math.PI / 3;
+            ctx.beginPath(); ctx.moveTo(p.x - Math.cos(an) * p.size, p.y - Math.sin(an) * p.size);
+            ctx.lineTo(p.x + Math.cos(an) * p.size, p.y + Math.sin(an) * p.size); ctx.stroke();
+          }
+          break;
+        case 'star': star(p.x, p.y, p.size * (0.5 + a), p.color); break;
+        case 'bubble':
+          ctx.strokeStyle = p.color; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.stroke();
+          break;
+        case 'smoke':
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1 + p.t), 0, Math.PI * 2); ctx.fill();
+          break;
+        case 'flame':
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2); ctx.fill();
+          break;
+        default:
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // a topping sitting on a scoop
+  function drawTopping(id, x, y, r, time, seed = 0) {
+    ctx.save();
+    switch (id) {
+      case 'sprinkles':
+        ['#ff6b6b', '#4dabf7', '#fcc419', '#51cf66', '#cc5de8'].forEach((c, k) => {
+          ctx.strokeStyle = c; ctx.lineWidth = 1.4;
+          const a = k * 1.3 + seed, d = r * 0.5;
+          ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.6);
+          ctx.lineTo(x + Math.cos(a) * d + 2, y + Math.sin(a) * d * 0.6 + 1); ctx.stroke();
+        });
+        break;
+      case 'syrup':
+        ctx.fillStyle = '#5a2e14';
+        ctx.beginPath(); ctx.ellipse(x, y, r * 0.75, r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(x - r * 0.5, y, 1.6, r * 0.6); ctx.fillRect(x + r * 0.3, y, 1.6, r * 0.45);
+        break;
+      case 'whipped':
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#e9ecef'; ctx.lineWidth = 0.8;
+        for (const [dx, dy, rr] of [[0, 0, 0.5], [-0.25, -0.35, 0.35], [0.2, -0.6, 0.25]]) {
+          ctx.beginPath(); ctx.arc(x + dx * r, y + dy * r, rr * r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        }
+        break;
+      case 'cherry':
+        ctx.strokeStyle = '#2b8a3e'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, y - 2); ctx.quadraticCurveTo(x + 2, y - 7, x + 4, y - 8); ctx.stroke();
+        ctx.fillStyle = '#e3002b';
+        ctx.beginPath(); ctx.arc(x, y - 1, 3.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.beginPath(); ctx.arc(x - 1, y - 2, 1, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'goldflakes':
+        ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 6;
+        for (let k = 0; k < 4; k++) {
+          const a = k * 1.7 + seed + time;
+          ctx.fillStyle = k % 2 ? '#ffd700' : '#fff3a0';
+          ctx.fillRect(x + Math.cos(a) * r * 0.5 - 1, y + Math.sin(a) * r * 0.3 - 1, 2.2, 2.2);
+        }
+        break;
+      case 'stardust':
+        ctx.shadowColor = '#b197fc'; ctx.shadowBlur = 8;
+        for (let k = 0; k < 3; k++) {
+          const a = time * 2 + k * 2.1 + seed;
+          star(x + Math.cos(a) * r * 0.9, y - 2 + Math.sin(a) * r * 0.5, 2.6, k % 2 ? '#e5dbff' : '#b197fc');
+        }
+        break;
+    }
+    ctx.restore();
+  }
+
+  function star(x, y, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const a = k * Math.PI / 4, rr = k % 2 ? r * 0.35 : r;
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath(); ctx.fill();
   }
 
   function drawStand(s, time) {
@@ -1414,7 +1974,8 @@
     roundRect(x - 85, y, 170, 60, 6); ctx.stroke();
 
     // flavor spaces
-    const holding = mine && !!heldItem();
+    const held = mine ? heldItem() : null;
+    const holding = held ? (toppingById[held.flavor] ? 'topping' : 'tub') : null;
     for (let i = 0; i < s.spaces; i++) drawTub(s, i, slot, time, holding);
 
     // striped awning
@@ -1917,7 +2478,11 @@
     const crown = p.admin && (hat === 'cap' || hat === 'none');
     drawHat(crown ? 'none' : hat, y, shirt);
     // the ice cream in your hand
-    if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
+    if (p.item && toppingById[p.item.flavor]) {
+      ctx.font = '9px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(toppingById[p.item.flavor].emoji, 11, y + 1);
+    } else if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
     if (crown) {
       // golden crown
       ctx.fillStyle = '#ffd43b';
@@ -2027,7 +2592,7 @@
     }
   }
 
-  // the Avatar Shop building next to the Ice Cream Shop
+  // the Avatar Shop building at the bottom of the plaza
   function drawAvatarShop(time) {
     const { x, y } = AVATAR_SHOP;
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
@@ -2062,6 +2627,57 @@
     ctx.fillText('👕 AVATAR SHOP', x, y - 41);
     if (dist(player, { x, y: y + 85 }) <= REACH && openWindow !== 'avatar') {
       drawBubbleButton(x, y + 98, '👕 Tap to change your look', '#4dabf7', time);
+    }
+  }
+
+  function drawPetShop(time) {
+    const { x, y } = PET_SHOP;
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 72, 140, 13, 0, 0, Math.PI * 2); ctx.fill();
+    // building
+    ctx.fillStyle = '#fff4e0';
+    roundRect(x - 120, y - 35, 240, 105, 8); ctx.fill();
+    ctx.strokeStyle = '#f08c00'; ctx.lineWidth = 3; ctx.stroke();
+    // door with a paw print
+    ctx.fillStyle = '#d9480f';
+    roundRect(x - 20, y + 15, 40, 55, 6); ctx.fill();
+    ctx.fillStyle = '#ffd8a8';
+    ctx.beginPath(); ctx.arc(x, y + 44, 6, 0, Math.PI * 2); ctx.fill();
+    for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(x - 7 + k * 7, y + 34, 3, 0, Math.PI * 2); ctx.fill(); }
+    // windows with lucky blocks that bounce
+    ctx.fillStyle = '#9ad7ff';
+    roundRect(x - 105, y - 12, 70, 48, 6); ctx.fill();
+    roundRect(x + 35, y - 12, 70, 48, 6); ctx.fill();
+    const blockColors = ['#b07a3e', '#fcc419', '#66d9e8', null];
+    blockColors.forEach((c, k) => {
+      const bx = (k < 2 ? x - 88 : x + 52) + (k % 2) * 34, by = y + 8 + Math.sin(time * 4 + k) * 3;
+      if (c) ctx.fillStyle = c;
+      else {
+        const g = ctx.createLinearGradient(bx - 10, 0, bx + 10, 0);
+        ['#ff4040', '#ffee00', '#39d353', '#3d9bff', '#ff4fd8'].forEach((cc, i, a) => g.addColorStop(i / (a.length - 1), cc));
+        ctx.fillStyle = g;
+      }
+      roundRect(bx - 10, by - 10, 20, 20, 4); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px Trebuchet MS';
+      ctx.textAlign = 'center';
+      ctx.fillText('?', bx, by + 5);
+    });
+    // roof
+    ctx.fillStyle = '#f08c00';
+    ctx.beginPath(); ctx.moveTo(x - 138, y - 33); ctx.lineTo(x, y - 92); ctx.lineTo(x + 138, y - 33); ctx.fill();
+    // a little dragon on the roof
+    ctx.font = '34px serif';
+    ctx.fillText('🐉', x, y - 92 + Math.sin(time * 2) * 3);
+    // sign
+    ctx.fillStyle = '#fff';
+    roundRect(x - 75, y - 64, 150, 26, 8); ctx.fill();
+    ctx.strokeStyle = '#f08c00'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#d9480f';
+    ctx.font = 'bold 15px Trebuchet MS';
+    ctx.fillText('🐾 PET SHOP', x, y - 45);
+    if (dist(player, { x, y: y + 90 }) <= REACH && openWindow !== 'petshop') {
+      drawBubbleButton(x, y + 98, '🐾 Tap to open lucky blocks', '#f08c00', time);
     }
   }
 
@@ -2222,8 +2838,8 @@
 
     const fade = Math.min(1, (300 - gameEvent.left) / 4 + 0.15, gameEvent.left / 4); // fade in and out
     const shimmer = 0.03 * Math.sin(time * 0.8);
-    drawRainbowArc(world.width / 2, world.height + 120, 1100, 140, (0.34 + shimmer) * fade);
-    drawRainbowArc(world.width / 2, world.height + 120, 1290, 100, (0.12 + shimmer / 2) * fade); // faint double rainbow
+    drawRainbowArc(world.width / 2, world.height + 120, world.width * 0.62, 150, (0.34 + shimmer) * fade);
+    drawRainbowArc(world.width / 2, world.height + 120, world.width * 0.62 + 190, 100, (0.12 + shimmer / 2) * fade); // faint double rainbow
   }
 
   function drawSunShower(dt) {
@@ -2266,6 +2882,7 @@
     for (const id of ['godly', 'heavenly']) if (ids.includes(id)) drawHolySky(time, id);
     drawShop(time);
     drawAvatarShop(time);
+    drawPetShop(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);
@@ -2295,6 +2912,21 @@
       const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null, admin: s.admin };
       entities.push({ y: o.y, draw: () => drawPlayer(p, time) });
     }
+    // pets follow a little behind their owner
+    for (const s of stands) {
+      const pet = petById[s.pet];
+      if (!pet) { petPos.delete(s.id); continue; }
+      const owner = s.id === myId ? (player.placed ? player : null) : others.get(s.id);
+      if (!owner) continue;
+      let pp = petPos.get(s.id);
+      const tx = owner.x - (owner.facing || 1) * 34, ty = owner.y + 6;
+      if (!pp) { pp = { x: tx, y: ty, facing: 1 }; petPos.set(s.id, pp); }
+      const dx = tx - pp.x;
+      pp.x += dx * Math.min(1, dt * 5); pp.y += (ty - pp.y) * Math.min(1, dt * 5);
+      if (Math.abs(dx) > 2) pp.facing = dx > 0 ? 1 : -1;
+      pp.moving = Math.abs(dx) + Math.abs(ty - pp.y) > 3;
+      entities.push({ y: pp.y - 1, draw: () => drawPet(pet, pp, time, dt, s.id) });
+    }
     entities.sort((a, b) => a.y - b.y);
     for (const e of entities) e.draw();
 
@@ -2305,6 +2937,7 @@
       ctx.beginPath(); ctx.ellipse(walkTarget.x, walkTarget.y, 12, 5, 0, 0, Math.PI * 2); ctx.stroke();
     }
 
+    drawPetParticles(dt);
     drawEventEffects(time, dt);
     if (tut.step >= 0) { updateTutorial(); drawTutorialArrow(time); }
 

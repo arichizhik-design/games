@@ -324,7 +324,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 }
 
 /* 🎁 Gift */
-.giftBtn { width: 100%; margin-top: 8px; background: #2f9e44; font-size: 16px; }
+.btnRow { display: flex; gap: 6px; margin-top: 8px; }
+.giftBtn { flex: 1; background: #2f9e44; font-size: 14px; padding: 9px 6px; }
+.petsBtn { flex: 1; background: #f08c00; font-size: 14px; padding: 9px 6px; }
 #giftBody .row { gap: 10px; }
 #giftBody .who, #giftBody .info { flex: 1; min-width: 0; }
 #giftBody .iconWrap { width: 30px; display: flex; justify-content: center; }
@@ -369,6 +371,76 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #chat .chatRow button { padding: 5px 10px; font-size: 13px; }
 #chat.collapsed #chatLog, #chat.collapsed .chatRow { display: none; }
 #chat.collapsed { width: auto; }
+
+/* item icons for toppings and pets */
+.icon.topping, .icon.pet { display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; }
+.icon.topping { width: 26px; height: 30px; }
+.icon.pet { width: 30px; height: 30px; font-size: 24px; }
+
+/* 🛒 Supplies Shop: the side squares for Ice Cream / Toppings */
+.shopBody { display: flex; gap: 10px; align-items: flex-start; }
+.shopTabs { display: flex; flex-direction: column; gap: 8px; position: sticky; top: 0; }
+.shopTab { width: 74px; height: 74px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; font-size: 26px; padding: 4px; background: #ffd8e8; color: #a61e4d; border-radius: 14px; }
+.shopTab span { font-size: 11px; font-weight: bold; }
+.shopTab.on { background: #ff6fa5; color: #fff; box-shadow: 0 0 0 3px #fff, 0 0 0 5px #ff6fa5; }
+.shopPane { flex: 1; min-width: 0; }
+#topList .row, #blockList .row, #petsList .row, #adminPetsList .row { gap: 10px; }
+#topList .iconWrap { width: 30px; display: flex; justify-content: center; }
+#topList .bonus { color: #2b8a3e; font-weight: bold; }
+#topList .buyBtns { display: flex; gap: 4px; }
+
+/* 🐾 Pet Shop and pets */
+.luckyBlock { width: 46px; height: 46px; border-radius: 9px; flex-shrink: 0; position: relative;
+  border: 3px solid rgba(0,0,0,0.25); box-shadow: inset 0 -6px 0 rgba(0,0,0,0.15), inset 0 6px 0 rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold; color: #fff;
+  text-shadow: 0 2px 2px rgba(0,0,0,0.4); }
+.luckyBlock::after { content: '?'; }
+.luckyBlock.rainbow { background: conic-gradient(#ff4040, #ffb000, #ffee00, #39d353, #3d9bff, #9b5cff, #ff4fd8, #ff4040);
+  animation: blockGlow 1.5s ease-in-out infinite alternate; }
+@keyframes blockGlow { to { box-shadow: 0 0 16px 4px rgba(255,100,220,0.8), inset 0 -6px 0 rgba(0,0,0,0.15); } }
+#blockList .odds { font-size: 11px; color: #8a7480; margin-top: 2px; line-height: 1.5; }
+#blockList .odds b { font-weight: bold; }
+.petEmoji { font-size: 28px; width: 36px; text-align: center; flex-shrink: 0; }
+.petRow.equipped { border-color: #f08c00; box-shadow: 0 0 10px rgba(240,140,0,0.4); }
+.petRow .boost { color: #2b8a3e; font-weight: bold; }
+.petRow.picked { border-color: #e8a200; background: #fff3bf; }
+#adminPetsList .row { cursor: pointer; }
+.adminPetsBtn { width: 100%; margin-bottom: 6px; background: #f08c00; font-size: 15px; }
+.spawnRow { position: sticky; bottom: -14px; background: #fff8fb; padding: 8px 0; }
+.spawnRow input { width: 70px; }
+.spawnRow button { flex: 1; }
+
+/* opening a lucky block */
+#revealModal { text-align: center; width: min(320px, calc(100% - 24px)); }
+#revealModal .luckyBlock { width: 110px; height: 110px; font-size: 60px; margin: 20px auto; border-radius: 18px; }
+#revealModal .luckyBlock.shake { animation: shake 0.12s linear infinite; }
+@keyframes shake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-8deg) scale(1.05); } 75% { transform: rotate(8deg) scale(1.05); } }
+#revealPet { animation: annPop 0.4s ease-out; }
+.revealEmoji { font-size: 80px; line-height: 1.2; }
+.revealRarity { display: inline-block; color: #fff; font-weight: bold; border-radius: 8px; padding: 2px 10px; font-size: 14px; }
+.revealName { font-size: 24px; font-weight: bold; color: #3a2a35; margin-top: 4px; }
+#revealOk { margin-top: 12px; width: 100%; background: #2f9e44; font-size: 18px; }
+
+/* 🎁 Gift & Trade */
+.giftTabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.giftTabs button { flex: 1; background: #d8c6cf; }
+.giftTabs button.on { background: #2f9e44; }
+#giftBody .pickRow { gap: 8px; }
+#giftBody .pickRow input { width: 64px; }
+#giftBody .maxBtn { background: #868e96; font-size: 11px; padding: 5px 7px; }
+#giftBody .sendBig { width: 100%; margin-top: 10px; font-size: 17px; background: #2f9e44; }
+#giftBody .petEmoji { font-size: 22px; width: 30px; }
+#giftBody .theirs { margin-top: 14px; padding-top: 6px; border-top: 2px dashed #ffc2d9; }
+#tradeModal { width: min(460px, calc(100% - 24px)); }
+.tradeCols { display: flex; gap: 10px; }
+.tradeCols > div { flex: 1; min-width: 0; background: #fff; border-radius: 12px; padding: 6px 10px; border: 2px solid #ffe0ec; }
+.tradeCols h3 { margin: 2px 0 6px; font-size: 15px; color: #e0457b; }
+.tradeCols .line { font-size: 14px; padding: 2px 0; }
+#tradeYes { flex: 1; background: #2f9e44; }
+#tradeNo { flex: 1; background: #c92a2a; }
+/* trade offers and new pets always pop up above other windows */
+#tradeModal, #revealModal { z-index: 12; }
 </style>
 </head>
 <body>
@@ -421,14 +493,29 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       <div id="shopModal" class="modal hidden">
         <div class="modalHead">
           <div>
-            <div class="modalTitle">🛒 Ice Cream Shop</div>
+            <div class="modalTitle">🛒 Supplies Shop</div>
             <div id="shopTimer" class="sub"></div>
           </div>
           <button id="shopClose" class="closeBtn">✕</button>
         </div>
-        <p class="sub">Buy a tub, then hold it and place it on your stand. Rarer ice cream takes longer to grow
-          but sells for more. The stock changes every 3 minutes.</p>
-        <div id="shopList"></div>
+        <div class="shopBody">
+          <div class="shopTabs">
+            <button id="tabIce" type="button" class="shopTab on">🍦<span>Ice Cream</span></button>
+            <button id="tabTop" type="button" class="shopTab">🍒<span>Toppings</span></button>
+          </div>
+          <div class="shopPane">
+            <div id="icePane">
+              <p class="sub">Buy a tub, then hold it and place it on your stand. Rarer ice cream takes longer to grow
+                but sells for more. The stock changes every 3 minutes.</p>
+              <div id="shopList"></div>
+            </div>
+            <div id="topPane" class="hidden">
+              <p class="sub">Hold a topping and tap an ice cream on your stand to put it on top. Every scoop of that
+                ice cream sells for more! One topping per ice cream. Toppings never run out.</p>
+              <div id="topList"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div id="avatarModal" class="modal hidden">
@@ -439,6 +526,62 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <p class="sub">Pick how your character looks. Everyone in the park will see it!</p>
         <canvas id="avatarPreview" width="200" height="190"></canvas>
         <div id="avatarOptions"></div>
+      </div>
+
+      <div id="petShopModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">🐾 Pet Shop</div>
+          <button id="petShopClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Open a lucky block to get a random pet! Your pet follows you and makes every scoop worth more.
+          The best pet of all is the 🐉 Dragon.</p>
+        <div id="blockList"></div>
+      </div>
+
+      <div id="petsModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">🐾 My Pets</div>
+          <button id="petsClose" class="closeBtn">✕</button>
+        </div>
+        <p id="petsSub" class="sub"></p>
+        <div id="petsList"></div>
+      </div>
+
+      <div id="adminPetsModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">👑 Spawn Pets</div>
+          <button id="adminPetsClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Tap a pet, then press Spawn to put it in your pets. Only admins can do this.</p>
+        <div id="adminPetsList"></div>
+        <div class="adminRow spawnRow">
+          <input id="adminPetCount" type="number" min="1" max="60" value="1">
+          <button id="adminPetSpawn" type="button" disabled>Spawn</button>
+        </div>
+      </div>
+
+      <div id="revealModal" class="modal hidden">
+        <div id="revealBlock" class="luckyBlock"></div>
+        <div id="revealPet" class="hidden">
+          <div class="revealEmoji"></div>
+          <div class="revealRarity"></div>
+          <div class="revealName"></div>
+          <div class="revealBoost sub"></div>
+        </div>
+        <button id="revealOk" type="button" class="hidden">Awesome!</button>
+      </div>
+
+      <div id="tradeModal" class="modal hidden">
+        <div class="modalTitle">🤝 Trade offer!</div>
+        <p id="tradeFrom"></p>
+        <div class="tradeCols">
+          <div><h3>You get</h3><div id="tradeGet"></div></div>
+          <div><h3>You give</h3><div id="tradeGive"></div></div>
+        </div>
+        <div class="adminRow">
+          <button id="tradeYes" type="button">✅ Accept</button>
+          <button id="tradeNo" type="button">❌ No thanks</button>
+        </div>
       </div>
 
       <div id="banModal" class="modal hidden">
@@ -459,7 +602,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
       <div id="giftModal" class="modal hidden">
         <div class="modalHead">
-          <div class="modalTitle">🎁 Gift</div>
+          <div class="modalTitle">🎁 Gift &amp; Trade</div>
           <button id="giftClose" class="closeBtn">✕</button>
         </div>
         <p id="giftSub" class="sub"></p>
@@ -483,7 +626,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       </div>
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
-      <button id="giftBtn" class="giftBtn" type="button">🎁 Gift</button>
+      <div class="btnRow">
+        <button id="giftBtn" class="giftBtn" type="button">🎁 Gift &amp; Trade</button>
+        <button id="petsBtn" class="petsBtn" type="button">🐾 My Pets</button>
+      </div>
       <button id="tutBtn" class="tutBtn" type="button">📖 Tutorial</button>
       <p class="sub howto">Walk with the arrow keys or tap where to go. Pick an ice cream in your hotbar
         (keys 1–0), then tap a dashed space on your stand to place it.</p>
@@ -493,6 +639,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <div class="adminTitle">👑 Admin commands</div>
         <button id="talkBtn" class="talkBtn" type="button">📢 All Server Talk</button>
         <button id="banBtn" class="banBtn" type="button">🚫 Ban Players</button>
+        <button id="adminPetsBtn" class="adminPetsBtn" type="button">🐾 Pets</button>
         <div id="talkRow" class="adminRow hidden">
           <input id="talkInput" maxlength="150" placeholder="Message to everyone in the server" autocomplete="off">
           <button id="talkSend" type="button">Send</button>
@@ -517,7 +664,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
           <button id="adminRunBtn" type="button">Run</button>
         </div>
-        <div class="sub">Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly ·
+        <div class="sub">Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /pet dragon · /give cherry 10 · /mutation rainbow godly ·
           /mutation end · /restock · /grow · /help</div>
       </div>
       <div id="testTools" class="hidden">
@@ -586,6 +733,46 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'prism',       name: 'Prism Swirl',      rarity: 'admin', price: 15000, cost: 0, color: '#ff66cc', effect: 'prism', adminOnly: true },
   ];
 
+  // Toppings: bought at the Supplies Shop, then put on a tub on your stand.
+  // Every scoop from that tub sells for `bonus` more (0.5 = +50%). One topping per tub.
+  const TOPPINGS = [
+    { id: 'sprinkles', name: 'Sprinkles',       emoji: '🌈', bonus: 0.25, cost: 40,      color: '#ff6fa5' },
+    { id: 'syrup',     name: 'Chocolate Syrup', emoji: '🍫', bonus: 0.5,  cost: 300,     color: '#5a2e14' },
+    { id: 'whipped',   name: 'Whipped Cream',   emoji: '☁️', bonus: 0.75, cost: 2000,    color: '#ffffff' },
+    { id: 'cherry',    name: 'Cherry on Top',   emoji: '🍒', bonus: 1,    cost: 12000,   color: '#e3002b' },
+    { id: 'goldflakes',name: 'Gold Flakes',     emoji: '✨', bonus: 2,    cost: 150000,  color: '#ffd700' },
+    { id: 'stardust',  name: 'Stardust',        emoji: '🌟', bonus: 4,    cost: 2000000, color: '#b197fc' },
+  ];
+
+  // Pets: you get them from lucky blocks at the Pet Shop. Your equipped pet follows you
+  // and gives you `boost` more money from every scoop (0.5 = +50%).
+  const PETS = [
+    { id: 'puppy',   name: 'Puppy',        emoji: '🐶', rarity: 'common',    boost: 0.05, fx: 'hearts' },
+    { id: 'kitty',   name: 'Kitty',        emoji: '🐱', rarity: 'common',    boost: 0.05, fx: 'hearts' },
+    { id: 'bunny',   name: 'Bunny',        emoji: '🐰', rarity: 'common',    boost: 0.08, fx: 'hop' },
+    { id: 'fox',     name: 'Fire Fox',     emoji: '🦊', rarity: 'uncommon',  boost: 0.12, fx: 'embers' },
+    { id: 'panda',   name: 'Bamboo Panda', emoji: '🐼', rarity: 'uncommon',  boost: 0.15, fx: 'leaves' },
+    { id: 'penguin', name: 'Ice Penguin',  emoji: '🐧', rarity: 'rare',      boost: 0.25, fx: 'snow' },
+    { id: 'owl',     name: 'Night Owl',    emoji: '🦉', rarity: 'rare',      boost: 0.3,  fx: 'moon' },
+    { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',   boost: 0.5,  fx: 'rainbow' },
+    { id: 'wolf',    name: 'Shadow Wolf',  emoji: '🐺', rarity: 'epic',      boost: 0.6,  fx: 'shadow' },
+    { id: 'phoenix', name: 'Phoenix',      emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'fire' },
+    { id: 'kraken',  name: 'Kraken',       emoji: '🐙', rarity: 'legendary', boost: 1.2,  fx: 'bubbles' },
+    { id: 'lion',    name: 'Galaxy Lion',  emoji: '🦁', rarity: 'mythic',    boost: 2,    fx: 'galaxy' },
+    { id: 'whale',   name: 'Cosmic Whale', emoji: '🐋', rarity: 'mythic',    boost: 2.5,  fx: 'cosmic' },
+    { id: 'dragon',  name: 'Dragon',       emoji: '🐉', rarity: 'secret',    boost: 5,    fx: 'dragon' }, // the best pet!
+  ];
+  const MAX_PETS = 60;
+
+  // Lucky blocks at the Pet Shop: `odds` = chance of each rarity (they add up to 100)
+  const LUCKY_BLOCKS = [
+    { id: 'wood',    name: 'Wooden Block',  cost: 1000,     color: '#b07a3e', odds: { common: 70, uncommon: 25, rare: 5 } },
+    { id: 'iron',    name: 'Iron Block',    cost: 15000,    color: '#adb5bd', odds: { common: 35, uncommon: 40, rare: 20, epic: 5 } },
+    { id: 'gold',    name: 'Gold Block',    cost: 150000,   color: '#fcc419', odds: { uncommon: 30, rare: 40, epic: 25, legendary: 5 } },
+    { id: 'diamond', name: 'Diamond Block', cost: 2000000,  color: '#66d9e8', odds: { rare: 30, epic: 45, legendary: 20, mythic: 5 } },
+    { id: 'rainbow', name: 'Rainbow Block', cost: 25000000, color: 'rainbow', odds: { epic: 44, legendary: 40, mythic: 15, secret: 1 } },
+  ];
+
   // cost of the next level = base * growth^level
   const UPGRADES = {
     sign:  { name: 'Bigger Sign',    desc: 'Attract more customers',      base: 40, growth: 1.9, max: 10 },
@@ -650,7 +837,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
   };
 
-  const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
+  const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
@@ -665,14 +852,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
   // ---------- park layout (shared with the browser for drawing and clicking) ----------
-  const WORLD = { width: 1280, height: 1180 };
-  const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
-  const AVATAR_SHOP = { x: 1020, y: 125 }; // the Avatar Shop next to it
+  // two columns of plots on each side, and a plaza with the shops down the middle
+  const WORLD = { width: 1800, height: 1070 };
+  const PET_SHOP = { x: 900, y: 230 };    // 🐾 Pet Shop (top of the plaza)
+  const SHOP = { x: 900, y: 530 };        // 🛒 Supplies Shop, right in the middle of the park
+  const AVATAR_SHOP = { x: 900, y: 830 }; // 👕 Avatar Shop (bottom of the plaza)
   const REACH = 230;                 // how close you must stand to use something
   // admin names and their secret codes (only a scrambled version of each code is kept here).
   // Each admin needs their code once per device, and each name only works on the first device that used it.
@@ -701,11 +890,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const COLORS = ['#ff6b6b', '#4dabf7', '#51cf66', '#fcc419', '#cc5de8', '#ff922b',
     '#20c997', '#f06595', '#748ffc', '#94d82d', '#fd7e14', '#22b8cf'];
 
-  // 4 x 3 grid of plots below the shop
+  // 4 x 3 grid of plots: two columns left of the plaza, two columns right of it
   const SLOTS = [];
   for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 4; col++) {
-      SLOTS.push({ x: 170 + col * 313, y: 340 + row * 300 });
+    for (const x of [170, 483, 1317, 1630]) {
+      SLOTS.push({ x, y: 230 + row * 300 });
     }
   }
 
@@ -721,6 +910,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   }
 
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
+  const toppingById = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
+  const itemById = { ...flavorById, ...toppingById }; // things that go in the hotbar and Inventory
+  const petById = Object.fromEntries(PETS.map(p => [p.id, p]));
+  const blockById = Object.fromEntries(LUCKY_BLOCKS.map(b => [b.id, b]));
+
+  // open a lucky block: roll a rarity with the block's odds, then a pet of that rarity
+  function rollPet(block) {
+    let r = Math.random() * 100;
+    let rarity = Object.keys(block.odds)[0];
+    for (const [k, chance] of Object.entries(block.odds)) {
+      r -= chance;
+      if (r <= 0) { rarity = k; break; }
+    }
+    return pick(PETS.filter(p => p.rarity === rarity));
+  }
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -778,7 +982,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   function fixSlots(list, size) {
     const out = Array(size).fill(null);
     (list || []).slice(0, size).forEach((s, i) => {
-      if (s && flavorById[s.flavor] && s.count > 0) out[i] = { flavor: s.flavor, count: s.count };
+      if (s && itemById[s.flavor] && s.count > 0) out[i] = { flavor: s.flavor, count: s.count };
     });
     return out;
   }
@@ -792,9 +996,84 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return out;
   }
 
+  // ---------- gifts and trades ----------
+  // a bundle is { money, items: { itemId: count }, pets: { petId: count } }
+  function cleanBundle(b) {
+    b = b || {};
+    const out = { money: Math.min(1e18, Math.max(0, Math.floor(Number(b.money) || 0))), items: {}, pets: {} };
+    for (const [id, n] of Object.entries(b.items || {})) {
+      const c = Math.min(99999, Math.floor(Number(n) || 0));
+      if (itemById[id] && c > 0) out.items[id] = c;
+    }
+    for (const [id, n] of Object.entries(b.pets || {})) {
+      const c = Math.min(MAX_PETS, Math.floor(Number(n) || 0));
+      if (petById[id] && c > 0) out.pets[id] = c;
+    }
+    return out;
+  }
+  const bundleEmpty = b => !b.money && !Object.keys(b.items).length && !Object.keys(b.pets).length;
+
+  const countItem = (who, id) => [...who.hotbar, ...who.storage].reduce((n, s) => n + (s && s.flavor === id ? s.count : 0), 0);
+
+  // take a bundle out of someone's stuff; returns an error message if they don't have it all
+  function takeBundle(who, b) {
+    if (b.money > who.money) return `${who.name} doesn't have that much money.`;
+    for (const [id, n] of Object.entries(b.items)) {
+      if (countItem(who, id) < n) return `${who.name} doesn't have ${n} ${itemById[id].name}.`;
+    }
+    for (const [id, n] of Object.entries(b.pets)) {
+      if (who.pets.filter(p => p === id).length < n) return `${who.name} doesn't have ${n} ${petById[id].name}.`;
+    }
+    who.money -= b.money;
+    for (const [id, n] of Object.entries(b.items)) {
+      let left = n;
+      for (const list of [who.hotbar, who.storage]) {
+        for (let i = 0; i < list.length && left > 0; i++) {
+          const s = list[i];
+          if (!s || s.flavor !== id) continue;
+          const k = Math.min(left, s.count);
+          s.count -= k; left -= k;
+          if (s.count <= 0) list[i] = null;
+        }
+      }
+    }
+    for (const [id, n] of Object.entries(b.pets)) {
+      for (let k = 0; k < n; k++) who.pets.splice(who.pets.indexOf(id), 1);
+    }
+    return null;
+  }
+
+  // add a bundle to someone's stuff; returns an error message if it doesn't fit
+  function addBundle(who, b) {
+    who.money += b.money;
+    for (const [id, n] of Object.entries(b.items)) {
+      if (addItem(who.storage, id, addItem(who.hotbar, id, n)) > 0) return `${who.name}'s inventory is too full!`;
+    }
+    for (const [id, n] of Object.entries(b.pets)) for (let k = 0; k < n; k++) who.pets.push(id);
+    if (who.pets.length > MAX_PETS) return `${who.name} has too many pets (the most is ${MAX_PETS})!`;
+    return null;
+  }
+
+  // swap bundles between two players all at once: either everything happens, or nothing does
+  function exchange(a, b, fromA, fromB) {
+    const copy = s => ({ name: s.name, money: s.money, pets: [...s.pets],
+      hotbar: s.hotbar.map(x => x && { ...x }), storage: s.storage.map(x => x && { ...x }) });
+    const ca = copy(a), cb = copy(b);
+    const error = takeBundle(ca, fromA) || takeBundle(cb, fromB) || addBundle(cb, fromA) || addBundle(ca, fromB);
+    if (error) return error;
+    for (const [real, c, got] of [[a, ca, fromB], [b, cb, fromA]]) {
+      Object.assign(real, { money: c.money, pets: c.pets, hotbar: c.hotbar, storage: c.storage });
+      if (real.pet && !real.pets.includes(real.pet)) real.pet = null;
+      if (!real.pet && real.pets.length) real.pet = real.pets[0];
+      for (const id of Object.keys(got.items)) if (flavorById[id] && !real.seen.includes(id)) real.seen.push(id);
+    }
+    return null;
+  }
+
   function createGame({ saves = {} } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
+    const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
     let nextId = 1;
 
     // mutation events: the ones going on now (admins can run several at once),
@@ -806,7 +1085,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
-        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar,
+        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, pet: s.pet,
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -827,7 +1106,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       let tubs = Array(spaces).fill(null);
       const oldFlavors = saved.tubs ? null : (saved.flavors ?? ['vanilla', 'chocolate']); // older saves
       (saved.tubs || oldFlavors.map(f => ({ flavor: f, grow: 0 }))).slice(0, spaces).forEach((t, i) => {
-        if (t && flavorById[t.flavor]) tubs[i] = { flavor: t.flavor, grow: Math.max(0, t.grow || 0) };
+        if (t && flavorById[t.flavor]) {
+          tubs[i] = { flavor: t.flavor, grow: Math.max(0, t.grow || 0) };
+          if (toppingById[t.topping]) tubs[i].topping = t.topping;
+        }
       });
 
       const s = SLOTS[slot];
@@ -844,6 +1126,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, saved.upgrades?.[k] ?? 0])),
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
         avatar: fixAvatar(saved.avatar),
+        pets: (saved.pets || []).filter(id => petById[id]).slice(0, MAX_PETS),
+        pet: petById[saved.pet] ? saved.pet : null, // the pet following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
         x: s.x + 60, y: s.y + 110,        // the player's character
@@ -864,7 +1148,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         tubs: [{ flavor: 'vanilla', grow: 0 }, { flavor: 'chocolate', grow: 0 }, ...Array(START_SPACES - 2).fill(null)],
         hotbar: Array(HOTBAR_SIZE).fill(null), storage: Array(STORAGE_SIZE).fill(null),
         seen: ['vanilla', 'chocolate'], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
-        mutations: {}, avatar: fixAvatar(null), bought: {}, hand: -1, serveProgress: 0,
+        mutations: {}, avatar: fixAvatar(null), pets: [], pet: null, bought: {}, hand: -1, serveProgress: 0,
       };
     }
 
@@ -890,17 +1174,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       // walk in along the path from whichever side of the park is closer
       const slot = SLOTS[stand.slot];
       const fromLeft = slot.x < WORLD.width / 2;
+      const tub = pick(ready);
       const c = {
         id: nextId++,
         x: fromLeft ? -30 : WORLD.width + 30,
         y: slot.y + 95 + Math.random() * 80,
         standId: stand.id,
-        flavor: pick(ready).flavor,
+        flavor: null,
         golden: Math.random() < 0.05, // lucky customer pays triple
         mutation: null,
         state: 'walking',
         look: Math.floor(Math.random() * 6),
       };
+      c.flavor = tub.flavor;
+      c.topping = tub.topping || null; // toppings make the scoop worth more
       customers.set(c.id, c);
       stand.queue.push(c.id);
     }
@@ -917,6 +1204,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       if (!c) return;
       const flavor = flavorById[c.flavor];
       let amount = flavor.price * (1 + 0.1 * stand.upgrades.tips);
+      if (toppingById[c.topping]) amount *= 1 + toppingById[c.topping].bonus;
+      if (petById[stand.pet]) amount *= 1 + petById[stand.pet].boost;
       if (c.golden) amount *= 3;
       // every mutation going on gets its own chance; several can stack on one scoop
       c.mutations = event.active.filter(() => Math.random() < MUTATION_CHANCE).map(e => e.id);
@@ -932,7 +1221,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       c.served = true;
       sendOffCustomer(c);
       broadcast({ type: 'sale', standId: stand.id, customerId: c.id, flavor: c.flavor,
-        amount, golden: c.golden, mutation: c.mutation, mutations: c.mutations });
+        amount, golden: c.golden, mutation: c.mutation, mutations: c.mutations, topping: c.topping, pet: stand.pet });
     }
 
     // start a mutation; stack = keep the ones already going (admins only)
@@ -974,6 +1263,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
     function tick(dt) {
       updateTimers(dt);
+      for (const [id, t] of trades) {
+        t.left -= dt;
+        if (t.left > 0) continue;
+        trades.delete(id);
+        const from = stands.get(t.from);
+        if (from) from.conn.send({ type: 'tradeDone', ok: false, text: 'Nobody answered your trade in time.' });
+      }
 
       for (const stand of stands.values()) {
         for (const t of stand.tubs) if (t && t.grow > 0) t.grow = Math.max(0, t.grow - dt);
@@ -1032,10 +1328,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
+          pets: s.pets, pet: s.pet,
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
-          id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor,
+          id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor, topping: c.topping,
           golden: c.golden, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
           served: !!c.served,
         })),
@@ -1110,6 +1407,18 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const item = stand.hotbar[stand.hand];
         if (!item) return err('Pick an ice cream from your hotbar first.');
         if (!near(slot)) return err('Walk to your stand to place ice cream.');
+        const top = toppingById[item.flavor];
+        if (top) {
+          // put a topping on an ice cream that doesn't have one yet
+          let i = Number(msg.space);
+          if (!(i >= 0 && i < stand.spaces && stand.tubs[i] && !stand.tubs[i].topping)) i = stand.tubs.findIndex(t => t && !t.topping);
+          if (i === -1) return err(stand.tubs.some(Boolean) ? 'All your ice creams already have toppings!' : 'Place an ice cream first, then put the topping on it.');
+          stand.tubs[i].topping = top.id;
+          item.count--;
+          if (item.count <= 0) stand.hotbar[stand.hand] = null;
+          conn.send({ type: 'placed', topping: top.id, flavor: stand.tubs[i].flavor });
+          return;
+        }
         let i = Number(msg.space);
         if (!(i >= 0 && i < stand.spaces && !stand.tubs[i])) i = stand.tubs.indexOf(null);
         if (i === -1) return err('Your stand is full! Buy Extra Space or take a tub off.');
@@ -1125,6 +1434,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (!near(slot)) return err('Walk to your stand to take ice cream off.');
         if (!fits(stand.hotbar, tub.flavor) && !fits(stand.storage, tub.flavor)) return err('Your inventory is full!');
         if (addItem(stand.hotbar, tub.flavor, 1) > 0) addItem(stand.storage, tub.flavor, 1);
+        // the topping comes back too, if there's room
+        if (tub.topping && addItem(stand.hotbar, tub.topping, 1) > 0) addItem(stand.storage, tub.topping, 1);
         stand.tubs[i] = null;
       } else if (msg.type === 'moveItem') {
         // click an item to move it between the hotbar and the Inventory chest
@@ -1162,60 +1473,94 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (now - (stand.lastChat || 0) < 1000) return err('Slow down! Wait a second between messages.');
         stand.lastChat = now;
         broadcast({ type: 'chat', id: stand.id, from: stand.name, admin: !!stand.admin, text });
-      } else if (msg.type === 'gift') {
-        // give money or ice cream to another player in the park
+      } else if (msg.type === 'buyTopping') {
+        const t = toppingById[msg.topping];
+        if (!t) return;
+        if (!near(SHOP)) return err('Walk to the Supplies Shop to buy.');
+        const n = Math.min(99, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        if (stand.money < t.cost * n) return err('Not enough money!');
+        const left = addItem(stand.storage, t.id, addItem(stand.hotbar, t.id, n));
+        const got = n - left;
+        if (!got) return err('Your inventory is full!');
+        // only pay for the ones that fit
+        stand.money -= t.cost * got;
+        conn.send({ type: 'boughtTopping', topping: t.id, count: got });
+      } else if (msg.type === 'buyBlock') {
+        // 🐾 open a lucky block for a random pet
+        const b = blockById[msg.block];
+        if (!b) return;
+        if (!near(PET_SHOP)) return err('Walk to the Pet Shop to buy lucky blocks.');
+        if (stand.money < b.cost) return err('Not enough money!');
+        if (stand.pets.length >= MAX_PETS) return err(`You have too many pets (the most is ${MAX_PETS}).`);
+        stand.money -= b.cost;
+        const pet = rollPet(b);
+        stand.pets.push(pet.id);
+        if (!stand.pet || petById[stand.pet].boost < pet.boost) stand.pet = pet.id; // wear your best new pet
+        conn.send({ type: 'petGot', pet: pet.id, block: b.id, equipped: stand.pet === pet.id });
+        if (RARITIES[pet.rarity].order >= 5) {
+          broadcast({ type: 'chat', id: 0, from: '🐾 Pet Shop', admin: false,
+            text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` });
+        }
+      } else if (msg.type === 'equipPet') {
+        if (msg.pet === null) stand.pet = null;
+        else if (stand.pets.includes(msg.pet)) stand.pet = msg.pet;
+      } else if (msg.type === 'gift' || msg.type === 'tradeOffer') {
+        // 🎁 give stuff to another player, or 🤝 offer them a trade
         const target = stands.get(Number(msg.to));
         if (!target || target === stand) return err('That player left the park.');
         const now = Date.now();
-        if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second between gifts.');
-        if (msg.money !== undefined) {
-          const amount = Math.floor(Number(msg.money) || 0);
-          if (amount <= 0) return err('Type how much money to gift.');
-          if (amount > stand.money) return err("You don't have that much money!");
-          stand.money -= amount;
-          target.money += amount;
+        if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second.');
+        const give = cleanBundle(msg.give);
+        if (msg.type === 'gift') {
+          if (bundleEmpty(give)) return err('Pick something to gift first.');
+          const error = exchange(stand, target, give, cleanBundle(null));
+          if (error) return err(error);
           stand.lastGift = now;
-          target.conn.send({ type: 'gift', from: stand.name, money: amount });
-          conn.send({ type: 'giftSent', to: target.name, money: amount });
+          target.conn.send({ type: 'gift', from: stand.name, bundle: give });
+          conn.send({ type: 'giftSent', to: target.name, bundle: give });
           return;
         }
-        const f = flavorById[msg.flavor];
-        if (!f) return;
-        const have = [...stand.hotbar, ...stand.storage]
-          .reduce((n, s) => n + (s && s.flavor === f.id ? s.count : 0), 0);
-        const count = Math.min(have, Math.max(1, Math.floor(Number(msg.count) || 1)));
-        if (!have) return err(`You don't have any ${f.name}.`);
-        // only send what fits in their hotbar and Inventory
-        const room = [...target.hotbar, ...target.storage].reduce((n, s) =>
-          n + (!s ? MAX_STACK : s.flavor === f.id ? MAX_STACK - s.count : 0), 0);
-        const give = Math.min(count, room);
-        if (!give) return err(`${target.name}'s inventory is full!`);
-        let left = give;
-        for (const list of [stand.hotbar, stand.storage]) {
-          for (let i = 0; i < list.length && left > 0; i++) {
-            const s = list[i];
-            if (!s || s.flavor !== f.id) continue;
-            const n = Math.min(left, s.count);
-            s.count -= n; left -= n;
-            if (s.count <= 0) list[i] = null;
-          }
-        }
-        addItem(target.storage, f.id, addItem(target.hotbar, f.id, give));
-        if (!target.seen.includes(f.id)) target.seen.push(f.id);
+        const get = cleanBundle(msg.get);
+        if (bundleEmpty(give) && bundleEmpty(get)) return err('Pick what to trade first.');
+        // make sure you really have what you're offering
+        const test = { name: 'You', money: stand.money, pets: [...stand.pets],
+          hotbar: stand.hotbar.map(x => x && { ...x }), storage: stand.storage.map(x => x && { ...x }) };
+        const error = takeBundle(test, give);
+        if (error) return err(error.replace("You doesn't", "You don't"));
         stand.lastGift = now;
-        target.conn.send({ type: 'gift', from: stand.name, flavor: f.id, count: give });
-        conn.send({ type: 'giftSent', to: target.name, flavor: f.id, count: give });
+        for (const [id, t] of trades) if (t.from === stand.id) trades.delete(id); // one offer at a time
+        const trade = { id: nextId++, from: stand.id, to: target.id, give, get, left: 60 };
+        trades.set(trade.id, trade);
+        target.conn.send({ type: 'tradeOffer', id: trade.id, from: stand.name, give, get });
+        conn.send({ type: 'tradeSent', to: target.name });
+      } else if (msg.type === 'tradeReply') {
+        const trade = trades.get(Number(msg.id));
+        if (!trade || trade.to !== stand.id) return err('That trade is over.');
+        trades.delete(trade.id);
+        const from = stands.get(trade.from);
+        if (!from) return err('That player left the park.');
+        if (!msg.accept) {
+          from.conn.send({ type: 'tradeDone', ok: false, text: `${stand.name} said no to your trade.` });
+          return;
+        }
+        const error = exchange(from, stand, trade.give, trade.get);
+        if (error) {
+          from.conn.send({ type: 'tradeDone', ok: false, text: `Trade didn't work: ${error}` });
+          return err(`Trade didn't work: ${error}`);
+        }
+        from.conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${stand.name} done!` });
+        conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${from.name} done!` });
       } else if (stand.admin && msg.type === 'adminMoney') {
         const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
         stand.money += amount;
         conn.send({ type: 'admin', text: `Added $${amount.toLocaleString()}` });
       } else if (stand.admin && msg.type === 'adminGive') {
         // put any ice cream in your inventory, even if the shop is sold out
-        const f = flavorById[msg.flavor];
+        const f = itemById[msg.flavor];
         if (!f) return err('No ice cream with that name.');
         const count = Math.min(990, Math.max(1, Math.floor(Number(msg.count) || 1)));
         const left = addItem(stand.storage, f.id, addItem(stand.hotbar, f.id, count));
-        if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+        if (flavorById[f.id] && !stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Gave you ${count - left} ${f.name}` + (left ? ` (${left} didn't fit)` : '') });
       } else if (stand.admin && msg.type === 'adminAnnounce') {
         // All Server Talk: an admin's message pops up on everyone's screen
@@ -1242,6 +1587,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         } else return err('No player with that name.');
         conn.send({ type: 'admin', text: `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
         conn.send({ type: 'players', players: playerList() });
+      } else if (stand.admin && msg.type === 'adminSpawnPet') {
+        // 🐾 admins can put any pet in their own pet inventory
+        const pet = petById[msg.pet];
+        if (!pet) return err('No pet with that name.');
+        const n = Math.min(MAX_PETS - stand.pets.length, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        if (n <= 0) return err(`You have too many pets (the most is ${MAX_PETS}).`);
+        for (let k = 0; k < n; k++) stand.pets.push(pet.id);
+        if (!stand.pet) stand.pet = pet.id;
+        conn.send({ type: 'admin', text: `Spawned ${n} ${pet.emoji} ${pet.name} in your pets` });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();
       } else if (stand.admin && msg.type === 'adminMutations') {
@@ -1278,12 +1632,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       if (!stand) return;
       saves[stand.key] = toSave(stand);
       stands.delete(stand.id);
+      for (const [id, t] of trades) if (t.from === stand.id || t.to === stand.id) trades.delete(id);
     }
 
     return { handle, leave, tick, snapshotSaves };
   }
 
-  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, REACH, chestPos, tubPos };
+  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos };
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   else root.Engine = Engine;
 })(this);
@@ -1291,11 +1646,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   <script>window.SOLO = true;</script>
   <script>
 (() => {
-  const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE,
-    HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
-  const { SHOP, AVATAR_SHOP, REACH, chestPos, tubPos } = window.Engine;
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
+    MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
+  const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
+  const toppingById = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
+  const itemById = { ...flavorById, ...toppingById }; // hotbar/Inventory things: ice cream tubs and toppings
+  const petById = Object.fromEntries(PETS.map(p => [p.id, p]));
+  const pct = n => `+${Math.round(n * 100)}%`;
 
   const canvas = document.getElementById('canvas');
   let ctx = canvas.getContext('2d');
@@ -1303,7 +1662,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   let ws = null;
   let myId = null;
-  let world = { width: 1280, height: 1180 };
+  let world = { width: 1800, height: 1070 };
   let slots = [];
   let stands = [];
   const customers = new Map(); // id -> { ...server data, dx, dy (display position) }
@@ -1370,6 +1729,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // HTML icon of an ice cream cone for the hotbar, inventory and shop
   function iconHtml(flavorId) {
+    if (toppingById[flavorId]) return `<div class="icon topping">${toppingById[flavorId].emoji}</div>`;
     const f = flavorById[flavorId];
     const fx = f.effect ? ` fx-${f.effect}` : '';
     return `<div class="icon${fx}"><div class="ball" style="background:${f.color}"></div><div class="cone"></div></div>`;
@@ -1512,17 +1872,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         addChat(msg);
         break;
       case 'gift':
-        toast(msg.money !== undefined
-          ? `🎁 ${msg.from} gave you ${fmt(msg.money)}!`
-          : `🎁 ${msg.from} gave you ${msg.count} ${flavorById[msg.flavor].name}!`);
-        if (s) confetti(s.x, s.y - 30, 30);
+        toast(`🎁 ${msg.from} gave you ${describe(msg.bundle)}!`);
+        confetti(player.x, player.y - 30, 30);
         break;
       case 'giftSent':
-        toast(msg.money !== undefined
-          ? `🎁 You gave ${msg.to} ${fmt(msg.money)}!`
-          : `🎁 You gave ${msg.to} ${msg.count} ${flavorById[msg.flavor].name}!`);
+        toast(`🎁 You gave ${msg.to} ${describe(msg.bundle)}!`);
         giftRefresh = true; // redraw the gift window once the new counts arrive
         break;
+      case 'tradeOffer':
+        showTradeOffer(msg);
+        break;
+      case 'tradeSent':
+        toast(`🤝 Trade offer sent to ${msg.to}! Waiting for them to answer…`);
+        break;
+      case 'tradeDone':
+        toast(msg.text);
+        if (msg.ok) { confetti(player.x, player.y - 30, 30); giftRefresh = true; }
+        break;
+      case 'petGot':
+        revealPet(msg);
+        break;
+      case 'boughtTopping': {
+        const t = toppingById[msg.topping];
+        toast(`You bought ${msg.count} ${t.name}! Hold it and tap an ice cream on your stand.`);
+        break;
+      }
       case 'banned':
         closeWindows();
         hand = -1;
@@ -1539,7 +1913,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         syncCustomers(msg.customers);
         updatePanel();
         updateHotbar();
-        if (openWindow === 'shop') updateShop();
+        if (openWindow === 'shop') { updateShop(); updateToppings(); }
+        if (openWindow === 'petshop') updatePetShop();
+        if (openWindow === 'pets') updatePets();
         if (openWindow === 'inventory') updateInventory();
         if (openWindow === 'gift' && giftRefresh && giftTo !== null) { giftRefresh = false; showGiftItems(); }
         break;
@@ -1554,13 +1930,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       }
       case 'placed': {
         const f = flavorById[msg.flavor];
+        if (msg.topping) {
+          const t = toppingById[msg.topping];
+          toast(`${t.emoji} ${t.name} on ${f.name}! Its scoops now sell for ${pct(t.bonus)} more.`);
+          if (s) confetti(slots[s.slot].x, slots[s.slot].y, 12);
+          break;
+        }
         toast(`${f.name} is growing! Ready in ${growText(RARITIES[f.rarity].growSec)}.`);
         tut.placed = true;
         if (s) confetti(slots[s.slot].x, slots[s.slot].y, 12);
         break;
       }
       case 'restock':
-        toast('🛒 The Ice Cream Shop has new stock!');
+        toast('🛒 The Supplies Shop has new ice cream stock!');
         break;
       case 'mutationStart': {
         const m = mutationById[msg.mutation];
@@ -1808,7 +2190,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     send({ type: 'hold', slot: i });
     updateHotbar();
     const item = heldItem();
-    if (item) toast(`Holding ${flavorById[item.flavor].name}. Tap a dashed space on your stand to place it.`);
+    if (item && toppingById[item.flavor]) toast(`Holding ${itemById[item.flavor].name}. Tap an ice cream on your stand to put it on top.`);
+    else if (item) toast(`Holding ${itemById[item.flavor].name}. Tap a dashed space on your stand to place it.`);
   }
 
   function slotHtml(item) {
@@ -1824,24 +2207,23 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const content = cell.querySelector('.content');
       if (content.innerHTML !== html) content.innerHTML = html;
       cell.classList.toggle('selected', i === hand && !!item);
-      cell.title = item ? flavorById[item.flavor].name : '';
+      cell.title = item ? itemById[item.flavor].name : '';
     });
-    $('handLabel').textContent = heldItem() ? `In hand: ${flavorById[heldItem().flavor].name}` : '';
+    $('handLabel').textContent = heldItem() ? `In hand: ${itemById[heldItem().flavor].name}` : '';
   }
 
   // ---------- shop and inventory windows ----------
   function openShop() {
+    closeWindows();
     openWindow = 'shop';
-    $('giftModal').classList.add('hidden');
-    $('invModal').classList.add('hidden');
     $('shopModal').classList.remove('hidden');
     updateShop();
+    updateToppings();
   }
 
   function openInventory() {
+    closeWindows();
     openWindow = 'inventory';
-    $('giftModal').classList.add('hidden');
-    $('shopModal').classList.add('hidden');
     $('invModal').classList.remove('hidden');
     updateInventory();
   }
@@ -1853,6 +2235,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     $('avatarModal').classList.add('hidden');
     $('banModal').classList.add('hidden');
     $('giftModal').classList.add('hidden');
+    $('petShopModal').classList.add('hidden');
+    $('petsModal').classList.add('hidden');
+    $('adminPetsModal').classList.add('hidden');
   }
 
   // ---------- Ban Players (admins) ----------
@@ -1900,21 +2285,46 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   $('banClose').addEventListener('click', closeWindows);
   $('bannedOk').addEventListener('click', () => $('bannedModal').classList.add('hidden'));
 
-  // ---------- 🎁 Gift: give money or ice cream to another player ----------
-  let giftTo = null; // the stand id of the player you're gifting to
+  // ---------- 🎁 Gift & 🤝 Trade: give or swap money, ice cream, toppings and pets ----------
+  let giftTo = null;     // the stand id of the player you picked
+  let giftMode = 'gift'; // 'gift' or 'trade'
   let giftRefresh = false;
+  let tradeOffer = null; // a trade someone offered you, waiting for your answer
+
+  // "5k", "2.5m", "1b", "3t" or "1,000,000" -> a number
+  function parseMoney(text) {
+    const m = String(text || '').replace(/[,$\s]/g, '').toLowerCase().match(/^(\d*\.?\d+)([kmbtq]?)$/);
+    if (!m) return 0;
+    return Math.floor(Number(m[1]) * { '': 1, k: 1e3, m: 1e6, b: 1e9, t: 1e12, q: 1e15 }[m[2]]);
+  }
+
+  // what someone has: { items: { id: count }, pets: { id: count } }
+  function stuffOf(st) {
+    const items = {}, pets = {};
+    for (const it of [...st.hotbar, ...st.storage]) if (it) items[it.flavor] = (items[it.flavor] || 0) + it.count;
+    for (const id of st.pets || []) pets[id] = (pets[id] || 0) + 1;
+    return { items, pets };
+  }
+
+  const itemName = id => itemById[id].name;
+  function describe(b) {
+    const parts = [];
+    if (b.money) parts.push(fmt(b.money));
+    for (const [id, n] of Object.entries(b.items || {})) parts.push(`${n} ${itemName(id)}`);
+    for (const [id, n] of Object.entries(b.pets || {})) parts.push(`${n} ${petById[id].emoji} ${petById[id].name}`);
+    return parts.join(', ') || 'nothing';
+  }
 
   function openGift() {
     closeWindows();
     openWindow = 'gift';
-    giftTo = null;
     $('giftModal').classList.remove('hidden');
     showGiftPlayers();
   }
 
   function showGiftPlayers() {
     giftTo = null;
-    $('giftSub').textContent = 'Who do you want to give a gift to?';
+    $('giftSub').textContent = 'Who do you want to gift or trade with?';
     const body = $('giftBody');
     body.innerHTML = '';
     const others = stands.filter(st => st.id !== myId);
@@ -1930,11 +2340,67 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
   }
 
+  // a list of number boxes for everything someone has; returns a function that reads the picked bundle
+  function buildPicker(parent, owner, emptyText) {
+    const { items, pets } = stuffOf(owner);
+    const rows = [];
+    const addRow = (html, max, read) => {
+      const row = document.createElement('div');
+      row.className = 'row pickRow';
+      row.innerHTML = html + `<input type="number" min="0" max="${max}" value="0"><button type="button" class="maxBtn">All</button>`;
+      const input = row.querySelector('input');
+      row.querySelector('.maxBtn').addEventListener('click', () => { input.value = max; });
+      parent.appendChild(row);
+      rows.push({ input, max, read });
+      return row;
+    };
+
+    // money: type any amount, like 500, 25k, 3m or 1t
+    const moneyRow = document.createElement('div');
+    moneyRow.className = 'row pickRow';
+    moneyRow.innerHTML = `<div class="petEmoji">💵</div><div class="info"><div class="name">Money</div>
+      <div class="meta">Has ${fmt(owner.money)} · type 500, 25k, 3m, 1b or 1t</div></div>
+      <input type="text" placeholder="0" inputmode="decimal"><button type="button" class="maxBtn">All</button>`;
+    const moneyInput = moneyRow.querySelector('input');
+    moneyRow.querySelector('.maxBtn').addEventListener('click', () => { moneyInput.value = Math.floor(owner.money); });
+    parent.appendChild(moneyRow);
+
+    const ids = [...FLAVORS, ...TOPPINGS].map(f => f.id).filter(id => items[id]);
+    for (const id of ids) {
+      const f = itemById[id];
+      const r = RARITIES[f.rarity];
+      const badge = r ? `<span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>`
+        : `<span class="bonus">${pct(f.bonus)} topping</span>`;
+      const row = addRow(`<div class="iconWrap">${iconHtml(id)}</div>
+        <div class="info"><div class="name"></div><div class="meta">${badge} Has ${items[id]}</div></div>`, items[id], n => ['items', id, n]);
+      row.querySelector('.name').textContent = f.name;
+    }
+    const petIds = PETS.map(p => p.id).filter(id => pets[id]).reverse();
+    for (const id of petIds) {
+      const p = petById[id];
+      const r = RARITIES[p.rarity];
+      addRow(`<div class="petEmoji">${p.emoji}</div><div class="info"><div class="name">${p.name}</div>
+        <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
+        Pet · Has ${pets[id]}${owner.pet === id ? ' · wearing it' : ''}</div></div>`, pets[id], n => ['pets', id, n]);
+    }
+    if (!ids.length && !petIds.length) parent.insertAdjacentHTML('beforeend', `<div class="sub">${emptyText}</div>`);
+
+    return () => {
+      const b = { money: Math.min(parseMoney(moneyInput.value), Math.floor(owner.money)), items: {}, pets: {} };
+      for (const r of rows) {
+        const n = Math.min(r.max, Math.max(0, Math.floor(Number(r.input.value) || 0)));
+        if (n > 0) { const [kind, id] = r.read(n); b[kind][id] = n; }
+      }
+      return b;
+    };
+  }
+
+  const bundleEmpty = b => !b.money && !Object.keys(b.items).length && !Object.keys(b.pets).length;
+
   function showGiftItems() {
     const target = stands.find(st => st.id === giftTo);
     const mine = me();
     if (!target || !mine) return showGiftPlayers();
-    $('giftSub').textContent = `What do you want to give ${target.name}?`;
     const body = $('giftBody');
     body.innerHTML = '';
     const back = document.createElement('button');
@@ -1944,42 +2410,235 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     back.addEventListener('click', showGiftPlayers);
     body.appendChild(back);
 
-    body.insertAdjacentHTML('beforeend', `<h3>💵 Money <span class="sub">(you have ${fmt(mine.money)})</span></h3>`);
-    const moneyRow = document.createElement('div');
-    moneyRow.className = 'row moneyRow';
-    moneyRow.innerHTML = '<input type="number" min="1" placeholder="How much?"><button type="button">Send</button>';
-    const moneyInput = moneyRow.querySelector('input');
-    const sendMoney = () => send({ type: 'gift', to: giftTo, money: Math.floor(Number(moneyInput.value) || 0) });
-    moneyRow.querySelector('button').addEventListener('click', sendMoney);
-    moneyInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMoney(); });
-    body.appendChild(moneyRow);
+    const tabs = document.createElement('div');
+    tabs.className = 'giftTabs';
+    tabs.innerHTML = `<button type="button" data-mode="gift">🎁 Gift</button><button type="button" data-mode="trade">🤝 Trade</button>`;
+    tabs.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('on', b.dataset.mode === giftMode);
+      b.addEventListener('click', () => { giftMode = b.dataset.mode; showGiftItems(); });
+    });
+    body.appendChild(tabs);
 
-    // add up each flavor across the hotbar and the Inventory chest
-    const counts = {};
-    for (const it of [...mine.hotbar, ...mine.storage]) if (it) counts[it.flavor] = (counts[it.flavor] || 0) + it.count;
-    body.insertAdjacentHTML('beforeend', '<h3>🍦 Ice cream</h3>');
-    const ids = FLAVORS.map(f => f.id).filter(id => counts[id]);
-    if (!ids.length) body.insertAdjacentHTML('beforeend', '<div class="sub">You don\'t have any ice cream to give. Buy some at the shop!</div>');
-    for (const id of ids) {
-      const f = flavorById[id];
-      const r = RARITIES[f.rarity];
-      const row = document.createElement('div');
-      row.className = 'row';
-      row.innerHTML = `<div class="iconWrap">${iconHtml(id)}</div>
-        <div class="info"><div class="name"></div>
-          <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
-            You have ${counts[id]}</div></div>
-        <input type="number" min="1" max="${counts[id]}" value="1">
-        <button type="button">Send</button>`;
-      row.querySelector('.name').textContent = f.name;
-      const input = row.querySelector('input');
-      row.querySelector('button').addEventListener('click', () =>
-        send({ type: 'gift', to: giftTo, flavor: id, count: Math.floor(Number(input.value) || 1) }));
-      body.appendChild(row);
+    if (giftMode === 'gift') {
+      $('giftSub').textContent = `Pick how much of anything to give ${target.name}, then press Send.`;
+      body.insertAdjacentHTML('beforeend', '<h3>🎁 Your stuff</h3>');
+      const read = buildPicker(body, mine, "You don't have any ice cream, toppings or pets yet.");
+      const sendBtn = document.createElement('button');
+      sendBtn.type = 'button';
+      sendBtn.className = 'sendBig';
+      sendBtn.textContent = `🎁 Send gift to ${target.name}`;
+      sendBtn.addEventListener('click', () => {
+        const give = read();
+        if (bundleEmpty(give)) return toast('Type how much to give first (or press All).');
+        send({ type: 'gift', to: giftTo, give });
+      });
+      body.appendChild(sendBtn);
+    } else {
+      $('giftSub').textContent = `Pick what you give and what you want back. ${target.name} has to say yes!`;
+      body.insertAdjacentHTML('beforeend', '<h3>📤 You give</h3>');
+      const readGive = buildPicker(body, mine, "You don't have any ice cream, toppings or pets yet.");
+      const theirs = document.createElement('div');
+      theirs.className = 'theirs';
+      theirs.insertAdjacentHTML('beforeend', `<h3>📥 You want from ${target.name.replace(/</g, '')}</h3>`);
+      body.appendChild(theirs);
+      const readGet = buildPicker(theirs, target, `${target.name} doesn't have any ice cream, toppings or pets yet.`);
+      const sendBtn = document.createElement('button');
+      sendBtn.type = 'button';
+      sendBtn.className = 'sendBig';
+      sendBtn.textContent = `🤝 Send trade offer to ${target.name}`;
+      sendBtn.addEventListener('click', () => {
+        const give = readGive(), get = readGet();
+        if (bundleEmpty(give) && bundleEmpty(get)) return toast('Pick what to trade first.');
+        send({ type: 'tradeOffer', to: giftTo, give, get });
+      });
+      body.appendChild(sendBtn);
     }
   }
   $('giftBtn').addEventListener('click', openGift);
   $('giftClose').addEventListener('click', closeWindows);
+
+  // someone offered you a trade
+  function showTradeOffer(msg) {
+    tradeOffer = msg;
+    $('tradeFrom').textContent = `${msg.from} wants to trade with you:`;
+    const lines = b => {
+      const parts = describe(b).split(', ');
+      return parts.map(p => `<div class="line">• ${p.replace(/</g, '&lt;')}</div>`).join('');
+    };
+    $('tradeGet').innerHTML = lines(msg.give);
+    $('tradeGive').innerHTML = lines(msg.get);
+    $('tradeModal').classList.remove('hidden');
+  }
+  function answerTrade(accept) {
+    if (tradeOffer) send({ type: 'tradeReply', id: tradeOffer.id, accept });
+    tradeOffer = null;
+    $('tradeModal').classList.add('hidden');
+  }
+  $('tradeYes').addEventListener('click', () => answerTrade(true));
+  $('tradeNo').addEventListener('click', () => answerTrade(false));
+
+  // ---------- 🛒 Supplies Shop: Ice Cream / Toppings squares ----------
+  function showShopTab(tab) {
+    $('tabIce').classList.toggle('on', tab === 'ice');
+    $('tabTop').classList.toggle('on', tab === 'top');
+    $('icePane').classList.toggle('hidden', tab !== 'ice');
+    $('topPane').classList.toggle('hidden', tab !== 'top');
+  }
+  $('tabIce').addEventListener('click', () => showShopTab('ice'));
+  $('tabTop').addEventListener('click', () => showShopTab('top'));
+
+  for (const t of TOPPINGS) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<div class="iconWrap">${iconHtml(t.id)}</div>
+      <div class="info"><div class="name">${t.name}</div>
+        <div class="meta"><span class="bonus">${pct(t.bonus)} money</span> per scoop of the ice cream it's on</div></div>
+      <div class="buyBtns"><button type="button" data-n="1">${fmt(t.cost)}</button><button type="button" data-n="10">x10</button></div>`;
+    row.querySelectorAll('button').forEach(b =>
+      b.addEventListener('click', () => send({ type: 'buyTopping', topping: t.id, count: Number(b.dataset.n) })));
+    $('topList').appendChild(row);
+    t.row = row;
+  }
+  function updateToppings() {
+    const s = me();
+    if (!s) return;
+    for (const t of TOPPINGS) {
+      const [one, ten] = t.row.querySelectorAll('button');
+      one.disabled = s.money < t.cost;
+      ten.disabled = s.money < t.cost * 10;
+    }
+  }
+
+  // ---------- 🐾 Pet Shop, lucky blocks and your pets ----------
+  const blockBg = b => b.color === 'rainbow' ? '' : `background:${b.color}`;
+  for (const b of LUCKY_BLOCKS) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const odds = Object.entries(b.odds).map(([r, c]) =>
+      `<b style="color:${RARITIES[r].color === '#111111' ? '#000' : RARITIES[r].color}">${RARITIES[r].name} ${c}%</b>`).join(' · ');
+    row.innerHTML = `<div class="luckyBlock ${b.color === 'rainbow' ? 'rainbow' : ''}" style="${blockBg(b)}"></div>
+      <div class="info"><div class="name">${b.name}</div><div class="odds">${odds}</div></div>
+      <button type="button">${fmt(b.cost)}</button>`;
+    row.querySelector('button').addEventListener('click', () => send({ type: 'buyBlock', block: b.id }));
+    $('blockList').appendChild(row);
+    b.row = row;
+  }
+
+  function openPetShop() {
+    closeWindows();
+    openWindow = 'petshop';
+    $('petShopModal').classList.remove('hidden');
+    updatePetShop();
+  }
+  function updatePetShop() {
+    const s = me();
+    if (!s) return;
+    for (const b of LUCKY_BLOCKS) b.row.querySelector('button').disabled = s.money < b.cost || s.pets.length >= MAX_PETS;
+  }
+  $('petShopClose').addEventListener('click', closeWindows);
+
+  // the lucky block shakes, then pops open to show your new pet
+  let revealTimer = null;
+  function revealPet(msg) {
+    const pet = petById[msg.pet], r = RARITIES[pet.rarity];
+    const block = LUCKY_BLOCKS.find(b => b.id === msg.block);
+    const el = $('revealBlock');
+    el.className = 'luckyBlock shake' + (block.color === 'rainbow' ? ' rainbow' : '');
+    el.style.cssText = blockBg(block);
+    el.classList.remove('hidden');
+    $('revealPet').classList.add('hidden');
+    $('revealOk').classList.add('hidden');
+    $('revealModal').classList.remove('hidden');
+    clearTimeout(revealTimer);
+    revealTimer = setTimeout(() => {
+      el.classList.add('hidden');
+      const box = $('revealPet');
+      box.querySelector('.revealEmoji').textContent = pet.emoji;
+      const badge = box.querySelector('.revealRarity');
+      badge.textContent = r.name.toUpperCase();
+      badge.style.background = r.color;
+      box.querySelector('.revealName').textContent = pet.name;
+      box.querySelector('.revealBoost').textContent = `${pct(pet.boost)} money from every scoop` +
+        (msg.equipped ? ' · it\'s following you now!' : '');
+      box.classList.remove('hidden');
+      $('revealOk').classList.remove('hidden');
+      const s = me();
+      if (s) confetti(player.x, player.y - 40, 15 + r.order * 15);
+    }, 1400);
+  }
+  $('revealOk').addEventListener('click', () => $('revealModal').classList.add('hidden'));
+
+  // My Pets: wear the one you like
+  let petsKey = '';
+  function openPets() {
+    closeWindows();
+    openWindow = 'pets';
+    petsKey = '';
+    $('petsModal').classList.remove('hidden');
+    updatePets();
+  }
+  function updatePets() {
+    const s = me();
+    if (!s) return;
+    const key = s.pets.join() + '|' + s.pet;
+    if (key === petsKey) return;
+    petsKey = key;
+    const pet = petById[s.pet];
+    $('petsSub').textContent = `You have ${s.pets.length}/${MAX_PETS} pets. ` +
+      (pet ? `${pet.emoji} ${pet.name} is following you: ${pct(pet.boost)} money from every scoop!`
+        : 'Get pets from lucky blocks at the 🐾 Pet Shop.');
+    const list = $('petsList');
+    list.innerHTML = '';
+    const counts = stuffOf(s).pets;
+    for (const p of [...PETS].reverse()) {
+      if (!counts[p.id]) continue;
+      const r = RARITIES[p.rarity];
+      const on = s.pet === p.id;
+      const row = document.createElement('div');
+      row.className = 'row petRow' + (on ? ' equipped' : '');
+      row.innerHTML = `<div class="petEmoji">${p.emoji}</div>
+        <div class="info"><div class="name">${p.name}${counts[p.id] > 1 ? ` x${counts[p.id]}` : ''}</div>
+          <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
+            <span class="boost">${pct(p.boost)} money</span></div></div>
+        <button type="button">${on ? 'Take off' : 'Wear'}</button>`;
+      row.querySelector('button').addEventListener('click', () => send({ type: 'equipPet', pet: on ? null : p.id }));
+      list.appendChild(row);
+    }
+  }
+  $('petsBtn').addEventListener('click', openPets);
+  $('petsClose').addEventListener('click', closeWindows);
+
+  // 👑 admins: spawn any pet into your own pets
+  let adminPetPick = null;
+  function openAdminPets() {
+    closeWindows();
+    openWindow = 'adminpets';
+    $('adminPetsModal').classList.remove('hidden');
+    const list = $('adminPetsList');
+    list.innerHTML = '';
+    for (const p of PETS) { // most common first, rarest last
+      const r = RARITIES[p.rarity];
+      const row = document.createElement('div');
+      row.className = 'row petRow' + (adminPetPick === p.id ? ' picked' : '');
+      row.innerHTML = `<div class="petEmoji">${p.emoji}</div>
+        <div class="info"><div class="name">${p.name}</div>
+          <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
+            <span class="boost">${pct(p.boost)} money</span></div></div>`;
+      row.addEventListener('click', () => {
+        adminPetPick = p.id;
+        list.querySelectorAll('.petRow').forEach(x => x.classList.remove('picked'));
+        row.classList.add('picked');
+        $('adminPetSpawn').disabled = false;
+        $('adminPetSpawn').textContent = `Spawn ${p.emoji} ${p.name}`;
+      });
+      list.appendChild(row);
+    }
+  }
+  $('adminPetsBtn').addEventListener('click', openAdminPets);
+  $('adminPetsClose').addEventListener('click', closeWindows);
+  $('adminPetSpawn').addEventListener('click', () => {
+    if (adminPetPick) send({ type: 'adminSpawnPet', pet: adminPetPick, count: Number($('adminPetCount').value) || 1 });
+  });
 
   // ---------- 💬 Chat (top left) ----------
   const STAND_COLORS = id => (stands.find(st => st.id === id) || {}).color;
@@ -2026,7 +2685,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       done: () => tut.start && dist(player, tut.start) > 80 },
     { text: '🍨 Customers walk up to your stand to buy scoops. Press <b>Scoop!</b> (or Space) to serve them faster. Earn <b>$10</b>!',
       target: myStandPos, done: () => (me()?.money || 0) >= 10 },
-    { text: '🛒 Now walk to the <b>Ice Cream Shop</b>. Follow the arrow!',
+    { text: '🛒 Now walk to the <b>Supplies Shop</b> in the middle of the park. Follow the arrow!',
       target: SHOP_DOOR, done: () => dist(player, SHOP_DOOR()) <= REACH },
     { text: '💵 Tap the shop to open it, then buy a tub of ice cream. <span class="sub">Rarer ones sell for more but cost more!</span>',
       target: () => SHOP, done: () => tut.bought },
@@ -2035,7 +2694,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { text: '🏪 Walk back to your stand and tap a <b>dashed space</b> to put it there. It grows, then customers can buy it!',
       target: myStandPos, done: () => tut.placed },
     { text: '🎉 You did it! More to try: 🎒 the <b>chest</b> on your plot is your Inventory, 👕 the <b>Avatar Shop</b> changes your look, ' +
-      '🎁 <b>Gift</b> sends money or ice cream to friends, and 🌈 <b>mutations</b> make scoops worth way more!', last: true },
+      '🍒 <b>toppings</b> make scoops worth more, 🐾 the <b>Pet Shop</b> has lucky blocks with pets, 🎁 <b>Gift &amp; Trade</b> swaps stuff with friends, and 🌈 <b>mutations</b> make scoops worth way more!', last: true },
   ];
 
   function tutorialDone() { try { return !!localStorage.getItem('icecream-tutorial-done'); } catch (e) { return false; } }
@@ -2113,10 +2772,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
 
   function openAvatar() {
+    closeWindows();
     openWindow = 'avatar';
-    $('giftModal').classList.add('hidden');
-    $('shopModal').classList.add('hidden');
-    $('invModal').classList.add('hidden');
     $('avatarModal').classList.remove('hidden');
     buildAvatarOptions();
   }
@@ -2235,6 +2892,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     opt.textContent = (f.adminOnly ? '👑 ' : '') + f.name;
     $('adminFlavor').appendChild(opt);
   }
+  for (const t of TOPPINGS) {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = `${t.emoji} ${t.name}`;
+    $('adminFlavor').appendChild(opt);
+  }
   document.querySelectorAll('#adminPanel [data-money]').forEach(btn =>
     btn.addEventListener('click', () => send({ type: 'adminMoney', amount: Number(btn.dataset.money) })));
   $('adminGiveBtn').addEventListener('click', () =>
@@ -2273,6 +2936,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   });
 
   const squash = t => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const findTopping = t => TOPPINGS.find(f => squash(f.id) === squash(t) || squash(f.name) === squash(t));
   const findFlavor = t => FLAVORS.find(f => squash(f.id) === squash(t) || squash(f.name) === squash(t));
   const findMutation = t => MUTATIONS.find(m => squash(m.id) === squash(t) || squash(m.name) === squash(t));
 
@@ -2294,9 +2958,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         // the flavor name can have spaces: /give cookie dough 5
         let count = 1;
         if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) count = Number(args.pop());
-        const f = findFlavor(args.join(' '));
-        if (!f) return toast('Try: /give rainbow 5 (any flavor name)');
+        const f = findFlavor(args.join(' ')) || findTopping(args.join(' '));
+        if (!f) return toast('Try: /give rainbow 5 (any flavor or topping name)');
         return send({ type: 'adminGive', flavor: f.id, count });
+      }
+      case 'pet': case 'pets': {
+        // put any pet in your pets: /pet dragon 2
+        let count = 1;
+        if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) count = Number(args.pop());
+        const p = PETS.find(x => squash(x.id) === squash(args.join(' ')) || squash(x.name) === squash(args.join(' ')));
+        if (!p) return toast('Try: /pet dragon (any pet name)');
+        return send({ type: 'adminSpawnPet', pet: p.id, count });
       }
       case 'spawn': {
         // put an ice cream straight on your stand, fully grown: /spawn void 3
@@ -2399,7 +3071,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (inRect(wx, wy, { x: AVATAR_SHOP.x - 110, y: AVATAR_SHOP.y - 95, w: 220, h: 185 })) {
       return goDo({ x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }, 60, openAvatar);
     }
-    // the Ice Cream Shop
+    // the Pet Shop
+    if (inRect(wx, wy, { x: PET_SHOP.x - 130, y: PET_SHOP.y - 100, w: 260, h: 190 })) {
+      return goDo({ x: PET_SHOP.x, y: PET_SHOP.y + 90 }, 60, openPetShop);
+    }
+    // the Supplies Shop
     if (inRect(wx, wy, { x: SHOP.x - 150, y: SHOP.y - 100, w: 300, h: 200 })) {
       return goDo({ x: SHOP.x, y: SHOP.y + 90 }, 60, openShop);
     }
@@ -2408,6 +3084,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const p = tubPos(slot, i, s.spaces);
       if (Math.hypot(wx - p.x, wy - p.y) < 13) {
         const tub = s.tubs[i];
+        if (tub && heldItem() && toppingById[heldItem().flavor]) {
+          return goDo(stub, REACH - 40, () => send({ type: 'place', space: i }));
+        }
         if (heldItem() && !tub) return goDo(stub, REACH - 40, () => send({ type: 'place', space: i }));
         if (tub) return goDo(stub, REACH - 40, () => send({ type: 'takeOut', space: i }));
         return toast('Pick an ice cream in your hotbar, then tap a dashed space to place it.');
@@ -2458,6 +3137,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const s = me();
     if (openWindow === 'shop' && dist(player, { x: SHOP.x, y: SHOP.y + 90 }) > REACH) closeWindows();
     if (openWindow === 'avatar' && dist(player, { x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }) > REACH) closeWindows();
+    if (openWindow === 'petshop' && dist(player, { x: PET_SHOP.x, y: PET_SHOP.y + 90 }) > REACH) closeWindows();
     if (openWindow === 'inventory' && s && !near(chestPos(slots[s.slot]), 40)) closeWindows();
   }
 
@@ -2505,18 +3185,41 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.beginPath(); ctx.ellipse(x, y, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
     }
     ctx.fillStyle = '#ecd9b0';
-    // plaza in front of the shop and a path down the middle
-    ctx.fillRect(0, SHOP.y + 75, world.width, 70);
-    ctx.fillRect(SHOP.x - 40, SHOP.y + 75, 80, world.height);
     // paths between rows of stands
     for (let i = 0; i < slots.length; i += 4) {
       ctx.fillRect(0, slots[i].y + 75, world.width, 115);
     }
+    // the shop plaza down the middle of the park, with stone tiles
+    const px = SHOP.x - 245, pw = 490;
+    ctx.fillStyle = '#e8d3a8';
+    ctx.fillRect(px, 0, pw, world.height);
+    ctx.strokeStyle = 'rgba(160, 120, 70, 0.18)';
+    ctx.lineWidth = 2;
+    for (let y = 0; y < world.height; y += 40) {
+      ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke();
+      for (let x = px + ((y / 40) % 2) * 30; x < px + pw; x += 60) {
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 40); ctx.stroke();
+      }
+    }
+    ctx.strokeStyle = '#c9a66b'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, world.height); ctx.moveTo(px + pw, 0); ctx.lineTo(px + pw, world.height); ctx.stroke();
+    // flowers along the plaza edges
+    for (let y = 30; y < world.height; y += 75) {
+      for (const x of [px + 12, px + pw - 12]) {
+        ctx.fillStyle = ['#ff6b6b', '#fcc419', '#cc5de8', '#4dabf7'][(y / 75 | 0) % 4];
+        for (let k = 0; k < 5; k++) {
+          const a = k / 5 * Math.PI * 2;
+          ctx.beginPath(); ctx.arc(x + Math.cos(a) * 4, y + Math.sin(a) * 4, 3.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = '#fff3bf';
+        ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
     // trees in the gaps between stands
     for (let i = 0; i < slots.length; i += 4) {
-      for (const x of [22, 326, 952, 1258]) drawTree(x, slots[i].y - 40);
+      for (const x of [22, 326, 1473, 1778]) drawTree(x, slots[i].y - 40);
     }
-    for (const x of [60, 180, 300, 1220]) drawTree(x, 60);
+    for (const x of [60, 200, 340, 520, 1280, 1460, 1600, 1740]) drawTree(x, 40);
   }
 
   function drawTree(x, y) {
@@ -2561,7 +3264,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.fillStyle = '#e0457b';
     ctx.font = 'bold 16px Trebuchet MS';
     ctx.textAlign = 'center';
-    ctx.fillText('ICE CREAM SHOP', x, y - 47);
+    ctx.fillText('SUPPLIES SHOP', x, y - 47);
     // restock timer
     ctx.fillStyle = 'rgba(40, 20, 35, 0.8)';
     roundRect(x - 80, y + 78, 160, 24, 10); ctx.fill();
@@ -2569,7 +3272,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.font = 'bold 13px Trebuchet MS';
     ctx.fillText(`New stock in ${clock(shop.left)}`, x, y + 95);
     if (dist(player, { x, y: y + 90 }) <= REACH && openWindow !== 'shop') {
-      drawBubbleButton(x, y + 128, '🛒 Tap the shop to buy', '#ff6fa5', time);
+      drawBubbleButton(x, y + 128, '🛒 Tap the shop: ice cream & toppings', '#ff6fa5', time);
     }
   }
 
@@ -2636,7 +3339,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const tub = s.tubs[i];
     const mine = s.id === myId;
     if (!tub) {
-      if (mine && holding) {
+      if (mine && holding === 'tub') {
         // moving dashed outline: "you can place your ice cream here"
         ctx.strokeStyle = '#ff2e7e';
         ctx.lineWidth = 2;
@@ -2663,6 +3366,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (ready && f.effect) drawFlavorFx(f, p.x, p.y - sr * 0.3, sr * 0.85, true, i);
     fillScoop(ready ? f : { color: f.color }, p.x, p.y + 1, sr, true);
     if (ready && f.effect) drawFlavorFx(f, p.x, p.y - sr * 0.3, sr * 0.85, false, i);
+    if (tub.topping) drawTopping(tub.topping, p.x, p.y - sr * 0.55, sr, time, i);
+    if (mine && holding === 'topping' && !tub.topping) {
+      // dashed ring: "you can put your topping on this one"
+      ctx.strokeStyle = '#ff2e7e';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.lineDashOffset = -time * 12;
+      ctx.beginPath(); ctx.arc(p.x, p.y - 1, 13 + Math.sin(time * 5) * 0.8, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
+    }
     if (tub.grow > 0) {
       ctx.strokeStyle = '#2fb344';
       ctx.lineWidth = 2.5;
@@ -2674,6 +3388,207 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         ctx.fillText(tub.grow >= 60 ? `${Math.ceil(tub.grow / 60)}m` : `${Math.ceil(tub.grow)}s`, p.x, p.y - 10);
       }
     }
+  }
+
+  // ---------- 🐾 pets in the park, with their effects ----------
+  const petPos = new Map();      // stand id -> where their pet is drawn
+  const petParticles = [];
+  const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+
+  function petSpark(x, y, o) {
+    if (petParticles.length > 400) return;
+    petParticles.push({ x, y, vx: 0, vy: -20, t: 0, life: 1, size: 3, color: '#fff', shape: 'dot', ...o });
+  }
+
+  // a hue (0-360) as '255, 0, 0' for glow()
+  function hueRgb(h) {
+    const f = n => { const k = (n + h / 30) % 12; return Math.round(255 * (0.5 - 0.5 * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
+    return `${f(0)}, ${f(8)}, ${f(4)}`;
+  }
+
+  function drawPet(pet, pp, time, dt, seed) {
+    const r = RARITIES[pet.rarity];
+    const big = pet.id === 'dragon' ? 1.45 : r.order >= 4 ? 1.15 : 1;
+    const hop = pet.fx === 'hop' ? Math.abs(Math.sin(time * 6 + seed)) * 10 : (pp.moving ? Math.abs(Math.sin(time * 10)) * 4 : 0);
+    const float = r.order >= 3 ? 10 + Math.sin(time * 3 + seed) * 4 : 0; // fancy pets float in the air
+    const x = pp.x, y = pp.y - hop - float;
+    const rnd = () => Math.random() - 0.5;
+    const chance = k => Math.random() < dt * k;
+
+    // shadow
+    ctx.fillStyle = '0, 0, 0';
+    ctx.beginPath(); ctx.ellipse(pp.x, pp.y + 10, 12 * big, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+    // effects behind the pet
+    switch (pet.fx) {
+      case 'hearts': if (chance(1.5)) petSpark(x + rnd() * 16, y - 12, { shape: 'heart', color: '#ff6b9a', vy: -25, life: 1.4, size: 7 }); break;
+      case 'embers': glow(x, y - 4, 22, '255, 140, 40', 0.5);
+        if (chance(8)) petSpark(x + rnd() * 18, y, { color: Math.random() < 0.5 ? '#ff922b' : '#ffd43b', vy: -40, vx: rnd() * 20, size: 2.5 }); break;
+      case 'leaves': if (chance(3)) petSpark(x + rnd() * 26, y - 20, { shape: 'leaf', color: '#51cf66', vy: 18, vx: rnd() * 30, life: 1.6, size: 4 }); break;
+      case 'snow': glow(x, y - 4, 26, '160, 230, 255', 0.55);
+        if (chance(6)) petSpark(x + rnd() * 34, y - 24, { shape: 'flake', color: '#fff', vy: 22, vx: rnd() * 10, life: 1.6, size: 3 }); break;
+      case 'moon': glow(x, y - 4, 30, '70, 80, 190', 0.55); {
+          const a = time * 1.5 + seed;
+          ctx.fillStyle = '#fff3bf';
+          ctx.beginPath(); ctx.arc(x + Math.cos(a) * 24, y - 6 + Math.sin(a) * 10, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#3b4cca';
+          ctx.beginPath(); ctx.arc(x + Math.cos(a) * 24 + 2.5, y - 7 + Math.sin(a) * 10, 4.2, 0, Math.PI * 2); ctx.fill();
+          if (chance(3)) petSpark(x + rnd() * 40, y - 10 + rnd() * 30, { shape: 'star', color: '#fff', vy: 0, life: 0.8, size: 3 });
+        } break;
+      case 'rainbow': glow(x, y - 4, 30, hueRgb((time * 120) % 360), 0.55);
+        if (chance(25)) petSpark(x - pp.facing * 10 + rnd() * 6, y + rnd() * 10, { color: `hsl(${(time * 300) % 360},100%,60%)`, vy: 5, vx: -pp.facing * 20, life: 0.9, size: 4 });
+        if (chance(3)) petSpark(x + rnd() * 30, y - 10 + rnd() * 20, { shape: 'star', color: '#fff', vy: -5, life: 0.7, size: 3.5 }); break;
+      case 'shadow': glow(x, y - 4, 32, '90, 30, 140', 0.6);
+        if (chance(12)) petSpark(x + rnd() * 24, y + 4, { shape: 'smoke', color: '40, 10, 60', vy: -18, vx: rnd() * 14, life: 1.3, size: 7 }); break;
+      case 'fire': glow(x, y - 4, 36, '255, 90, 0', 0.65);
+        if (chance(30)) petSpark(x + rnd() * 22, y + 2, { shape: 'flame', color: Math.random() < 0.5 ? '#ff6a00' : '#ffd000', vy: -60, vx: rnd() * 20, life: 0.6, size: 5 }); break;
+      case 'bubbles': glow(x, y - 4, 32, '50, 150, 255', 0.55);
+        if (chance(6)) petSpark(x + rnd() * 30, y + 6, { shape: 'bubble', color: '#a5d8ff', vy: -30, vx: rnd() * 10, life: 1.5, size: 2 + Math.random() * 3 }); break;
+      case 'galaxy': glow(x, y - 4, 38, '120, 60, 255', 0.65);
+        for (let k = 0; k < 3; k++) {
+          const a = time * 2 + k * 2.094 + seed;
+          star(x + Math.cos(a) * 28, y - 4 + Math.sin(a) * 12, 4, ['#fff', '#ffd43b', '#ff8cc6'][k]);
+        }
+        if (chance(5)) petSpark(x + rnd() * 50, y - 10 + rnd() * 40, { shape: 'star', color: '#e5dbff', vy: 0, life: 0.8, size: 3 }); break;
+      case 'cosmic': glow(x - 10, y - 6, 40, '255, 80, 200', 0.5); glow(x + 10, y - 2, 40, '60, 180, 255', 0.5);
+        if (chance(10)) petSpark(x + rnd() * 60, y - 10 + rnd() * 40, { shape: 'star', color: Math.random() < 0.5 ? '#fff' : '#99e9f2', vy: -3, life: 1, size: 3 }); break;
+      case 'dragon': {
+        // the best pet: a huge fiery aura, a ring of flames around it, embers, and fire breath!
+        const pulse = 1 + Math.sin(time * 4) * 0.12;
+        glow(x, y - 8, 60 * pulse, '255, 60, 0', 0.55);
+        glow(x, y - 8, 34 * pulse, '255, 215, 0', 0.5);
+        for (let k = 0; k < 8; k++) {
+          const a = -time * 2.5 + k * Math.PI / 4;
+          const fx = x + Math.cos(a) * 40, fy = y - 8 + Math.sin(a) * 16;
+          glow(fx, fy, 7, k % 2 ? '255, 200, 0' : '255, 80, 0', 0.9);
+        }
+        if (chance(20)) petSpark(x + rnd() * 40, y + 4, { shape: 'flame', color: Math.random() < 0.5 ? '#ff4800' : '#ffc300', vy: -70, vx: rnd() * 30, life: 0.8, size: 5 });
+        // breathe fire every few seconds
+        const breath = (time + seed) % 4;
+        if (breath < 1.1) {
+          for (let k = 0; k < 4; k++) {
+            petSpark(x + pp.facing * 22, y - 12, { shape: 'flame', color: ['#ff2a00', '#ff8c00', '#ffd000', '#fff3b0'][k],
+              vx: pp.facing * (140 + Math.random() * 120), vy: rnd() * 60 - 10, life: 0.45, size: 4 + Math.random() * 5 });
+          }
+        }
+        break;
+      }
+    }
+
+    // the pet itself
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(-pp.facing * big, big); // pet emojis face left, so flip them to face where they walk
+    ctx.font = `30px ${EMOJI_FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (r.order >= 2) { ctx.shadowColor = r.color === '#111111' ? '#ff5a00' : r.color; ctx.shadowBlur = 14; }
+    ctx.fillText(pet.emoji, 0, -6);
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function drawPetParticles(dt) {
+    for (let i = petParticles.length - 1; i >= 0; i--) {
+      const p = petParticles[i];
+      p.t += dt;
+      if (p.t > p.life) { petParticles.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const a = 1 - p.t / p.life;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.color;
+      switch (p.shape) {
+        case 'heart':
+          ctx.font = `bold ${p.size * 2}px sans-serif`; ctx.textAlign = 'center';
+          ctx.fillText('♥', p.x, p.y);
+          break;
+        case 'leaf':
+          ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size / 2, p.t * 4, 0, Math.PI * 2); ctx.fill();
+          break;
+        case 'flake':
+          ctx.strokeStyle = p.color; ctx.lineWidth = 1.2;
+          for (let k = 0; k < 3; k++) {
+            const an = k * Math.PI / 3;
+            ctx.beginPath(); ctx.moveTo(p.x - Math.cos(an) * p.size, p.y - Math.sin(an) * p.size);
+            ctx.lineTo(p.x + Math.cos(an) * p.size, p.y + Math.sin(an) * p.size); ctx.stroke();
+          }
+          break;
+        case 'star': star(p.x, p.y, p.size * (0.5 + a), p.color); break;
+        case 'bubble':
+          ctx.strokeStyle = p.color; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.stroke();
+          break;
+        case 'smoke':
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1 + p.t), 0, Math.PI * 2); ctx.fill();
+          break;
+        case 'flame':
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2); ctx.fill();
+          break;
+        default:
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // a topping sitting on a scoop
+  function drawTopping(id, x, y, r, time, seed = 0) {
+    ctx.save();
+    switch (id) {
+      case 'sprinkles':
+        ['#ff6b6b', '#4dabf7', '#fcc419', '#51cf66', '#cc5de8'].forEach((c, k) => {
+          ctx.strokeStyle = c; ctx.lineWidth = 1.4;
+          const a = k * 1.3 + seed, d = r * 0.5;
+          ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.6);
+          ctx.lineTo(x + Math.cos(a) * d + 2, y + Math.sin(a) * d * 0.6 + 1); ctx.stroke();
+        });
+        break;
+      case 'syrup':
+        ctx.fillStyle = '#5a2e14';
+        ctx.beginPath(); ctx.ellipse(x, y, r * 0.75, r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(x - r * 0.5, y, 1.6, r * 0.6); ctx.fillRect(x + r * 0.3, y, 1.6, r * 0.45);
+        break;
+      case 'whipped':
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#e9ecef'; ctx.lineWidth = 0.8;
+        for (const [dx, dy, rr] of [[0, 0, 0.5], [-0.25, -0.35, 0.35], [0.2, -0.6, 0.25]]) {
+          ctx.beginPath(); ctx.arc(x + dx * r, y + dy * r, rr * r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        }
+        break;
+      case 'cherry':
+        ctx.strokeStyle = '#2b8a3e'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, y - 2); ctx.quadraticCurveTo(x + 2, y - 7, x + 4, y - 8); ctx.stroke();
+        ctx.fillStyle = '#e3002b';
+        ctx.beginPath(); ctx.arc(x, y - 1, 3.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.beginPath(); ctx.arc(x - 1, y - 2, 1, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'goldflakes':
+        ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 6;
+        for (let k = 0; k < 4; k++) {
+          const a = k * 1.7 + seed + time;
+          ctx.fillStyle = k % 2 ? '#ffd700' : '#fff3a0';
+          ctx.fillRect(x + Math.cos(a) * r * 0.5 - 1, y + Math.sin(a) * r * 0.3 - 1, 2.2, 2.2);
+        }
+        break;
+      case 'stardust':
+        ctx.shadowColor = '#b197fc'; ctx.shadowBlur = 8;
+        for (let k = 0; k < 3; k++) {
+          const a = time * 2 + k * 2.1 + seed;
+          star(x + Math.cos(a) * r * 0.9, y - 2 + Math.sin(a) * r * 0.5, 2.6, k % 2 ? '#e5dbff' : '#b197fc');
+        }
+        break;
+    }
+    ctx.restore();
+  }
+
+  function star(x, y, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const a = k * Math.PI / 4, rr = k % 2 ? r * 0.35 : r;
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath(); ctx.fill();
   }
 
   function drawStand(s, time) {
@@ -2706,7 +3621,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     roundRect(x - 85, y, 170, 60, 6); ctx.stroke();
 
     // flavor spaces
-    const holding = mine && !!heldItem();
+    const held = mine ? heldItem() : null;
+    const holding = held ? (toppingById[held.flavor] ? 'topping' : 'tub') : null;
     for (let i = 0; i < s.spaces; i++) drawTub(s, i, slot, time, holding);
 
     // striped awning
@@ -3209,7 +4125,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const crown = p.admin && (hat === 'cap' || hat === 'none');
     drawHat(crown ? 'none' : hat, y, shirt);
     // the ice cream in your hand
-    if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
+    if (p.item && toppingById[p.item.flavor]) {
+      ctx.font = '9px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(toppingById[p.item.flavor].emoji, 11, y + 1);
+    } else if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
     if (crown) {
       // golden crown
       ctx.fillStyle = '#ffd43b';
@@ -3319,7 +4239,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
   }
 
-  // the Avatar Shop building next to the Ice Cream Shop
+  // the Avatar Shop building at the bottom of the plaza
   function drawAvatarShop(time) {
     const { x, y } = AVATAR_SHOP;
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
@@ -3354,6 +4274,57 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.fillText('👕 AVATAR SHOP', x, y - 41);
     if (dist(player, { x, y: y + 85 }) <= REACH && openWindow !== 'avatar') {
       drawBubbleButton(x, y + 98, '👕 Tap to change your look', '#4dabf7', time);
+    }
+  }
+
+  function drawPetShop(time) {
+    const { x, y } = PET_SHOP;
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 72, 140, 13, 0, 0, Math.PI * 2); ctx.fill();
+    // building
+    ctx.fillStyle = '#fff4e0';
+    roundRect(x - 120, y - 35, 240, 105, 8); ctx.fill();
+    ctx.strokeStyle = '#f08c00'; ctx.lineWidth = 3; ctx.stroke();
+    // door with a paw print
+    ctx.fillStyle = '#d9480f';
+    roundRect(x - 20, y + 15, 40, 55, 6); ctx.fill();
+    ctx.fillStyle = '#ffd8a8';
+    ctx.beginPath(); ctx.arc(x, y + 44, 6, 0, Math.PI * 2); ctx.fill();
+    for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(x - 7 + k * 7, y + 34, 3, 0, Math.PI * 2); ctx.fill(); }
+    // windows with lucky blocks that bounce
+    ctx.fillStyle = '#9ad7ff';
+    roundRect(x - 105, y - 12, 70, 48, 6); ctx.fill();
+    roundRect(x + 35, y - 12, 70, 48, 6); ctx.fill();
+    const blockColors = ['#b07a3e', '#fcc419', '#66d9e8', null];
+    blockColors.forEach((c, k) => {
+      const bx = (k < 2 ? x - 88 : x + 52) + (k % 2) * 34, by = y + 8 + Math.sin(time * 4 + k) * 3;
+      if (c) ctx.fillStyle = c;
+      else {
+        const g = ctx.createLinearGradient(bx - 10, 0, bx + 10, 0);
+        ['#ff4040', '#ffee00', '#39d353', '#3d9bff', '#ff4fd8'].forEach((cc, i, a) => g.addColorStop(i / (a.length - 1), cc));
+        ctx.fillStyle = g;
+      }
+      roundRect(bx - 10, by - 10, 20, 20, 4); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px Trebuchet MS';
+      ctx.textAlign = 'center';
+      ctx.fillText('?', bx, by + 5);
+    });
+    // roof
+    ctx.fillStyle = '#f08c00';
+    ctx.beginPath(); ctx.moveTo(x - 138, y - 33); ctx.lineTo(x, y - 92); ctx.lineTo(x + 138, y - 33); ctx.fill();
+    // a little dragon on the roof
+    ctx.font = '34px serif';
+    ctx.fillText('🐉', x, y - 92 + Math.sin(time * 2) * 3);
+    // sign
+    ctx.fillStyle = '#fff';
+    roundRect(x - 75, y - 64, 150, 26, 8); ctx.fill();
+    ctx.strokeStyle = '#f08c00'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#d9480f';
+    ctx.font = 'bold 15px Trebuchet MS';
+    ctx.fillText('🐾 PET SHOP', x, y - 45);
+    if (dist(player, { x, y: y + 90 }) <= REACH && openWindow !== 'petshop') {
+      drawBubbleButton(x, y + 98, '🐾 Tap to open lucky blocks', '#f08c00', time);
     }
   }
 
@@ -3514,8 +4485,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
     const fade = Math.min(1, (300 - gameEvent.left) / 4 + 0.15, gameEvent.left / 4); // fade in and out
     const shimmer = 0.03 * Math.sin(time * 0.8);
-    drawRainbowArc(world.width / 2, world.height + 120, 1100, 140, (0.34 + shimmer) * fade);
-    drawRainbowArc(world.width / 2, world.height + 120, 1290, 100, (0.12 + shimmer / 2) * fade); // faint double rainbow
+    drawRainbowArc(world.width / 2, world.height + 120, world.width * 0.62, 150, (0.34 + shimmer) * fade);
+    drawRainbowArc(world.width / 2, world.height + 120, world.width * 0.62 + 190, 100, (0.12 + shimmer / 2) * fade); // faint double rainbow
   }
 
   function drawSunShower(dt) {
@@ -3558,6 +4529,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     for (const id of ['godly', 'heavenly']) if (ids.includes(id)) drawHolySky(time, id);
     drawShop(time);
     drawAvatarShop(time);
+    drawPetShop(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);
@@ -3587,6 +4559,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null, admin: s.admin };
       entities.push({ y: o.y, draw: () => drawPlayer(p, time) });
     }
+    // pets follow a little behind their owner
+    for (const s of stands) {
+      const pet = petById[s.pet];
+      if (!pet) { petPos.delete(s.id); continue; }
+      const owner = s.id === myId ? (player.placed ? player : null) : others.get(s.id);
+      if (!owner) continue;
+      let pp = petPos.get(s.id);
+      const tx = owner.x - (owner.facing || 1) * 34, ty = owner.y + 6;
+      if (!pp) { pp = { x: tx, y: ty, facing: 1 }; petPos.set(s.id, pp); }
+      const dx = tx - pp.x;
+      pp.x += dx * Math.min(1, dt * 5); pp.y += (ty - pp.y) * Math.min(1, dt * 5);
+      if (Math.abs(dx) > 2) pp.facing = dx > 0 ? 1 : -1;
+      pp.moving = Math.abs(dx) + Math.abs(ty - pp.y) > 3;
+      entities.push({ y: pp.y - 1, draw: () => drawPet(pet, pp, time, dt, s.id) });
+    }
     entities.sort((a, b) => a.y - b.y);
     for (const e of entities) e.draw();
 
@@ -3597,6 +4584,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.beginPath(); ctx.ellipse(walkTarget.x, walkTarget.y, 12, 5, 0, 0, Math.PI * 2); ctx.stroke();
     }
 
+    drawPetParticles(dt);
     drawEventEffects(time, dt);
     if (tut.step >= 0) { updateTutorial(); drawTutorialArrow(time); }
 

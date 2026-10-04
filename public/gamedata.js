@@ -38,6 +38,46 @@
     { id: 'prism',       name: 'Prism Swirl',      rarity: 'admin', price: 15000, cost: 0, color: '#ff66cc', effect: 'prism', adminOnly: true },
   ];
 
+  // Toppings: bought at the Supplies Shop, then put on a tub on your stand.
+  // Every scoop from that tub sells for `bonus` more (0.5 = +50%). One topping per tub.
+  const TOPPINGS = [
+    { id: 'sprinkles', name: 'Sprinkles',       emoji: '🌈', bonus: 0.25, cost: 40,      color: '#ff6fa5' },
+    { id: 'syrup',     name: 'Chocolate Syrup', emoji: '🍫', bonus: 0.5,  cost: 300,     color: '#5a2e14' },
+    { id: 'whipped',   name: 'Whipped Cream',   emoji: '☁️', bonus: 0.75, cost: 2000,    color: '#ffffff' },
+    { id: 'cherry',    name: 'Cherry on Top',   emoji: '🍒', bonus: 1,    cost: 12000,   color: '#e3002b' },
+    { id: 'goldflakes',name: 'Gold Flakes',     emoji: '✨', bonus: 2,    cost: 150000,  color: '#ffd700' },
+    { id: 'stardust',  name: 'Stardust',        emoji: '🌟', bonus: 4,    cost: 2000000, color: '#b197fc' },
+  ];
+
+  // Pets: you get them from lucky blocks at the Pet Shop. Your equipped pet follows you
+  // and gives you `boost` more money from every scoop (0.5 = +50%).
+  const PETS = [
+    { id: 'puppy',   name: 'Puppy',        emoji: '🐶', rarity: 'common',    boost: 0.05, fx: 'hearts' },
+    { id: 'kitty',   name: 'Kitty',        emoji: '🐱', rarity: 'common',    boost: 0.05, fx: 'hearts' },
+    { id: 'bunny',   name: 'Bunny',        emoji: '🐰', rarity: 'common',    boost: 0.08, fx: 'hop' },
+    { id: 'fox',     name: 'Fire Fox',     emoji: '🦊', rarity: 'uncommon',  boost: 0.12, fx: 'embers' },
+    { id: 'panda',   name: 'Bamboo Panda', emoji: '🐼', rarity: 'uncommon',  boost: 0.15, fx: 'leaves' },
+    { id: 'penguin', name: 'Ice Penguin',  emoji: '🐧', rarity: 'rare',      boost: 0.25, fx: 'snow' },
+    { id: 'owl',     name: 'Night Owl',    emoji: '🦉', rarity: 'rare',      boost: 0.3,  fx: 'moon' },
+    { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',   boost: 0.5,  fx: 'rainbow' },
+    { id: 'wolf',    name: 'Shadow Wolf',  emoji: '🐺', rarity: 'epic',      boost: 0.6,  fx: 'shadow' },
+    { id: 'phoenix', name: 'Phoenix',      emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'fire' },
+    { id: 'kraken',  name: 'Kraken',       emoji: '🐙', rarity: 'legendary', boost: 1.2,  fx: 'bubbles' },
+    { id: 'lion',    name: 'Galaxy Lion',  emoji: '🦁', rarity: 'mythic',    boost: 2,    fx: 'galaxy' },
+    { id: 'whale',   name: 'Cosmic Whale', emoji: '🐋', rarity: 'mythic',    boost: 2.5,  fx: 'cosmic' },
+    { id: 'dragon',  name: 'Dragon',       emoji: '🐉', rarity: 'secret',    boost: 5,    fx: 'dragon' }, // the best pet!
+  ];
+  const MAX_PETS = 60;
+
+  // Lucky blocks at the Pet Shop: `odds` = chance of each rarity (they add up to 100)
+  const LUCKY_BLOCKS = [
+    { id: 'wood',    name: 'Wooden Block',  cost: 1000,     color: '#b07a3e', odds: { common: 70, uncommon: 25, rare: 5 } },
+    { id: 'iron',    name: 'Iron Block',    cost: 15000,    color: '#adb5bd', odds: { common: 35, uncommon: 40, rare: 20, epic: 5 } },
+    { id: 'gold',    name: 'Gold Block',    cost: 150000,   color: '#fcc419', odds: { uncommon: 30, rare: 40, epic: 25, legendary: 5 } },
+    { id: 'diamond', name: 'Diamond Block', cost: 2000000,  color: '#66d9e8', odds: { rare: 30, epic: 45, legendary: 20, mythic: 5 } },
+    { id: 'rainbow', name: 'Rainbow Block', cost: 25000000, color: 'rainbow', odds: { epic: 44, legendary: 40, mythic: 15, secret: 1 } },
+  ];
+
   // cost of the next level = base * growth^level
   const UPGRADES = {
     sign:  { name: 'Bigger Sign',    desc: 'Attract more customers',      base: 40, growth: 1.9, max: 10 },
@@ -102,7 +142,7 @@
     face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
   };
 
-  const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
+  const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };

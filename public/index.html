@@ -56,14 +56,29 @@
       <div id="shopModal" class="modal hidden">
         <div class="modalHead">
           <div>
-            <div class="modalTitle">🛒 Ice Cream Shop</div>
+            <div class="modalTitle">🛒 Supplies Shop</div>
             <div id="shopTimer" class="sub"></div>
           </div>
           <button id="shopClose" class="closeBtn">✕</button>
         </div>
-        <p class="sub">Buy a tub, then hold it and place it on your stand. Rarer ice cream takes longer to grow
-          but sells for more. The stock changes every 3 minutes.</p>
-        <div id="shopList"></div>
+        <div class="shopBody">
+          <div class="shopTabs">
+            <button id="tabIce" type="button" class="shopTab on">🍦<span>Ice Cream</span></button>
+            <button id="tabTop" type="button" class="shopTab">🍒<span>Toppings</span></button>
+          </div>
+          <div class="shopPane">
+            <div id="icePane">
+              <p class="sub">Buy a tub, then hold it and place it on your stand. Rarer ice cream takes longer to grow
+                but sells for more. The stock changes every 3 minutes.</p>
+              <div id="shopList"></div>
+            </div>
+            <div id="topPane" class="hidden">
+              <p class="sub">Hold a topping and tap an ice cream on your stand to put it on top. Every scoop of that
+                ice cream sells for more! One topping per ice cream. Toppings never run out.</p>
+              <div id="topList"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div id="avatarModal" class="modal hidden">
@@ -74,6 +89,62 @@
         <p class="sub">Pick how your character looks. Everyone in the park will see it!</p>
         <canvas id="avatarPreview" width="200" height="190"></canvas>
         <div id="avatarOptions"></div>
+      </div>
+
+      <div id="petShopModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">🐾 Pet Shop</div>
+          <button id="petShopClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Open a lucky block to get a random pet! Your pet follows you and makes every scoop worth more.
+          The best pet of all is the 🐉 Dragon.</p>
+        <div id="blockList"></div>
+      </div>
+
+      <div id="petsModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">🐾 My Pets</div>
+          <button id="petsClose" class="closeBtn">✕</button>
+        </div>
+        <p id="petsSub" class="sub"></p>
+        <div id="petsList"></div>
+      </div>
+
+      <div id="adminPetsModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">👑 Spawn Pets</div>
+          <button id="adminPetsClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Tap a pet, then press Spawn to put it in your pets. Only admins can do this.</p>
+        <div id="adminPetsList"></div>
+        <div class="adminRow spawnRow">
+          <input id="adminPetCount" type="number" min="1" max="60" value="1">
+          <button id="adminPetSpawn" type="button" disabled>Spawn</button>
+        </div>
+      </div>
+
+      <div id="revealModal" class="modal hidden">
+        <div id="revealBlock" class="luckyBlock"></div>
+        <div id="revealPet" class="hidden">
+          <div class="revealEmoji"></div>
+          <div class="revealRarity"></div>
+          <div class="revealName"></div>
+          <div class="revealBoost sub"></div>
+        </div>
+        <button id="revealOk" type="button" class="hidden">Awesome!</button>
+      </div>
+
+      <div id="tradeModal" class="modal hidden">
+        <div class="modalTitle">🤝 Trade offer!</div>
+        <p id="tradeFrom"></p>
+        <div class="tradeCols">
+          <div><h3>You get</h3><div id="tradeGet"></div></div>
+          <div><h3>You give</h3><div id="tradeGive"></div></div>
+        </div>
+        <div class="adminRow">
+          <button id="tradeYes" type="button">✅ Accept</button>
+          <button id="tradeNo" type="button">❌ No thanks</button>
+        </div>
       </div>
 
       <div id="banModal" class="modal hidden">
@@ -94,7 +165,7 @@
 
       <div id="giftModal" class="modal hidden">
         <div class="modalHead">
-          <div class="modalTitle">🎁 Gift</div>
+          <div class="modalTitle">🎁 Gift &amp; Trade</div>
           <button id="giftClose" class="closeBtn">✕</button>
         </div>
         <p id="giftSub" class="sub"></p>
@@ -118,7 +189,10 @@
       </div>
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
-      <button id="giftBtn" class="giftBtn" type="button">🎁 Gift</button>
+      <div class="btnRow">
+        <button id="giftBtn" class="giftBtn" type="button">🎁 Gift &amp; Trade</button>
+        <button id="petsBtn" class="petsBtn" type="button">🐾 My Pets</button>
+      </div>
       <button id="tutBtn" class="tutBtn" type="button">📖 Tutorial</button>
       <p class="sub howto">Walk with the arrow keys or tap where to go. Pick an ice cream in your hotbar
         (keys 1–0), then tap a dashed space on your stand to place it.</p>
@@ -128,6 +202,7 @@
         <div class="adminTitle">👑 Admin commands</div>
         <button id="talkBtn" class="talkBtn" type="button">📢 All Server Talk</button>
         <button id="banBtn" class="banBtn" type="button">🚫 Ban Players</button>
+        <button id="adminPetsBtn" class="adminPetsBtn" type="button">🐾 Pets</button>
         <div id="talkRow" class="adminRow hidden">
           <input id="talkInput" maxlength="150" placeholder="Message to everyone in the server" autocomplete="off">
           <button id="talkSend" type="button">Send</button>
@@ -152,7 +227,7 @@
           <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
           <button id="adminRunBtn" type="button">Run</button>
         </div>
-        <div class="sub">Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow godly ·
+        <div class="sub">Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /pet dragon · /give cherry 10 · /mutation rainbow godly ·
           /mutation end · /restock · /grow · /help</div>
       </div>
       <div id="testTools" class="hidden">
