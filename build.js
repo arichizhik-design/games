@@ -12,5 +12,9 @@ html = html.replace(/<script src="([\w.]+)"><\/script>/g, (_, file) => {
   return `${pre}<script>\n${pub(file)}</script>`;
 });
 
+// pictures go inside the file too, so it works on its own
+html = html.replace(/src="([\w-]+\.png)"/g, (_, file) =>
+  `src="data:image/png;base64,${fs.readFileSync(path.join(__dirname, 'public', file)).toString('base64')}"`);
+
 fs.writeFileSync(path.join(__dirname, 'ice-cream-tycoon.html'), html);
 console.log('Wrote ice-cream-tycoon.html');

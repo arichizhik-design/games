@@ -115,7 +115,8 @@ Set the `PORT` environment variable to use a different port. Start with `TEST_MO
 
 - `server.js`: multiplayer server (connections and saving)
 - `public/engine.js`: the game rules (players, customers, sales, the shop, inventories, mutation events), used by the server and the single-file version
-- `build.js`: makes `ice-cream-tycoon.html`
+- `build.js`: makes `ice-cream-tycoon.html` (with the cover picture packed inside)
+- `public/cover.png`: the game's cover picture on the start screen
 - `public/gamedata.js`: flavors, rarities, prices, grow times, shop stock, upgrades and mutations (shared by server and browser)
 - `public/client.js`: drawing the park and the shop panel in the browser
 - `public/index.html`, `public/style.css`: page layout and styles

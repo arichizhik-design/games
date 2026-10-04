@@ -30,7 +30,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .overlay {
   position: fixed; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(160deg, #ffd1e3, #c9f2ff);
+  background: radial-gradient(circle at 50% 30%, #2bb3b1, #12464f 55%, #1b1530);
+  overflow-y: auto;
   padding: 16px;
 }
 .card {
@@ -39,6 +40,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   box-shadow: 0 10px 40px rgba(0,0,0,0.12);
 }
 .logo { font-size: 64px; }
+/* the game's cover picture on the start screen */
+.cover {
+  display: block; width: 100%; max-width: 300px; margin: -8px auto 10px; border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
 .card h1 { margin: 4px 0 8px; color: #e0457b; }
 #joinForm { display: flex; gap: 8px; margin-top: 16px; }
 #adminCodeRow { display: flex; margin-top: 8px; }
