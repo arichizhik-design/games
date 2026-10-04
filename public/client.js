@@ -1,9 +1,9 @@
 (() => {
   const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE,
     HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
-  const { SHOP, AVATAR_SHOP, FUSE_MACHINE, REACH, chestPos, tubPos } = window.Engine;
+  const { SHOP, AVATAR_SHOP, REACH, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
-  const { flavorById, fuseResult, FUSE_RECIPES } = window.GameData; // flavorById also knows fused swirls
+  const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
 
   const canvas = document.getElementById('canvas');
   let ctx = canvas.getContext('2d');
@@ -33,8 +33,8 @@
   let openWindow = null; // 'shop' | 'inventory' | null
   let iAmAdmin = false;   // admins also see the admin-only ice creams in the Flavor guide
   // flavors shown in the Flavor guide, and flavors sold in the shop
-  const guideFlavors = () => FLAVORS.filter(f => !f.fused && (!f.adminOnly || iAmAdmin));
-  const shopFlavors = FLAVORS.filter(f => !f.adminOnly && !f.fused);
+  const guideFlavors = () => FLAVORS.filter(f => !f.adminOnly || iAmAdmin);
+  const shopFlavors = FLAVORS.filter(f => !f.adminOnly);
 
   // ---------- helpers ----------
   function fmt(n) {
@@ -80,9 +80,7 @@
   function iconHtml(flavorId) {
     const f = flavorById[flavorId];
     const fx = f.effect ? ` fx-${f.effect}` : '';
-    const bg = f.colors
-      ? `conic-gradient(${f.colors[0]} 0 25%, ${f.colors[1]} 0 50%, ${f.colors[0]} 0 75%, ${f.colors[1]} 0)` : f.color;
-    return `<div class="icon${fx}"><div class="ball" style="background:${bg}"></div><div class="cone"></div></div>`;
+    return `<div class="icon${fx}"><div class="ball" style="background:${f.color}"></div><div class="cone"></div></div>`;
   }
 
   // ---------- joining ----------
@@ -226,7 +224,6 @@
         updateHotbar();
         if (openWindow === 'shop') updateShop();
         if (openWindow === 'inventory') updateInventory();
-        if (openWindow === 'fuse') updateFuse();
         break;
       case 'sale':
         onSale(msg);
@@ -234,16 +231,6 @@
       case 'bought': {
         const f = flavorById[msg.flavor];
         toast(`You bought ${f.name}! Hold it and place it on your stand.`);
-        break;
-      }
-      case 'fused': {
-        const f = flavorById[msg.flavor];
-        toast(msg.isNew && !f.parts
-          ? `⚡ SECRET RECIPE! You made ${f.name}! It's in your hotbar.`
-          : `⚡ You made ${f.name} ($${f.price.toLocaleString()} a scoop)! It's in your hotbar.`);
-        confetti(FUSE_MACHINE.x, FUSE_MACHINE.y - 20, msg.isNew && !f.parts ? 90 : 40);
-        fusePick = [];
-        if (openWindow === 'fuse') updateFuse();
         break;
       }
       case 'placed': {
@@ -542,87 +529,7 @@
     $('shopModal').classList.add('hidden');
     $('invModal').classList.add('hidden');
     $('avatarModal').classList.add('hidden');
-    $('fuseModal').classList.add('hidden');
   }
-
-  // ---------- Fuse Machine ----------
-  let fusePick = []; // the (up to) two ice creams you picked
-
-  function openFuse() {
-    closeWindows();
-    openWindow = 'fuse';
-    fusePick = [];
-    $('fuseModal').classList.remove('hidden');
-    updateFuse();
-  }
-
-  // how many of each ice cream you have (hotbar + Inventory)
-  function myItems() {
-    const s = me();
-    const counts = {};
-    if (s) for (const it of [...s.hotbar, ...s.storage]) if (it) counts[it.flavor] = (counts[it.flavor] || 0) + it.count;
-    return counts;
-  }
-
-  function updateFuse() {
-    const s = me();
-    if (!s) return;
-    const counts = myItems();
-    const busy = !!s.fusing;
-    // the two input slots and the result
-    [0, 1].forEach(i => {
-      const el = $('fuseSlot' + i);
-      const id = fusePick[i];
-      const html = id ? `${iconHtml(id)}<div class="fsName">${flavorById[id].name}</div>` : '<div class="fsEmpty">Tap an ice cream below</div>';
-      if (el.innerHTML !== html) el.innerHTML = html;
-    });
-    const result = fusePick.length === 2 ? fuseResult(fusePick[0], fusePick[1]) : null;
-    const rf = result && flavorById[result];
-    // special recipes stay a secret until you've made them once
-    const secret = rf && !rf.parts && !s.seen.includes(result);
-    const out = busy ? `<div class="fsEmpty">⚡ Fusing… ${Math.ceil(s.fusing.left)}s</div>`
-      : rf ? (secret ? '<div class="icon mystery">?</div><div class="fsName">??? Secret recipe!</div>'
-        : `${iconHtml(result)}<div class="fsName">${rf.name}<br>$${rf.price.toLocaleString()} / scoop</div>`)
-      : '<div class="fsEmpty">?</div>';
-    if ($('fuseResult').innerHTML !== out) $('fuseResult').innerHTML = out;
-    $('fuseBtn').disabled = busy || !result;
-    $('fuseBtn').textContent = busy ? '⚡ Fusing…' : '⚡ FUSE!';
-
-    // your ice creams to pick from
-    const list = Object.entries(counts).filter(([id]) => !flavorById[id].fused);
-    const left = { ...counts };
-    for (const id of fusePick) left[id]--;
-    const key = JSON.stringify([list, fusePick]);
-    if ($('fuseItems').dataset.key !== key) {
-      $('fuseItems').dataset.key = key;
-      $('fuseItems').innerHTML = list.length ? '' : '<div class="sub">You have no ice creams to fuse. Buy some at the shop!</div>';
-      for (const [id] of list) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'fuseItem';
-        b.disabled = left[id] <= 0 || fusePick.length >= 2;
-        b.innerHTML = `${iconHtml(id)}<span class="count">${left[id]}</span>`;
-        b.title = flavorById[id].name;
-        b.addEventListener('click', () => { if (fusePick.length < 2) { fusePick.push(id); updateFuse(); } });
-        $('fuseItems').appendChild(b);
-      }
-    }
-
-    // recipe book: special recipes you've found
-    const book = Object.entries(FUSE_RECIPES).map(([pair, id]) => {
-      const f = flavorById[id];
-      const found = s.seen.includes(id);
-      const [a, b] = pair.split('+').map(x => flavorById[x].name);
-      return `<div class="recipe${found ? ' found' : ''}">${found ? `${a} + ${b} = <b>${f.name}</b>` : '❓ Secret recipe'}</div>`;
-    }).join('');
-    if ($('fuseBook').innerHTML !== book) $('fuseBook').innerHTML = book;
-  }
-
-  [0, 1].forEach(i => $('fuseSlot' + i).addEventListener('click', () => { fusePick.splice(i, 1); updateFuse(); }));
-  $('fuseBtn').addEventListener('click', () => {
-    if (fusePick.length === 2) send({ type: 'fuse', a: fusePick[0], b: fusePick[1] });
-  });
-  $('fuseClose').addEventListener('click', closeWindows);
 
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
@@ -910,10 +817,6 @@
     if (inRect(wx, wy, { x: chest.x - 45, y: chest.y - 62, w: 90, h: 90 })) {
       return goDo(chest, REACH - 40, openInventory);
     }
-    // the Fuse Machine
-    if (inRect(wx, wy, { x: FUSE_MACHINE.x - 100, y: FUSE_MACHINE.y - 100, w: 200, h: 190 })) {
-      return goDo({ x: FUSE_MACHINE.x, y: FUSE_MACHINE.y + 85 }, 60, openFuse);
-    }
     // the Avatar Shop
     if (inRect(wx, wy, { x: AVATAR_SHOP.x - 110, y: AVATAR_SHOP.y - 95, w: 220, h: 185 })) {
       return goDo({ x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }, 60, openAvatar);
@@ -976,7 +879,6 @@
     // close windows when you walk away
     const s = me();
     if (openWindow === 'shop' && dist(player, { x: SHOP.x, y: SHOP.y + 90 }) > REACH) closeWindows();
-    if (openWindow === 'fuse' && dist(player, { x: FUSE_MACHINE.x, y: FUSE_MACHINE.y + 85 }) > REACH) closeWindows();
     if (openWindow === 'avatar' && dist(player, { x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }) > REACH) closeWindows();
     if (openWindow === 'inventory' && s && !near(chestPos(slots[s.slot]), 40)) closeWindows();
   }
@@ -1036,7 +938,7 @@
     for (let i = 0; i < slots.length; i += 4) {
       for (const x of [22, 326, 952, 1258]) drawTree(x, slots[i].y - 40);
     }
-    for (const x of [40, 1220]) drawTree(x, 60);
+    for (const x of [60, 180, 300, 1220]) drawTree(x, 60);
   }
 
   function drawTree(x, y) {
@@ -1355,46 +1257,6 @@
       ctx.restore();
       return;
     }
-    if (f.effect === 'swirl2') {
-      // two flavors swirled together, slowly turning
-      ctx.save();
-      outline(); ctx.clip();
-      for (let k = 0; k < 6; k++) {
-        const a0 = nowSec * 0.8 + (k / 6) * Math.PI * 2;
-        ctx.fillStyle = f.colors[k % 2];
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r * 1.1, a0, a0 + Math.PI / 3 + 0.02); ctx.fill();
-      }
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.4, r * 0.3, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-      return;
-    }
-    if (f.effect === 'fireice') {
-      // half fire, half ice
-      ctx.save();
-      outline(); ctx.clip();
-      ctx.fillStyle = '#ff4500'; ctx.fillRect(x - r, y - r, r, 2 * r);
-      ctx.fillStyle = '#9be7ff'; ctx.fillRect(x, y - r, r, 2 * r);
-      ctx.restore();
-      return;
-    }
-    if (f.effect === 'rainbowunicorn') {
-      ctx.save();
-      outline(); ctx.clip();
-      const pastel = ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', '#e0bbff'];
-      const band = (2 * r) / pastel.length;
-      pastel.forEach((c, k) => { ctx.fillStyle = c; ctx.fillRect(x - r, y - r + k * band, 2 * r, band + 0.5); });
-      ctx.restore();
-      return;
-    }
-    if (f.effect === 'darkfire' || f.effect === 'goldendragon') {
-      const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
-      const stops = f.effect === 'darkfire' ? ['#c86bff', '#4a0072', '#12001f'] : ['#fff6c2', '#ffc61a', '#d9480f'];
-      stops.forEach((c, k) => g.addColorStop(k / 2, c));
-      ctx.fillStyle = g;
-      outline(); ctx.fill();
-      return;
-    }
     if (f.effect === 'nova' || f.effect === 'storm' || f.effect === 'crown') {
       const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
       const stops = { nova: ['#ffffff', '#ffe066', '#ff8a00'], storm: ['#8aa0c8', '#3b4a6b', '#1b2238'],
@@ -1641,53 +1503,6 @@
           }
         }
         break;
-      case 'swirl2': // fused swirl: a little electric spark from the Fuse Machine
-        if (!back) sparkle(x + r * 0.45, y - r * 0.45, r * 0.4 * Math.max(0, Math.sin(t * 4)), '#7df9ff');
-        break;
-      case 'fireice': // ⚡ Fire & Ice: red glow on one side, icy blue on the other
-        if (back) {
-          glow(x - r * 0.6, y, r * 2.4, '255, 60, 0', 0.5 + 0.2 * pulse);
-          glow(x + r * 0.6, y, r * 2.4, '120, 220, 255', 0.5 + 0.2 * (1 - pulse));
-          flame(x - r * 0.5, y - r * 0.4, r * 0.35, r * (1.6 + 0.4 * Math.sin(t * 12)), '#ff6a00');
-        } else {
-          risers(x - r * 0.4, y, r * 0.6, t, '#ffb000', 2);
-          sparkle(x + r * 0.45, y - r * 0.45, r * 0.4 * (0.4 + 0.6 * pulse), '#ffffff');
-        }
-        break;
-      case 'rainbowunicorn': // ⚡ Rainbow Unicorn: pastel rainbow, color-changing glow and a little horn
-        if (back) {
-          const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.8);
-          const hue = (t * 90) % 360;
-          g.addColorStop(0, `hsla(${hue}, 90%, 75%, 0.65)`);
-          g.addColorStop(1, `hsla(${hue}, 90%, 75%, 0)`);
-          ctx.fillStyle = g;
-          ctx.beginPath(); ctx.arc(x, y, r * 2.8, 0, Math.PI * 2); ctx.fill();
-        } else {
-          ctx.fillStyle = '#ffd43b';
-          ctx.beginPath(); ctx.moveTo(x - r * 0.2, y - r * 0.85); ctx.lineTo(x, y - r * 1.8); ctx.lineTo(x + r * 0.2, y - r * 0.85); ctx.fill();
-          sparkle(x + Math.cos(t * 2) * r * 1.4, y + Math.sin(t * 2) * r * 0.8, r * 0.3, '#fff6a8');
-        }
-        break;
-      case 'goldendragon': // ⚡ Golden Dragon: golden fire glow, seeds and a shiny glint
-        if (back) glow(x, y, r * 2.8, '255, 150, 0', 0.5 + 0.2 * pulse);
-        else {
-          ctx.fillStyle = '#5a1a00';
-          for (const [dx, dy] of [[-0.4, -0.2], [0.3, -0.45], [0.1, 0.1], [0.5, 0]]) {
-            ctx.beginPath(); ctx.ellipse(x + dx * r, y + dy * r, r * 0.08, r * 0.13, 0.4, 0, Math.PI * 2); ctx.fill();
-          }
-          sparkle(x - r * 0.35, y - r * 0.45, r * 0.5 * Math.max(0, Math.sin(t * 3)), '#ffffff');
-        }
-        break;
-      case 'darkfire': // ⚡ Dark Phoenix: purple flames and dark embers
-        if (back) {
-          glow(x, y, r * 3.2, '150, 0, 255', 0.5 + 0.3 * pulse);
-          for (let k = -1; k <= 1; k++) {
-            const h = r * (2.2 + 0.7 * Math.sin(t * 13 + k * 2)) * (k ? 0.75 : 1);
-            flame(x + k * r * 0.6, y - r * 0.2, r * 0.5, h, '#7b2cbf');
-            flame(x + k * r * 0.6, y - r * 0.2, r * 0.3, h * 0.7, k ? '#c77dff' : '#f0c4ff');
-          }
-        } else risers(x, y, r, t, '#e0aaff', 3);
-        break;
       case 'frost': // Mint Chip: icy sparkle
         if (!back) sparkle(x + r * 0.4, y - r * 0.45, r * 0.4 * (0.4 + 0.6 * pulse), '#ffffff');
         break;
@@ -1926,70 +1741,6 @@
     }
   }
 
-  // the Fuse Machine: two funnels on top, a glowing core, and it shakes and sparks while fusing
-  function drawFuseMachine(time) {
-    const { x, y } = FUSE_MACHINE;
-    const mine = me();
-    const busy = mine && mine.fusing;
-    const shake = busy ? Math.sin(time * 40) * 1.5 : 0;
-    ctx.save();
-    ctx.translate(shake, 0);
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    ctx.beginPath(); ctx.ellipse(x, y + 70, 100, 12, 0, 0, Math.PI * 2); ctx.fill();
-    // body
-    const g = ctx.createLinearGradient(x - 80, 0, x + 80, 0);
-    g.addColorStop(0, '#868e96'); g.addColorStop(0.5, '#dee2e6'); g.addColorStop(1, '#868e96');
-    ctx.fillStyle = g;
-    roundRect(x - 80, y - 30, 160, 100, 14); ctx.fill();
-    ctx.strokeStyle = '#495057'; ctx.lineWidth = 3; ctx.stroke();
-    // two funnels
-    for (const fx of [x - 45, x + 45]) {
-      ctx.fillStyle = '#adb5bd';
-      ctx.beginPath(); ctx.moveTo(fx - 26, y - 70); ctx.lineTo(fx + 26, y - 70); ctx.lineTo(fx + 9, y - 30); ctx.lineTo(fx - 9, y - 30); ctx.fill();
-      ctx.strokeStyle = '#495057'; ctx.lineWidth = 2; ctx.stroke();
-    }
-    // glowing core window
-    const pulse = 0.5 + 0.5 * Math.sin(time * (busy ? 14 : 3));
-    glow(x, y + 15, busy ? 70 : 45, '0, 220, 255', 0.35 + 0.35 * pulse);
-    ctx.fillStyle = busy ? `hsl(${(time * 400) % 360}, 100%, 70%)` : '#7df9ff';
-    ctx.beginPath(); ctx.arc(x, y + 15, 22, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#343a40'; ctx.lineWidth = 4; ctx.stroke();
-    ctx.font = 'bold 22px Trebuchet MS';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#343a40';
-    ctx.fillText('⚡', x, y + 23);
-    // pipes and lights
-    ctx.fillStyle = '#495057';
-    ctx.fillRect(x - 78, y + 45, 156, 6);
-    for (let k = 0; k < 5; k++) {
-      ctx.fillStyle = (Math.floor(time * (busy ? 10 : 2)) + k) % 2 ? '#51cf66' : '#ff6b6b';
-      ctx.beginPath(); ctx.arc(x - 50 + k * 25, y + 60, 4, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
-    // electric sparks while fusing
-    if (busy) {
-      ctx.strokeStyle = '#7df9ff'; ctx.lineWidth = 2;
-      for (let k = 0; k < 3; k++) {
-        const a = time * 13 + k * 2.1, r1 = 30, r2 = 60;
-        ctx.beginPath();
-        ctx.moveTo(x + Math.cos(a) * r1, y + 15 + Math.sin(a) * r1);
-        ctx.lineTo(x + Math.cos(a + 0.3) * (r1 + r2) / 2 + 6, y + 15 + Math.sin(a + 0.3) * (r1 + r2) / 2);
-        ctx.lineTo(x + Math.cos(a) * r2, y + 15 + Math.sin(a) * r2);
-        ctx.stroke();
-      }
-    }
-    // sign
-    ctx.fillStyle = '#fff';
-    roundRect(x - 78, y - 102, 156, 26, 8); ctx.fill();
-    ctx.strokeStyle = '#00b4d8'; ctx.lineWidth = 3; ctx.stroke();
-    ctx.fillStyle = '#0077b6';
-    ctx.font = 'bold 15px Trebuchet MS';
-    ctx.fillText('⚡ FUSE MACHINE', x, y - 83);
-    if (dist(player, { x, y: y + 85 }) <= REACH && openWindow !== 'fuse') {
-      drawBubbleButton(x, y - 116, '⚡ Tap to fuse 2 ice creams', '#00b4d8', time);
-    }
-  }
-
   // the Avatar Shop building next to the Ice Cream Shop
   function drawAvatarShop(time) {
     const { x, y } = AVATAR_SHOP;
@@ -2024,7 +1775,7 @@
     ctx.textAlign = 'center';
     ctx.fillText('👕 AVATAR SHOP', x, y - 41);
     if (dist(player, { x, y: y + 85 }) <= REACH && openWindow !== 'avatar') {
-      drawBubbleButton(x, y - 100, '👕 Tap to change your look', '#4dabf7', time);
+      drawBubbleButton(x, y + 98, '👕 Tap to change your look', '#4dabf7', time);
     }
   }
 
@@ -2229,7 +1980,6 @@
     for (const id of ['godly', 'heavenly']) if (ids.includes(id)) drawHolySky(time, id);
     drawShop(time);
     drawAvatarShop(time);
-    drawFuseMachine(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);

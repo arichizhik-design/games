@@ -6,13 +6,12 @@
     ? require('./gamedata.js') : root.GameData;
   const { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
-    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, flavorById, fuseResult, FUSE_SEC } = GameData;
+    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
   // ---------- park layout (shared with the browser for drawing and clicking) ----------
   const WORLD = { width: 1280, height: 1180 };
   const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
   const AVATAR_SHOP = { x: 1020, y: 125 }; // the Avatar Shop next to it
-  const FUSE_MACHINE = { x: 255, y: 130 }; // the Fuse Machine on the other side
   const REACH = 230;                 // how close you must stand to use something
   // admin names and their secret codes (only a scrambled version of each code is kept here).
   // Each admin needs their code once per device, and each name only works on the first device that used it.
@@ -60,6 +59,7 @@
     return { x: slot.x - ((inRow - 1) * 23) / 2 + col * 23, y: slot.y + 9 + row * 26 };
   }
 
+  const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -76,7 +76,7 @@
   function rollStock() {
     const stock = {};
     for (const f of FLAVORS) {
-      if (f.adminOnly || f.fused) continue;
+      if (f.adminOnly) continue;
       const st = RARITIES[f.rarity].stock;
       stock[f.id] = Math.random() < st.chance
         ? st.min + Math.floor(Math.random() * (st.max - st.min + 1)) : 0;
@@ -119,18 +119,6 @@
       out[part] = a && options.includes(a[part]) ? a[part] : options[0];
     }
     return out;
-  }
-
-  // remove one tub of a flavor, from the hotbar first, then the Inventory
-  function takeItem(stand, flavor) {
-    for (const slots of [stand.hotbar, stand.storage]) {
-      const i = slots.findIndex(s => s && s.flavor === flavor);
-      if (i === -1) continue;
-      slots[i].count--;
-      if (slots[i].count <= 0) slots[i] = null;
-      return true;
-    }
-    return false;
   }
 
   function createGame({ saves = {}, allowTest = false } = {}) {
@@ -297,21 +285,6 @@
       updateTimers(dt);
 
       for (const stand of stands.values()) {
-        // Fuse Machine finishing
-        if (stand.fusing) {
-          stand.fusing.left -= dt;
-          if (stand.fusing.left <= 0) {
-            const id = stand.fusing.result;
-            stand.fusing = null;
-            const left = addItem(stand.storage, id, addItem(stand.hotbar, id, 1));
-            const free = stand.tubs.indexOf(null);
-            if (left && free !== -1) stand.tubs[free] = { flavor: id, grow: 0 }; // inventory full? straight onto the stand
-            const isNew = !stand.seen.includes(id);
-            if (isNew) stand.seen.push(id);
-            stand.conn.send({ type: 'fused', flavor: id, isNew });
-          }
-        }
-
         for (const t of stand.tubs) if (t && t.grow > 0) t.grow = Math.max(0, t.grow - dt);
 
         // new customers: bigger sign and more ready tubs bring more people
@@ -368,7 +341,6 @@
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
-          fusing: s.fusing && { result: s.fusing.result, left: Math.round(s.fusing.left * 10) / 10 },
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
@@ -454,20 +426,6 @@
         item.count--;
         if (item.count <= 0) stand.hotbar[stand.hand] = null;
         conn.send({ type: 'placed', flavor: stand.tubs[i].flavor });
-      } else if (msg.type === 'fuse') {
-        // Fuse Machine: take one of each ice cream from your hotbar or Inventory, make one fused ice cream
-        if (!near({ x: FUSE_MACHINE.x, y: FUSE_MACHINE.y + 85 })) return err('Walk to the Fuse Machine first.');
-        if (stand.fusing) return err('The Fuse Machine is still working!');
-        const result = fuseResult(msg.a, msg.b);
-        if (!result) return err("Fused ice creams can't be fused again.");
-        const have = id => [...stand.hotbar, ...stand.storage].reduce((n, s) => n + (s && s.flavor === id ? s.count : 0), 0);
-        if (msg.a === msg.b ? have(msg.a) < 2 : have(msg.a) < 1 || have(msg.b) < 1) {
-          return err("You don't have those ice creams.");
-        }
-        if (!fits(stand.hotbar, result) && !fits(stand.storage, result)) return err('Your inventory is full!');
-        takeItem(stand, msg.a);
-        takeItem(stand, msg.b);
-        stand.fusing = { result, left: FUSE_SEC };
       } else if (msg.type === 'takeOut') {
         // take a tub off your stand and put it back in your inventory
         const i = Number(msg.space);
@@ -565,7 +523,7 @@
     return { handle, leave, tick, snapshotSaves };
   }
 
-  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, FUSE_MACHINE, REACH, chestPos, tubPos };
+  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, REACH, chestPos, tubPos };
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   else root.Engine = Engine;
 })(this);
