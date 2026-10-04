@@ -434,3 +434,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #tradeNo { flex: 1; background: #c92a2a; }
 /* trade offers and new pets always pop up above other windows */
 #tradeModal, #revealModal { z-index: 12; }
+/* the Infinity block and rarity: a spinning rainbow galaxy */
+.luckyBlock.infinity { background: radial-gradient(circle at 50% 50%, #fff 0 8%, #b84dff 20%, #1a0638 70%);
+  border-color: transparent; animation: infGlow 2s linear infinite; }
+@keyframes infGlow { 0% { box-shadow: 0 0 14px 4px #ff4fd8; } 33% { box-shadow: 0 0 14px 4px #3d9bff; }
+  66% { box-shadow: 0 0 14px 4px #ffee00; } 100% { box-shadow: 0 0 14px 4px #ff4fd8; } }
+.luckyBlock.shake.infinity { animation: shake 0.12s linear infinite, infGlow 2s linear infinite; }
+.badge.infinity, .revealRarity.infinity {
+  background: linear-gradient(90deg, #ff4040, #ffb000, #39d353, #3d9bff, #9b5cff, #ff4fd8) !important; }
+.badge.celestial { background-color: #00b8d9 !important; }
+.badge.divine { background-color: #f5b700 !important; }

@@ -441,6 +441,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #tradeNo { flex: 1; background: #c92a2a; }
 /* trade offers and new pets always pop up above other windows */
 #tradeModal, #revealModal { z-index: 12; }
+/* the Infinity block and rarity: a spinning rainbow galaxy */
+.luckyBlock.infinity { background: radial-gradient(circle at 50% 50%, #fff 0 8%, #b84dff 20%, #1a0638 70%);
+  border-color: transparent; animation: infGlow 2s linear infinite; }
+@keyframes infGlow { 0% { box-shadow: 0 0 14px 4px #ff4fd8; } 33% { box-shadow: 0 0 14px 4px #3d9bff; }
+  66% { box-shadow: 0 0 14px 4px #ffee00; } 100% { box-shadow: 0 0 14px 4px #ff4fd8; } }
+.luckyBlock.shake.infinity { animation: shake 0.12s linear infinite, infGlow 2s linear infinite; }
+.badge.infinity, .revealRarity.infinity {
+  background: linear-gradient(90deg, #ff4040, #ffb000, #39d353, #3d9bff, #9b5cff, #ff4fd8) !important; }
+.badge.celestial { background-color: #00b8d9 !important; }
+.badge.divine { background-color: #f5b700 !important; }
 </style>
 </head>
 <body>
@@ -708,6 +718,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.004, min: 1, max: 1 } },
     // admin-only ice creams: never in the shop, only admins can give or spawn them
     admin:     { name: 'Admin',     color: '#e8a200', order: 7, growSec: 30,  stock: { chance: 0,     min: 0, max: 0 } },
+    // pet-only rarities, even better than Secret
+    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
+    divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
+    infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -746,21 +760,28 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // Pets: you get them from lucky blocks at the Pet Shop. Your equipped pet follows you
   // and gives you `boost` more money from every scoop (0.5 = +50%).
+  // kind = how it moves: walk, hop, waddle, fly or swim (swimmers float through the air)
   const PETS = [
-    { id: 'puppy',   name: 'Puppy',        emoji: '🐶', rarity: 'common',    boost: 0.05, fx: 'hearts' },
-    { id: 'kitty',   name: 'Kitty',        emoji: '🐱', rarity: 'common',    boost: 0.05, fx: 'hearts' },
-    { id: 'bunny',   name: 'Bunny',        emoji: '🐰', rarity: 'common',    boost: 0.08, fx: 'hop' },
-    { id: 'fox',     name: 'Fire Fox',     emoji: '🦊', rarity: 'uncommon',  boost: 0.12, fx: 'embers' },
-    { id: 'panda',   name: 'Bamboo Panda', emoji: '🐼', rarity: 'uncommon',  boost: 0.15, fx: 'leaves' },
-    { id: 'penguin', name: 'Ice Penguin',  emoji: '🐧', rarity: 'rare',      boost: 0.25, fx: 'snow' },
-    { id: 'owl',     name: 'Night Owl',    emoji: '🦉', rarity: 'rare',      boost: 0.3,  fx: 'moon' },
-    { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',   boost: 0.5,  fx: 'rainbow' },
-    { id: 'wolf',    name: 'Shadow Wolf',  emoji: '🐺', rarity: 'epic',      boost: 0.6,  fx: 'shadow' },
-    { id: 'phoenix', name: 'Phoenix',      emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'fire' },
-    { id: 'kraken',  name: 'Kraken',       emoji: '🐙', rarity: 'legendary', boost: 1.2,  fx: 'bubbles' },
-    { id: 'lion',    name: 'Galaxy Lion',  emoji: '🦁', rarity: 'mythic',    boost: 2,    fx: 'galaxy' },
-    { id: 'whale',   name: 'Cosmic Whale', emoji: '🐋', rarity: 'mythic',    boost: 2.5,  fx: 'cosmic' },
-    { id: 'dragon',  name: 'Dragon',       emoji: '🐉', rarity: 'secret',    boost: 5,    fx: 'dragon' }, // the best pet!
+    { id: 'puppy',   name: 'Puppy',           emoji: '🐶', rarity: 'common',    boost: 0.05, fx: 'hearts',  kind: 'walk' },
+    { id: 'kitty',   name: 'Kitty',           emoji: '🐱', rarity: 'common',    boost: 0.05, fx: 'hearts',  kind: 'walk' },
+    { id: 'bunny',   name: 'Bunny',           emoji: '🐰', rarity: 'common',    boost: 0.08, fx: 'hop',     kind: 'hop' },
+    { id: 'fox',     name: 'Fire Fox',        emoji: '🦊', rarity: 'uncommon',  boost: 0.12, fx: 'embers',  kind: 'walk' },
+    { id: 'panda',   name: 'Bamboo Panda',    emoji: '🐼', rarity: 'uncommon',  boost: 0.15, fx: 'leaves',  kind: 'waddle' },
+    { id: 'penguin', name: 'Ice Penguin',     emoji: '🐧', rarity: 'rare',      boost: 0.25, fx: 'snow',    kind: 'waddle' },
+    { id: 'owl',     name: 'Night Owl',       emoji: '🦉', rarity: 'rare',      boost: 0.3,  fx: 'moon',    kind: 'fly' },
+    { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',      boost: 0.5,  fx: 'rainbow', kind: 'walk' },
+    { id: 'wolf',    name: 'Shadow Wolf',     emoji: '🐺', rarity: 'epic',      boost: 0.6,  fx: 'shadow',  kind: 'walk' },
+    { id: 'phoenix', name: 'Phoenix',         emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'fire',    kind: 'fly' },
+    { id: 'kraken',  name: 'Kraken',          emoji: '🐙', rarity: 'legendary', boost: 1.2,  fx: 'bubbles', kind: 'swim' },
+    { id: 'lion',    name: 'Galaxy Lion',     emoji: '🦁', rarity: 'mythic',    boost: 2,    fx: 'galaxy',  kind: 'walk' },
+    { id: 'whale',   name: 'Cosmic Whale',    emoji: '🐋', rarity: 'mythic',    boost: 2.5,  fx: 'cosmic',  kind: 'swim' },
+    { id: 'dragon',  name: 'Dragon',          emoji: '🐉', rarity: 'secret',    boost: 5,    fx: 'dragon',  kind: 'fly' },
+    // ⬇ even better than the Dragon!
+    { id: 'rex',     name: 'Lava Rex',        emoji: '🦖', rarity: 'celestial', boost: 7,    fx: 'lava',    kind: 'walk' },
+    { id: 'shark',   name: 'Thunder Shark',   emoji: '🦈', rarity: 'celestial', boost: 8,    fx: 'thunder', kind: 'swim' },
+    { id: 'dove',    name: 'Angel Dove',      emoji: '🕊️', rarity: 'divine',    boost: 12,   fx: 'holy',    kind: 'fly' },
+    { id: 'dragonking', name: 'Dragon King',  emoji: '🐲', rarity: 'divine',    boost: 15,   fx: 'king',    kind: 'fly' },
+    { id: 'infinity', name: 'Infinity Dragon', emoji: '🐉', rarity: 'infinity', boost: 30,   fx: 'infinity', kind: 'fly' }, // the best pet of all!
   ];
   const MAX_PETS = 60;
 
@@ -771,6 +792,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'gold',    name: 'Gold Block',    cost: 150000,   color: '#fcc419', odds: { uncommon: 30, rare: 40, epic: 25, legendary: 5 } },
     { id: 'diamond', name: 'Diamond Block', cost: 2000000,  color: '#66d9e8', odds: { rare: 30, epic: 45, legendary: 20, mythic: 5 } },
     { id: 'rainbow', name: 'Rainbow Block', cost: 25000000, color: 'rainbow', odds: { epic: 44, legendary: 40, mythic: 15, secret: 1 } },
+    { id: 'cosmic',  name: 'Cosmic Block',  cost: 1e9,      color: '#3b1f8f', odds: { legendary: 30, mythic: 45, secret: 20, celestial: 5 } },
+    { id: 'divine',  name: 'Divine Block',  cost: 25e9,     color: '#ffe8a3', odds: { mythic: 30, secret: 40, celestial: 25, divine: 5 } },
+    { id: 'infinity', name: 'Infinity Block', cost: 500e9,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
   ];
 
   // cost of the next level = base * growth^level
@@ -2510,13 +2534,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   }
 
   // ---------- 🐾 Pet Shop, lucky blocks and your pets ----------
-  const blockBg = b => b.color === 'rainbow' ? '' : `background:${b.color}`;
+  const fancyBlock = b => ['rainbow', 'infinity'].includes(b.color) ? b.color : '';
+  const blockBg = b => fancyBlock(b) ? '' : `background:${b.color}`;
   for (const b of LUCKY_BLOCKS) {
     const row = document.createElement('div');
     row.className = 'row';
     const odds = Object.entries(b.odds).map(([r, c]) =>
       `<b style="color:${RARITIES[r].color === '#111111' ? '#000' : RARITIES[r].color}">${RARITIES[r].name} ${c}%</b>`).join(' · ');
-    row.innerHTML = `<div class="luckyBlock ${b.color === 'rainbow' ? 'rainbow' : ''}" style="${blockBg(b)}"></div>
+    row.innerHTML = `<div class="luckyBlock ${fancyBlock(b)}" style="${blockBg(b)}"></div>
       <div class="info"><div class="name">${b.name}</div><div class="odds">${odds}</div></div>
       <button type="button">${fmt(b.cost)}</button>`;
     row.querySelector('button').addEventListener('click', () => send({ type: 'buyBlock', block: b.id }));
@@ -2543,7 +2568,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const pet = petById[msg.pet], r = RARITIES[pet.rarity];
     const block = LUCKY_BLOCKS.find(b => b.id === msg.block);
     const el = $('revealBlock');
-    el.className = 'luckyBlock shake' + (block.color === 'rainbow' ? ' rainbow' : '');
+    el.className = 'luckyBlock shake ' + fancyBlock(block);
     el.style.cssText = blockBg(block);
     el.classList.remove('hidden');
     $('revealPet').classList.add('hidden');
@@ -2557,6 +2582,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const badge = box.querySelector('.revealRarity');
       badge.textContent = r.name.toUpperCase();
       badge.style.background = r.color;
+      badge.className = 'revealRarity ' + pet.rarity;
       box.querySelector('.revealName').textContent = pet.name;
       box.querySelector('.revealBoost').textContent = `${pct(pet.boost)} money from every scoop` +
         (msg.equipped ? ' · it\'s following you now!' : '');
@@ -3406,18 +3432,60 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return `${f(0)}, ${f(8)}, ${f(4)}`;
   }
 
+  // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
+  // birds and dragons flap in the air, and sea creatures swim through it
+  const PET_SIZE = { dragon: 1.45, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+
+  // fire (or rainbow fire) out of the pet's mouth
+  function breathe(x, y, facing, colors, rnd) {
+    for (let k = 0; k < 4; k++) {
+      petSpark(x + facing * 22, y - 12, { shape: 'flame', color: colors[k % colors.length],
+        vx: facing * (140 + Math.random() * 120), vy: rnd() * 60 - 10, life: 0.45, size: 4 + Math.random() * 5 });
+    }
+  }
+
   function drawPet(pet, pp, time, dt, seed) {
     const r = RARITIES[pet.rarity];
-    const big = pet.id === 'dragon' ? 1.45 : r.order >= 4 ? 1.15 : 1;
-    const hop = pet.fx === 'hop' ? Math.abs(Math.sin(time * 6 + seed)) * 10 : (pp.moving ? Math.abs(Math.sin(time * 10)) * 4 : 0);
-    const float = r.order >= 3 ? 10 + Math.sin(time * 3 + seed) * 4 : 0; // fancy pets float in the air
-    const x = pp.x, y = pp.y - hop - float;
+    const big = PET_SIZE[pet.id] || (r.order >= 4 ? 1.15 : 1);
     const rnd = () => Math.random() - 0.5;
     const chance = k => Math.random() < dt * k;
+    const wave = Math.sin(pp.step * Math.PI); // -1..1 once per step
 
-    // shadow
-    ctx.fillStyle = '0, 0, 0';
-    ctx.beginPath(); ctx.ellipse(pp.x, pp.y + 10, 12 * big, 4, 0, 0, Math.PI * 2); ctx.fill();
+    // how it moves
+    let alt = 0, bob = 0, tilt = 0, sx = 1, sy = 1;
+    switch (pet.kind) {
+      case 'fly':
+        alt = 26 + Math.sin(time * 2.2 + seed) * 5;
+        sy = 1 + Math.sin(time * (pp.moving ? 18 : 11) + seed) * 0.07; // flapping wings
+        tilt = pp.moving ? 0.16 : 0;
+        break;
+      case 'swim':
+        alt = 16 + Math.sin(time * 1.5 + seed) * 4;
+        tilt = Math.sin(time * 2 + seed) * 0.12 + (pp.moving ? 0.08 : 0);
+        sx = 1 + Math.sin(time * 4 + seed) * 0.03;
+        break;
+      case 'hop': {
+        const ph = (pp.moving ? pp.step * 0.5 : (time + seed) / 3) % 1; // idle bunnies still hop now and then
+        const up = pp.moving || ph < 0.25 ? Math.sin(Math.min(1, ph * (pp.moving ? 1 : 4)) * Math.PI) : 0;
+        bob = up * (pp.moving ? 14 : 6);
+        if (up < 0.15) { sy = 0.9; sx = 1.08; } // squish when it lands
+        break;
+      }
+      case 'waddle':
+        if (pp.moving) { tilt = wave * 0.2; bob = Math.abs(wave) * 2; }
+        else sy = 1 + Math.sin(time * 2.5 + seed) * 0.03;
+        break;
+      default: // walk
+        if (pp.moving) { bob = Math.abs(wave) * 5; tilt = wave * 0.06; }
+        else if (pp.still > 3) { sy = 0.93; sx = 1.04; } // sits down when you stand still
+        else sy = 1 + Math.sin(time * 2.5 + seed) * 0.035; // breathing
+    }
+    const x = pp.x, y = pp.y - alt - bob;
+
+    // shadow on the ground (smaller and lighter when it's up in the air)
+    const lift = Math.min(1, (alt + bob) / 60);
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.22 * (1 - lift * 0.6)})`;
+    ctx.beginPath(); ctx.ellipse(pp.x, pp.y + 10, 12 * big * (1 - lift * 0.4), 4 * (1 - lift * 0.3), 0, 0, Math.PI * 2); ctx.fill();
 
     // effects behind the pet
     switch (pet.fx) {
@@ -3439,7 +3507,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (chance(25)) petSpark(x - pp.facing * 10 + rnd() * 6, y + rnd() * 10, { color: `hsl(${(time * 300) % 360},100%,60%)`, vy: 5, vx: -pp.facing * 20, life: 0.9, size: 4 });
         if (chance(3)) petSpark(x + rnd() * 30, y - 10 + rnd() * 20, { shape: 'star', color: '#fff', vy: -5, life: 0.7, size: 3.5 }); break;
       case 'shadow': glow(x, y - 4, 32, '90, 30, 140', 0.6);
-        if (chance(12)) petSpark(x + rnd() * 24, y + 4, { shape: 'smoke', color: '40, 10, 60', vy: -18, vx: rnd() * 14, life: 1.3, size: 7 }); break;
+        if (chance(12)) petSpark(x + rnd() * 24, y + 4, { shape: 'smoke', color: 'rgba(40,10,60,0.5)', vy: -18, vx: rnd() * 14, life: 1.3, size: 7 }); break;
       case 'fire': glow(x, y - 4, 36, '255, 90, 0', 0.65);
         if (chance(30)) petSpark(x + rnd() * 22, y + 2, { shape: 'flame', color: Math.random() < 0.5 ? '#ff6a00' : '#ffd000', vy: -60, vx: rnd() * 20, life: 0.6, size: 5 }); break;
       case 'bubbles': glow(x, y - 4, 32, '50, 150, 255', 0.55);
@@ -3453,24 +3521,87 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'cosmic': glow(x - 10, y - 6, 40, '255, 80, 200', 0.5); glow(x + 10, y - 2, 40, '60, 180, 255', 0.5);
         if (chance(10)) petSpark(x + rnd() * 60, y - 10 + rnd() * 40, { shape: 'star', color: Math.random() < 0.5 ? '#fff' : '#99e9f2', vy: -3, life: 1, size: 3 }); break;
       case 'dragon': {
-        // the best pet: a huge fiery aura, a ring of flames around it, embers, and fire breath!
+        // a huge fiery aura, a ring of flames, embers, and fire breath
         const pulse = 1 + Math.sin(time * 4) * 0.12;
         glow(x, y - 8, 60 * pulse, '255, 60, 0', 0.55);
         glow(x, y - 8, 34 * pulse, '255, 215, 0', 0.5);
         for (let k = 0; k < 8; k++) {
           const a = -time * 2.5 + k * Math.PI / 4;
-          const fx = x + Math.cos(a) * 40, fy = y - 8 + Math.sin(a) * 16;
-          glow(fx, fy, 7, k % 2 ? '255, 200, 0' : '255, 80, 0', 0.9);
+          glow(x + Math.cos(a) * 40, y - 8 + Math.sin(a) * 16, 7, k % 2 ? '255, 200, 0' : '255, 80, 0', 0.9);
         }
         if (chance(20)) petSpark(x + rnd() * 40, y + 4, { shape: 'flame', color: Math.random() < 0.5 ? '#ff4800' : '#ffc300', vy: -70, vx: rnd() * 30, life: 0.8, size: 5 });
-        // breathe fire every few seconds
-        const breath = (time + seed) % 4;
-        if (breath < 1.1) {
-          for (let k = 0; k < 4; k++) {
-            petSpark(x + pp.facing * 22, y - 12, { shape: 'flame', color: ['#ff2a00', '#ff8c00', '#ffd000', '#fff3b0'][k],
-              vx: pp.facing * (140 + Math.random() * 120), vy: rnd() * 60 - 10, life: 0.45, size: 4 + Math.random() * 5 });
-          }
+        if ((time + seed) % 4 < 1.1) breathe(x, y, pp.facing, ['#ff2a00', '#ff8c00', '#ffd000', '#fff3b0'], rnd);
+        break;
+      }
+      case 'lava': {
+        // 🦖 Lava Rex: a glowing lava pool under it, dripping magma, and burning footprints
+        glow(pp.x, pp.y + 8, 46, '255, 70, 0', 0.55);
+        glow(x, y - 10, 50, '255, 120, 0', 0.45);
+        if (chance(10)) petSpark(x + rnd() * 30, y - 6, { shape: 'flame', color: Math.random() < 0.5 ? '#ff3d00' : '#ff9100', vy: 50, vx: rnd() * 10, life: 0.6, size: 3.5 });
+        if (chance(14)) petSpark(x + rnd() * 40, y, { color: '#ffd166', vy: -50, vx: rnd() * 30, life: 0.9, size: 2 });
+        if (pp.moving && chance(5)) petSpark(pp.x + rnd() * 10, pp.y + 10, { shape: 'print', color: '#ff5400', vy: 0, life: 1.6, size: 4 });
+        if ((time + seed) % 5 < 0.9) breathe(x, y + 4, pp.facing, ['#ff1f00', '#ff7b00', '#ffcc00'], rnd);
+        break;
+      }
+      case 'thunder': {
+        // 🦈 Thunder Shark: crackling electric aura and lightning bolts
+        glow(x, y - 6, 52 * (1 + Math.sin(time * 9) * 0.08), '60, 170, 255', 0.6);
+        glow(x, y - 6, 26, '220, 245, 255', 0.5);
+        if (chance(4)) {
+          const a = Math.random() * Math.PI * 2, len = 35 + Math.random() * 30;
+          const pts = [];
+          for (let k = 0; k <= 5; k++) pts.push([Math.cos(a) * len * k / 5 + rnd() * 12, Math.sin(a) * len * k / 5 * 0.7 + rnd() * 12]);
+          petSpark(x, y - 6, { shape: 'bolt', pts, color: '#e7f5ff', vy: 0, life: 0.18 });
         }
+        if (chance(15)) petSpark(x + rnd() * 50, y - 6 + rnd() * 30, { shape: 'star', color: '#74c0fc', vy: 0, life: 0.3, size: 3 });
+        break;
+      }
+      case 'holy': {
+        // 🕊️ Angel Dove: soft light rays, a golden halo and falling feathers
+        ctx.save();
+        ctx.translate(x, y - 6);
+        ctx.rotate(time * 0.5);
+        for (let k = 0; k < 10; k++) {
+          ctx.rotate(Math.PI / 5);
+          ctx.fillStyle = 'rgba(255, 240, 180, 0.22)';
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-6, 70); ctx.lineTo(6, 70); ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+        glow(x, y - 6, 46, '255, 250, 220', 0.75);
+        if (chance(3)) petSpark(x + rnd() * 50, y - 30, { shape: 'leaf', color: '#ffffff', vy: 16, vx: rnd() * 20, life: 2, size: 4.5 });
+        if (chance(6)) petSpark(x + rnd() * 60, y - 6 + rnd() * 40, { shape: 'star', color: '#ffe066', vy: -6, life: 0.9, size: 3 });
+        break;
+      }
+      case 'king': {
+        // 🐲 Dragon King: royal golden flames, a roar shockwave and golden fire breath
+        const pulse = 1 + Math.sin(time * 4) * 0.1;
+        glow(x, y - 8, 70 * pulse, '255, 190, 0', 0.55);
+        glow(x, y - 8, 36 * pulse, '255, 255, 220', 0.55);
+        for (let k = 0; k < 10; k++) {
+          const a = time * 2 + k * Math.PI / 5;
+          glow(x + Math.cos(a) * 48, y - 8 + Math.sin(a) * 18, 8, k % 2 ? '255, 230, 120' : '255, 160, 0', 0.95);
+        }
+        if (chance(16)) petSpark(x + rnd() * 50, y + 4, { shape: 'flame', color: Math.random() < 0.5 ? '#ffd43b' : '#fff3bf', vy: -70, vx: rnd() * 30, life: 0.8, size: 5 });
+        const roar = (time + seed) % 3.5;
+        if (roar < dt) petSpark(x, y - 8, { shape: 'ring', color: '#ffd43b', vy: 0, life: 0.8, size: 20, grow: 110 });
+        if (roar < 1) breathe(x, y, pp.facing, ['#fff3bf', '#ffd43b', '#ffa94d'], rnd);
+        break;
+      }
+      case 'infinity': {
+        // ♾️ Infinity Dragon, the best pet: a rainbow galaxy around it, rainbow fire and color waves
+        const hue = (time * 90) % 360;
+        glow(x, y - 8, 80, hueRgb(hue), 0.5);
+        glow(x, y - 8, 50, hueRgb((hue + 120) % 360), 0.45);
+        glow(x, y - 8, 26, '255, 255, 255', 0.6);
+        for (let k = 0; k < 12; k++) {
+          const a = time * (k % 2 ? 1.6 : -2.2) + k * Math.PI / 6;
+          const rad = k % 2 ? 58 : 40;
+          star(x + Math.cos(a) * rad, y - 8 + Math.sin(a) * rad * 0.4, 4.5, `hsl(${(hue + k * 30) % 360}, 100%, 65%)`);
+        }
+        if (chance(25)) petSpark(x + rnd() * 70, y - 8 + rnd() * 40, { shape: 'star', color: `hsl(${Math.random() * 360}, 100%, 70%)`, vy: -10, life: 0.9, size: 3 });
+        const beat = (time + seed) % 3;
+        if (beat < dt) petSpark(x, y - 8, { shape: 'ring', color: `hsl(${hue}, 100%, 60%)`, vy: 0, life: 1, size: 24, grow: 140 });
+        if (beat < 1.1) breathe(x, y, pp.facing, [0, 60, 120, 200, 280].map(h => `hsl(${(hue + h) % 360}, 100%, 60%)`), rnd);
         break;
       }
     }
@@ -3478,14 +3609,32 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // the pet itself
     ctx.save();
     ctx.translate(x, y);
-    ctx.scale(-pp.facing * big, big); // pet emojis face left, so flip them to face where they walk
+    ctx.rotate(tilt * pp.facing);
+    ctx.scale(-pp.turn * big * sx, big * sy); // pet emojis face left; turn smoothly to face where they go
+    if (pet.fx === 'infinity') ctx.filter = `hue-rotate(${(time * 90) % 360}deg) saturate(1.6)`;
     ctx.font = `30px ${EMOJI_FONT}`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.textBaseline = 'bottom';
     if (r.order >= 2) { ctx.shadowColor = r.color === '#111111' ? '#ff5a00' : r.color; ctx.shadowBlur = 14; }
-    ctx.fillText(pet.emoji, 0, -6);
+    ctx.fillText(pet.emoji, 0, 10); // drawn from its feet, so squishing and sitting look right
     ctx.restore();
     ctx.textBaseline = 'alphabetic';
+    if (pet.fx === 'holy') {
+      ctx.strokeStyle = '#ffd43b'; ctx.lineWidth = 3;
+      ctx.shadowColor = '#ffd43b'; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.ellipse(x, y - 30 * big - 4, 11, 4, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    if (pet.fx === 'king') {
+      // a golden crown on the Dragon King
+      const cy = y - 30 * big - 2, cx = x;
+      ctx.fillStyle = '#ffd43b'; ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - 11, cy + 6); ctx.lineTo(cx - 11, cy - 6); ctx.lineTo(cx - 5, cy); ctx.lineTo(cx, cy - 9);
+      ctx.lineTo(cx + 5, cy); ctx.lineTo(cx + 11, cy - 6); ctx.lineTo(cx + 11, cy + 6); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#e03131'; ctx.beginPath(); ctx.arc(cx, cy + 2, 2, 0, Math.PI * 2); ctx.fill();
+    }
   }
 
   function drawPetParticles(dt) {
@@ -3523,6 +3672,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           break;
         case 'flame':
           ctx.beginPath(); ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2); ctx.fill();
+          break;
+        case 'print': // a burning footprint
+          ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+          break;
+        case 'ring': // a shockwave
+          ctx.strokeStyle = p.color; ctx.lineWidth = 4 * a;
+          ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size + p.t * p.grow, (p.size + p.t * p.grow) * 0.45, 0, 0, Math.PI * 2); ctx.stroke();
+          break;
+        case 'bolt': // lightning
+          ctx.strokeStyle = p.color; ctx.lineWidth = 2.2;
+          ctx.shadowColor = '#4dabf7'; ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y);
+          for (const [bx, by] of p.pts) ctx.lineTo(p.x + bx, p.y + by);
+          ctx.stroke(); ctx.shadowBlur = 0;
           break;
         default:
           ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
@@ -4566,12 +4729,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const owner = s.id === myId ? (player.placed ? player : null) : others.get(s.id);
       if (!owner) continue;
       let pp = petPos.get(s.id);
-      const tx = owner.x - (owner.facing || 1) * 34, ty = owner.y + 6;
-      if (!pp) { pp = { x: tx, y: ty, facing: 1 }; petPos.set(s.id, pp); }
-      const dx = tx - pp.x;
-      pp.x += dx * Math.min(1, dt * 5); pp.y += (ty - pp.y) * Math.min(1, dt * 5);
-      if (Math.abs(dx) > 2) pp.facing = dx > 0 ? 1 : -1;
-      pp.moving = Math.abs(dx) + Math.abs(ty - pp.y) > 3;
+      const tx = owner.x - (owner.facing || 1) * (24 + 16 * (PET_SIZE[pet.id] || 1)), ty = owner.y + 8; // big pets stay farther back
+      if (!pp) { pp = { x: tx, y: ty, facing: 1, turn: 1, speed: 0, step: 0, still: 0, chasing: false }; petPos.set(s.id, pp); }
+      const dx = tx - pp.x, dy = ty - pp.y, d = Math.hypot(dx, dy);
+      // like a real pet: it waits when it's close, then trots to catch up (faster when far behind)
+      if (d > 45) pp.chasing = true;
+      else if (d < 8) pp.chasing = false;
+      const want = pp.chasing ? Math.min(420, Math.max(70, d * 3.5)) : 0;
+      pp.speed += (want - pp.speed) * Math.min(1, dt * 6);
+      if (d > 0.5 && pp.speed > 1) {
+        const stepLen = Math.min(d, pp.speed * dt);
+        pp.x += dx / d * stepLen; pp.y += dy / d * stepLen;
+      }
+      if (d > 600) { pp.x = tx; pp.y = ty; } // teleported (new round, far away): jump along
+      pp.moving = pp.speed > 25;
+      pp.step += dt * Math.min(pp.speed, 300) / 45;
+      if (pp.moving) {
+        pp.still = 0;
+        if (Math.abs(dx) > 4) pp.facing = dx > 0 ? 1 : -1;
+      } else {
+        pp.still += dt;
+        // waiting: look at its owner, and look around now and then
+        if (Math.abs(owner.x - pp.x) > 6) pp.facing = owner.x > pp.x ? 1 : -1;
+        if (pp.still > 2 && (time + s.id * 1.7) % 6 < 0.9) pp.facing = -pp.facing;
+      }
+      pp.turn += (pp.facing - pp.turn) * Math.min(1, dt * 9);
       entities.push({ y: pp.y - 1, draw: () => drawPet(pet, pp, time, dt, s.id) });
     }
     entities.sort((a, b) => a.y - b.y);

@@ -13,6 +13,10 @@
     secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.004, min: 1, max: 1 } },
     // admin-only ice creams: never in the shop, only admins can give or spawn them
     admin:     { name: 'Admin',     color: '#e8a200', order: 7, growSec: 30,  stock: { chance: 0,     min: 0, max: 0 } },
+    // pet-only rarities, even better than Secret
+    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
+    divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
+    infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -51,21 +55,28 @@
 
   // Pets: you get them from lucky blocks at the Pet Shop. Your equipped pet follows you
   // and gives you `boost` more money from every scoop (0.5 = +50%).
+  // kind = how it moves: walk, hop, waddle, fly or swim (swimmers float through the air)
   const PETS = [
-    { id: 'puppy',   name: 'Puppy',        emoji: '🐶', rarity: 'common',    boost: 0.05, fx: 'hearts' },
-    { id: 'kitty',   name: 'Kitty',        emoji: '🐱', rarity: 'common',    boost: 0.05, fx: 'hearts' },
-    { id: 'bunny',   name: 'Bunny',        emoji: '🐰', rarity: 'common',    boost: 0.08, fx: 'hop' },
-    { id: 'fox',     name: 'Fire Fox',     emoji: '🦊', rarity: 'uncommon',  boost: 0.12, fx: 'embers' },
-    { id: 'panda',   name: 'Bamboo Panda', emoji: '🐼', rarity: 'uncommon',  boost: 0.15, fx: 'leaves' },
-    { id: 'penguin', name: 'Ice Penguin',  emoji: '🐧', rarity: 'rare',      boost: 0.25, fx: 'snow' },
-    { id: 'owl',     name: 'Night Owl',    emoji: '🦉', rarity: 'rare',      boost: 0.3,  fx: 'moon' },
-    { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',   boost: 0.5,  fx: 'rainbow' },
-    { id: 'wolf',    name: 'Shadow Wolf',  emoji: '🐺', rarity: 'epic',      boost: 0.6,  fx: 'shadow' },
-    { id: 'phoenix', name: 'Phoenix',      emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'fire' },
-    { id: 'kraken',  name: 'Kraken',       emoji: '🐙', rarity: 'legendary', boost: 1.2,  fx: 'bubbles' },
-    { id: 'lion',    name: 'Galaxy Lion',  emoji: '🦁', rarity: 'mythic',    boost: 2,    fx: 'galaxy' },
-    { id: 'whale',   name: 'Cosmic Whale', emoji: '🐋', rarity: 'mythic',    boost: 2.5,  fx: 'cosmic' },
-    { id: 'dragon',  name: 'Dragon',       emoji: '🐉', rarity: 'secret',    boost: 5,    fx: 'dragon' }, // the best pet!
+    { id: 'puppy',   name: 'Puppy',           emoji: '🐶', rarity: 'common',    boost: 0.05, fx: 'hearts',  kind: 'walk' },
+    { id: 'kitty',   name: 'Kitty',           emoji: '🐱', rarity: 'common',    boost: 0.05, fx: 'hearts',  kind: 'walk' },
+    { id: 'bunny',   name: 'Bunny',           emoji: '🐰', rarity: 'common',    boost: 0.08, fx: 'hop',     kind: 'hop' },
+    { id: 'fox',     name: 'Fire Fox',        emoji: '🦊', rarity: 'uncommon',  boost: 0.12, fx: 'embers',  kind: 'walk' },
+    { id: 'panda',   name: 'Bamboo Panda',    emoji: '🐼', rarity: 'uncommon',  boost: 0.15, fx: 'leaves',  kind: 'waddle' },
+    { id: 'penguin', name: 'Ice Penguin',     emoji: '🐧', rarity: 'rare',      boost: 0.25, fx: 'snow',    kind: 'waddle' },
+    { id: 'owl',     name: 'Night Owl',       emoji: '🦉', rarity: 'rare',      boost: 0.3,  fx: 'moon',    kind: 'fly' },
+    { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',      boost: 0.5,  fx: 'rainbow', kind: 'walk' },
+    { id: 'wolf',    name: 'Shadow Wolf',     emoji: '🐺', rarity: 'epic',      boost: 0.6,  fx: 'shadow',  kind: 'walk' },
+    { id: 'phoenix', name: 'Phoenix',         emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'fire',    kind: 'fly' },
+    { id: 'kraken',  name: 'Kraken',          emoji: '🐙', rarity: 'legendary', boost: 1.2,  fx: 'bubbles', kind: 'swim' },
+    { id: 'lion',    name: 'Galaxy Lion',     emoji: '🦁', rarity: 'mythic',    boost: 2,    fx: 'galaxy',  kind: 'walk' },
+    { id: 'whale',   name: 'Cosmic Whale',    emoji: '🐋', rarity: 'mythic',    boost: 2.5,  fx: 'cosmic',  kind: 'swim' },
+    { id: 'dragon',  name: 'Dragon',          emoji: '🐉', rarity: 'secret',    boost: 5,    fx: 'dragon',  kind: 'fly' },
+    // ⬇ even better than the Dragon!
+    { id: 'rex',     name: 'Lava Rex',        emoji: '🦖', rarity: 'celestial', boost: 7,    fx: 'lava',    kind: 'walk' },
+    { id: 'shark',   name: 'Thunder Shark',   emoji: '🦈', rarity: 'celestial', boost: 8,    fx: 'thunder', kind: 'swim' },
+    { id: 'dove',    name: 'Angel Dove',      emoji: '🕊️', rarity: 'divine',    boost: 12,   fx: 'holy',    kind: 'fly' },
+    { id: 'dragonking', name: 'Dragon King',  emoji: '🐲', rarity: 'divine',    boost: 15,   fx: 'king',    kind: 'fly' },
+    { id: 'infinity', name: 'Infinity Dragon', emoji: '🐉', rarity: 'infinity', boost: 30,   fx: 'infinity', kind: 'fly' }, // the best pet of all!
   ];
   const MAX_PETS = 60;
 
@@ -76,6 +87,9 @@
     { id: 'gold',    name: 'Gold Block',    cost: 150000,   color: '#fcc419', odds: { uncommon: 30, rare: 40, epic: 25, legendary: 5 } },
     { id: 'diamond', name: 'Diamond Block', cost: 2000000,  color: '#66d9e8', odds: { rare: 30, epic: 45, legendary: 20, mythic: 5 } },
     { id: 'rainbow', name: 'Rainbow Block', cost: 25000000, color: 'rainbow', odds: { epic: 44, legendary: 40, mythic: 15, secret: 1 } },
+    { id: 'cosmic',  name: 'Cosmic Block',  cost: 1e9,      color: '#3b1f8f', odds: { legendary: 30, mythic: 45, secret: 20, celestial: 5 } },
+    { id: 'divine',  name: 'Divine Block',  cost: 25e9,     color: '#ffe8a3', odds: { mythic: 30, secret: 40, celestial: 25, divine: 5 } },
+    { id: 'infinity', name: 'Infinity Block', cost: 500e9,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
   ];
 
   // cost of the next level = base * growth^level

@@ -65,10 +65,15 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - **🍒 Toppings:** the Supplies Shop has a Toppings square on the side. Hold a topping and tap an ice cream
   on your stand: every scoop of it sells for more (Sprinkles +25% up to Stardust +400%). One topping per ice cream;
   you get it back if you take the ice cream off.
-- **🐾 Pet Shop:** at the top of the middle plaza. Open lucky blocks (Wooden, Iron, Gold, Diamond, Rainbow) for a
-  random pet. Your pet follows you with cool effects and gives you more money from every scoop. Pets go from the
-  Puppy (+5%) up to the 🐉 **Dragon** (+500%, fire aura and fire breath), the best pet, which only comes from a
-  Rainbow Block (1% chance). Press **🐾 My Pets** to pick which one follows you.
+- **🐾 Pet Shop:** at the top of the middle plaza. Open lucky blocks for a random pet. Your pet follows you
+  with cool effects and gives you more money from every scoop. Pets move like real animals: they trot to catch up,
+  wait and look around when you stop, and sit down after a while. Bunnies hop, pandas and penguins waddle, birds
+  and dragons flap in the air, and sea creatures swim through it.
+  - Blocks: Wooden, Iron, Gold, Diamond, Rainbow, Cosmic ($1B), Divine ($25B) and Infinity ($500B).
+  - The 🐉 Dragon (+500%) is Secret. Even better are the new pet rarities: **Celestial** (🦖 Lava Rex +700%,
+    🦈 Thunder Shark +800%), **Divine** (🕊️ Angel Dove +1,200%, 🐲 Dragon King +1,500%) and **Infinity**
+    (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
+  - Press **🐾 My Pets** to pick which one follows you.
 - **🎁 Gift & Trade:** pick someone who is playing right now. **Gift** sends them any amount of money
   (type 500, 25k, 3m, 1b or 1t), ice cream, toppings or pets. **Trade** lets you pick what you give and what you
   want back; they get a pop-up and can Accept or say No thanks.
