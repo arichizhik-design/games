@@ -11,6 +11,8 @@
     legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.07,  min: 1, max: 1 } },
     mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.02,  min: 1, max: 1 } },
     secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.004, min: 1, max: 1 } },
+    // made in the Fuse Machine from two ice creams (never in the shop)
+    fused:     { name: 'Fused',     color: '#00b4d8', order: 5, growSec: 60,  stock: { chance: 0,     min: 0, max: 0 } },
     // admin-only ice creams: never in the shop, only admins can give or spawn them
     admin:     { name: 'Admin',     color: '#e8a200', order: 7, growSec: 30,  stock: { chance: 0,     min: 0, max: 0 } },
   };
@@ -31,6 +33,13 @@
     { id: 'unicorn',     name: 'Unicorn Dream',    rarity: 'mythic',    price: 300,  cost: 100000,  color: '#e0bbff', effect: 'unicorn' },
     { id: 'phoenix',     name: 'Phoenix Fire',     rarity: 'mythic',    price: 350,  cost: 200000,  color: '#ff4500', effect: 'fire' },
     { id: 'void',        name: 'Cosmic Void',      rarity: 'secret',    price: 1200, cost: 1000000, color: '#0b0033', effect: 'void' },
+    // ⚡ special Fuse Machine recipes (see FUSE_RECIPES)
+    { id: 'twist',          name: 'Twist Swirl',     rarity: 'fused', price: 8,    cost: 0, color: '#fff3c4', colors: ['#fff3c4', '#6b3e26'], effect: 'swirl2', fused: true },
+    { id: 'goldendragon',   name: 'Golden Dragon',   rarity: 'fused', price: 700,  cost: 0, color: '#ffc61a', effect: 'goldendragon', fused: true },
+    { id: 'rainbowunicorn', name: 'Rainbow Unicorn', rarity: 'fused', price: 1300, cost: 0, color: '#e0bbff', effect: 'rainbowunicorn', fused: true },
+    { id: 'fireice',        name: 'Fire & Ice',      rarity: 'fused', price: 1500, cost: 0, color: '#ff4500', colors: ['#ff4500', '#9be7ff'], effect: 'fireice', fused: true },
+    { id: 'supermassive',   name: 'Supermassive',    rarity: 'fused', price: 5000, cost: 0, color: '#0b0033', effect: 'void', fused: true },
+    { id: 'darkphoenix',    name: 'Dark Phoenix',    rarity: 'fused', price: 8000, cost: 0, color: '#4a0072', effect: 'darkfire', fused: true },
     // 👑 admin-only
     { id: 'crownjewel',  name: 'Crown Jewel',      rarity: 'admin', price: 5000,  cost: 0, color: '#ffcf33', effect: 'crown', adminOnly: true },
     { id: 'storm',       name: 'Storm Cloud',      rarity: 'admin', price: 7500,  cost: 0, color: '#3b4a6b', effect: 'storm', adminOnly: true },
@@ -57,7 +66,7 @@
   const SPACE_COSTS = [300, 6000, 75000];
 
   function spaceCost(spaces) {
-    if (spaces >= FLAVORS.filter(f => !f.adminOnly).length) return null; // already room for every shop flavor
+    if (spaces >= FLAVORS.filter(f => !f.adminOnly && !f.fused).length) return null; // already room for every shop flavor
     return SPACE_COSTS[Math.round((spaces - START_SPACES) / SPACES_PER_BUY)] ?? null;
   }
 
@@ -102,7 +111,51 @@
     face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
   };
 
+  // ---------- Fuse Machine ----------
+  // Two ice creams in, one fused ice cream out. These pairs make special ice creams;
+  // any other pair makes a two-color swirl worth 1.5x the two prices added together.
+  const FUSE_RECIPES = {
+    'chocolate+vanilla': 'twist',
+    'dragonfruit+golden': 'goldendragon',
+    'rainbow+unicorn': 'rainbowunicorn',
+    'mint+phoenix': 'fireice',
+    'galaxy+void': 'supermassive',
+    'phoenix+void': 'darkphoenix',
+  };
+  const FUSE_SEC = 4; // how long the machine takes
+
+  const baseById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
+  const fusedCache = {};
+
+  // a swirl made from any two ice creams has an id like 'fuse:mint:strawberry'
+  function makeSwirl(id) {
+    if (fusedCache[id]) return fusedCache[id];
+    const [, a, b] = id.split(':');
+    const A = baseById[a], B = baseById[b];
+    if (!A || !B || A.fused || B.fused || a > b) return undefined;
+    const first = f => f.name.split(' ')[0];
+    return (fusedCache[id] = {
+      id, name: a === b ? `Double ${A.name}` : `${first(A)} ${first(B)} Fusion`,
+      rarity: 'fused', price: Math.round((A.price + B.price) * 1.5), cost: 0,
+      color: A.color, colors: [A.color, B.color], effect: 'swirl2', fused: true, parts: [a, b],
+    });
+  }
+
+  // look up any ice cream by id, including fused swirls
+  const flavorById = new Proxy(baseById, {
+    get: (t, k) => t[k] || (typeof k === 'string' && k.startsWith('fuse:') ? makeSwirl(k) : undefined),
+  });
+
+  // what two ice creams make (null if they can't be fused)
+  function fuseResult(a, b) {
+    const A = baseById[a], B = baseById[b];
+    if (!A || !B || A.fused || B.fused) return null;
+    const [x, y] = [a, b].sort();
+    return FUSE_RECIPES[`${x}+${y}`] || `fuse:${x}:${y}`;
+  }
+
   const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
+    flavorById, fuseResult, FUSE_RECIPES, FUSE_SEC,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };

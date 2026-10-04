@@ -34,6 +34,11 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - **Avatar Shop:** walk to the blue Avatar Shop next to the Ice Cream Shop and tap it to change your
   character's shirt, pants, skin, hat (cap, top hat, beanie, party hat, cowboy hat, wizard hat, bunny ears,
   ice cream hat) and face. Everyone in the park sees your look, and it's saved with your name.
+- **⚡ Fuse Machine:** walk to the Fuse Machine next to the Ice Cream Shop and tap it. Pick two ice creams
+  from your hotbar or Inventory and press FUSE: a few seconds later you get one fused ice cream worth 1.5x the
+  two prices added together, as a two-color swirl. Six secret recipes make special fused ice creams instead
+  (Twist Swirl, Golden Dragon, Rainbow Unicorn, Fire & Ice, Supermassive and Dark Phoenix); the recipe book in
+  the Fuse Machine fills in as you discover them. Fused ice creams can't be fused again.
 - **Shop odds:** the really good ice creams are really rare. After each restock the shop has an Epic
   flavor 20% of the time, a Legendary 7%, a Mythic 2% and the Secret flavor only 0.4%.
 - **Upgrades:** Bigger Sign (more customers), Tip Jar (+10% money per level).

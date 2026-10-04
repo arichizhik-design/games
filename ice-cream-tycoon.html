@@ -264,6 +264,38 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #shopList .stock.in { color: #2b8a3e; }
 #shopList .stock.out { color: #c92a2a; }
 #shopList .row.soldout { opacity: 0.55; }
+/* Fuse Machine window */
+.fuseRow { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px 0; }
+.fuseSlot {
+  width: 96px; min-height: 96px; border-radius: 14px; background: #e3fafc; border: 3px dashed #66d9e8;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px;
+  color: #0b7285; font-size: 12px; font-weight: bold;
+}
+.fuseSlot.result { border-style: solid; border-color: #00b4d8; background: #fff; }
+.fuseSlot .fsName { font-size: 12px; text-align: center; color: #0b7285; }
+.fuseSlot .fsEmpty { font-size: 12px; text-align: center; color: #66a8b5; }
+.fuseSign { font-size: 26px; font-weight: bold; color: #0b7285; }
+#fuseBtn { display: block; width: 100%; font-size: 18px; padding: 10px; background: linear-gradient(90deg, #00b4d8, #7b2cbf); }
+#fuseBtn:disabled { background: #d8c6cf; }
+.fuseLabel { font-weight: bold; color: #0b7285; margin: 12px 0 6px; }
+#fuseItems { display: flex; flex-wrap: wrap; gap: 6px; }
+.fuseItem { position: relative; width: 50px; height: 50px; padding: 0; background: #f1f3f5; border: 2px solid #ced4da; display: flex; align-items: center; justify-content: center; }
+.fuseItem .count { position: absolute; bottom: 1px; right: 4px; font-size: 12px; font-weight: bold; color: #fff; text-shadow: 0 1px 2px #000; }
+.fuseItem:disabled { background: #f1f3f5; opacity: 0.4; }
+#fuseBook .recipe { font-size: 13px; padding: 4px 8px; border-radius: 8px; background: #f1f3f5; margin-bottom: 4px; color: #868e96; }
+#fuseBook .recipe.found { background: #e3fafc; color: #0b7285; }
+.badge.fused { background: linear-gradient(90deg, #00b4d8, #7b2cbf) !important; }
+.badge.fused::before { content: '⚡ '; }
+.fx-fireice .ball { box-shadow: -4px 0 8px 2px rgba(255, 60, 0, 0.8), 4px 0 8px 2px rgba(120, 220, 255, 0.8);
+  background: linear-gradient(90deg, #ff4500 50%, #9be7ff 50%) !important; }
+.fx-darkfire .ball { background: radial-gradient(circle at 30% 30%, #c86bff, #4a0072 55%, #12001f) !important;
+  box-shadow: 0 0 10px 4px rgba(150, 0, 255, 0.9); animation: fxFire 0.4s infinite alternate; }
+.fx-goldendragon .ball { background: radial-gradient(#5a1a00 1px, transparent 1.6px) 0 0 / 6px 6px,
+  radial-gradient(circle at 30% 30%, #fff6c2, #ffc61a 50%, #d9480f) !important; box-shadow: 0 0 10px 3px rgba(255, 150, 0, 0.8); }
+.fx-rainbowunicorn .ball { background: linear-gradient(#ffb3ba, #ffdfba, #ffffba, #baffc9, #bae1ff, #e0bbff) !important;
+  box-shadow: 0 0 10px 3px #ffb3f0; animation: fxHue 3s linear infinite; }
+.fx-swirl2 .ball { box-shadow: 0 0 6px 2px rgba(125, 249, 255, 0.8); animation: fxSpin 4s linear infinite; }
+
 #invGrid { display: grid; grid-template-columns: repeat(6, 50px); gap: 6px; justify-content: center; }
 #invGrid .slot { background: rgba(90, 90, 90, 0.2); border-color: rgba(90, 90, 90, 0.35); }
 
@@ -358,6 +390,27 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <div id="avatarOptions"></div>
       </div>
 
+      <div id="fuseModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">⚡ Fuse Machine</div>
+          <button id="fuseClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Pick 2 ice creams to fuse into 1 new ice cream worth more than both! Some pairs make secret
+          special ice creams.</p>
+        <div class="fuseRow">
+          <button id="fuseSlot0" class="fuseSlot" type="button"></button>
+          <div class="fuseSign">+</div>
+          <button id="fuseSlot1" class="fuseSlot" type="button"></button>
+          <div class="fuseSign">=</div>
+          <div id="fuseResult" class="fuseSlot result"></div>
+        </div>
+        <button id="fuseBtn" type="button">⚡ FUSE!</button>
+        <div class="fuseLabel">Your ice creams</div>
+        <div id="fuseItems"></div>
+        <div class="fuseLabel">📖 Secret recipes</div>
+        <div id="fuseBook"></div>
+      </div>
+
       <div id="invModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">🎒 Inventory</div>
@@ -448,6 +501,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.07,  min: 1, max: 1 } },
     mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.02,  min: 1, max: 1 } },
     secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.004, min: 1, max: 1 } },
+    // made in the Fuse Machine from two ice creams (never in the shop)
+    fused:     { name: 'Fused',     color: '#00b4d8', order: 5, growSec: 60,  stock: { chance: 0,     min: 0, max: 0 } },
     // admin-only ice creams: never in the shop, only admins can give or spawn them
     admin:     { name: 'Admin',     color: '#e8a200', order: 7, growSec: 30,  stock: { chance: 0,     min: 0, max: 0 } },
   };
@@ -468,6 +523,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'unicorn',     name: 'Unicorn Dream',    rarity: 'mythic',    price: 300,  cost: 100000,  color: '#e0bbff', effect: 'unicorn' },
     { id: 'phoenix',     name: 'Phoenix Fire',     rarity: 'mythic',    price: 350,  cost: 200000,  color: '#ff4500', effect: 'fire' },
     { id: 'void',        name: 'Cosmic Void',      rarity: 'secret',    price: 1200, cost: 1000000, color: '#0b0033', effect: 'void' },
+    // ⚡ special Fuse Machine recipes (see FUSE_RECIPES)
+    { id: 'twist',          name: 'Twist Swirl',     rarity: 'fused', price: 8,    cost: 0, color: '#fff3c4', colors: ['#fff3c4', '#6b3e26'], effect: 'swirl2', fused: true },
+    { id: 'goldendragon',   name: 'Golden Dragon',   rarity: 'fused', price: 700,  cost: 0, color: '#ffc61a', effect: 'goldendragon', fused: true },
+    { id: 'rainbowunicorn', name: 'Rainbow Unicorn', rarity: 'fused', price: 1300, cost: 0, color: '#e0bbff', effect: 'rainbowunicorn', fused: true },
+    { id: 'fireice',        name: 'Fire & Ice',      rarity: 'fused', price: 1500, cost: 0, color: '#ff4500', colors: ['#ff4500', '#9be7ff'], effect: 'fireice', fused: true },
+    { id: 'supermassive',   name: 'Supermassive',    rarity: 'fused', price: 5000, cost: 0, color: '#0b0033', effect: 'void', fused: true },
+    { id: 'darkphoenix',    name: 'Dark Phoenix',    rarity: 'fused', price: 8000, cost: 0, color: '#4a0072', effect: 'darkfire', fused: true },
     // 👑 admin-only
     { id: 'crownjewel',  name: 'Crown Jewel',      rarity: 'admin', price: 5000,  cost: 0, color: '#ffcf33', effect: 'crown', adminOnly: true },
     { id: 'storm',       name: 'Storm Cloud',      rarity: 'admin', price: 7500,  cost: 0, color: '#3b4a6b', effect: 'storm', adminOnly: true },
@@ -494,7 +556,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const SPACE_COSTS = [300, 6000, 75000];
 
   function spaceCost(spaces) {
-    if (spaces >= FLAVORS.filter(f => !f.adminOnly).length) return null; // already room for every shop flavor
+    if (spaces >= FLAVORS.filter(f => !f.adminOnly && !f.fused).length) return null; // already room for every shop flavor
     return SPACE_COSTS[Math.round((spaces - START_SPACES) / SPACES_PER_BUY)] ?? null;
   }
 
@@ -539,7 +601,51 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
   };
 
+  // ---------- Fuse Machine ----------
+  // Two ice creams in, one fused ice cream out. These pairs make special ice creams;
+  // any other pair makes a two-color swirl worth 1.5x the two prices added together.
+  const FUSE_RECIPES = {
+    'chocolate+vanilla': 'twist',
+    'dragonfruit+golden': 'goldendragon',
+    'rainbow+unicorn': 'rainbowunicorn',
+    'mint+phoenix': 'fireice',
+    'galaxy+void': 'supermassive',
+    'phoenix+void': 'darkphoenix',
+  };
+  const FUSE_SEC = 4; // how long the machine takes
+
+  const baseById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
+  const fusedCache = {};
+
+  // a swirl made from any two ice creams has an id like 'fuse:mint:strawberry'
+  function makeSwirl(id) {
+    if (fusedCache[id]) return fusedCache[id];
+    const [, a, b] = id.split(':');
+    const A = baseById[a], B = baseById[b];
+    if (!A || !B || A.fused || B.fused || a > b) return undefined;
+    const first = f => f.name.split(' ')[0];
+    return (fusedCache[id] = {
+      id, name: a === b ? `Double ${A.name}` : `${first(A)} ${first(B)} Fusion`,
+      rarity: 'fused', price: Math.round((A.price + B.price) * 1.5), cost: 0,
+      color: A.color, colors: [A.color, B.color], effect: 'swirl2', fused: true, parts: [a, b],
+    });
+  }
+
+  // look up any ice cream by id, including fused swirls
+  const flavorById = new Proxy(baseById, {
+    get: (t, k) => t[k] || (typeof k === 'string' && k.startsWith('fuse:') ? makeSwirl(k) : undefined),
+  });
+
+  // what two ice creams make (null if they can't be fused)
+  function fuseResult(a, b) {
+    const A = baseById[a], B = baseById[b];
+    if (!A || !B || A.fused || B.fused) return null;
+    const [x, y] = [a, b].sort();
+    return FUSE_RECIPES[`${x}+${y}`] || `fuse:${x}:${y}`;
+  }
+
   const GameData = { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
+    flavorById, fuseResult, FUSE_RECIPES, FUSE_SEC,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
@@ -556,12 +662,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ? require('./gamedata.js') : root.GameData;
   const { RARITIES, FLAVORS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
-    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
+    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, flavorById, fuseResult, FUSE_SEC } = GameData;
 
   // ---------- park layout (shared with the browser for drawing and clicking) ----------
   const WORLD = { width: 1280, height: 1180 };
   const SHOP = { x: 640, y: 120 };   // the Ice Cream Shop building at the top of the park
   const AVATAR_SHOP = { x: 1020, y: 125 }; // the Avatar Shop next to it
+  const FUSE_MACHINE = { x: 255, y: 130 }; // the Fuse Machine on the other side
   const REACH = 230;                 // how close you must stand to use something
   // admin names and their secret codes (only a scrambled version of each code is kept here).
   // Each admin needs their code once per device, and each name only works on the first device that used it.
@@ -609,7 +716,6 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return { x: slot.x - ((inRow - 1) * 23) / 2 + col * 23, y: slot.y + 9 + row * 26 };
   }
 
-  const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -626,7 +732,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   function rollStock() {
     const stock = {};
     for (const f of FLAVORS) {
-      if (f.adminOnly) continue;
+      if (f.adminOnly || f.fused) continue;
       const st = RARITIES[f.rarity].stock;
       stock[f.id] = Math.random() < st.chance
         ? st.min + Math.floor(Math.random() * (st.max - st.min + 1)) : 0;
@@ -669,6 +775,18 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       out[part] = a && options.includes(a[part]) ? a[part] : options[0];
     }
     return out;
+  }
+
+  // remove one tub of a flavor, from the hotbar first, then the Inventory
+  function takeItem(stand, flavor) {
+    for (const slots of [stand.hotbar, stand.storage]) {
+      const i = slots.findIndex(s => s && s.flavor === flavor);
+      if (i === -1) continue;
+      slots[i].count--;
+      if (slots[i].count <= 0) slots[i] = null;
+      return true;
+    }
+    return false;
   }
 
   function createGame({ saves = {}, allowTest = false } = {}) {
@@ -835,6 +953,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       updateTimers(dt);
 
       for (const stand of stands.values()) {
+        // Fuse Machine finishing
+        if (stand.fusing) {
+          stand.fusing.left -= dt;
+          if (stand.fusing.left <= 0) {
+            const id = stand.fusing.result;
+            stand.fusing = null;
+            const left = addItem(stand.storage, id, addItem(stand.hotbar, id, 1));
+            const free = stand.tubs.indexOf(null);
+            if (left && free !== -1) stand.tubs[free] = { flavor: id, grow: 0 }; // inventory full? straight onto the stand
+            const isNew = !stand.seen.includes(id);
+            if (isNew) stand.seen.push(id);
+            stand.conn.send({ type: 'fused', flavor: id, isNew });
+          }
+        }
+
         for (const t of stand.tubs) if (t && t.grow > 0) t.grow = Math.max(0, t.grow - dt);
 
         // new customers: bigger sign and more ready tubs bring more people
@@ -891,6 +1024,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
+          fusing: s.fusing && { result: s.fusing.result, left: Math.round(s.fusing.left * 10) / 10 },
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
@@ -976,6 +1110,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         item.count--;
         if (item.count <= 0) stand.hotbar[stand.hand] = null;
         conn.send({ type: 'placed', flavor: stand.tubs[i].flavor });
+      } else if (msg.type === 'fuse') {
+        // Fuse Machine: take one of each ice cream from your hotbar or Inventory, make one fused ice cream
+        if (!near({ x: FUSE_MACHINE.x, y: FUSE_MACHINE.y + 85 })) return err('Walk to the Fuse Machine first.');
+        if (stand.fusing) return err('The Fuse Machine is still working!');
+        const result = fuseResult(msg.a, msg.b);
+        if (!result) return err("Fused ice creams can't be fused again.");
+        const have = id => [...stand.hotbar, ...stand.storage].reduce((n, s) => n + (s && s.flavor === id ? s.count : 0), 0);
+        if (msg.a === msg.b ? have(msg.a) < 2 : have(msg.a) < 1 || have(msg.b) < 1) {
+          return err("You don't have those ice creams.");
+        }
+        if (!fits(stand.hotbar, result) && !fits(stand.storage, result)) return err('Your inventory is full!');
+        takeItem(stand, msg.a);
+        takeItem(stand, msg.b);
+        stand.fusing = { result, left: FUSE_SEC };
       } else if (msg.type === 'takeOut') {
         // take a tub off your stand and put it back in your inventory
         const i = Number(msg.space);
@@ -1073,7 +1221,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return { handle, leave, tick, snapshotSaves };
   }
 
-  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, REACH, chestPos, tubPos };
+  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, FUSE_MACHINE, REACH, chestPos, tubPos };
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   else root.Engine = Engine;
 })(this);
@@ -1083,9 +1231,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 (() => {
   const { RARITIES, FLAVORS, UPGRADES, upgradeCost, spaceCost, MUTATIONS, MUTATION_CHANCE,
     HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
-  const { SHOP, AVATAR_SHOP, REACH, chestPos, tubPos } = window.Engine;
+  const { SHOP, AVATAR_SHOP, FUSE_MACHINE, REACH, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
-  const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
+  const { flavorById, fuseResult, FUSE_RECIPES } = window.GameData; // flavorById also knows fused swirls
 
   const canvas = document.getElementById('canvas');
   let ctx = canvas.getContext('2d');
@@ -1115,8 +1263,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   let openWindow = null; // 'shop' | 'inventory' | null
   let iAmAdmin = false;   // admins also see the admin-only ice creams in the Flavor guide
   // flavors shown in the Flavor guide, and flavors sold in the shop
-  const guideFlavors = () => FLAVORS.filter(f => !f.adminOnly || iAmAdmin);
-  const shopFlavors = FLAVORS.filter(f => !f.adminOnly);
+  const guideFlavors = () => FLAVORS.filter(f => !f.fused && (!f.adminOnly || iAmAdmin));
+  const shopFlavors = FLAVORS.filter(f => !f.adminOnly && !f.fused);
 
   // ---------- helpers ----------
   function fmt(n) {
@@ -1162,7 +1310,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   function iconHtml(flavorId) {
     const f = flavorById[flavorId];
     const fx = f.effect ? ` fx-${f.effect}` : '';
-    return `<div class="icon${fx}"><div class="ball" style="background:${f.color}"></div><div class="cone"></div></div>`;
+    const bg = f.colors
+      ? `conic-gradient(${f.colors[0]} 0 25%, ${f.colors[1]} 0 50%, ${f.colors[0]} 0 75%, ${f.colors[1]} 0)` : f.color;
+    return `<div class="icon${fx}"><div class="ball" style="background:${bg}"></div><div class="cone"></div></div>`;
   }
 
   // ---------- joining ----------
@@ -1306,6 +1456,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         updateHotbar();
         if (openWindow === 'shop') updateShop();
         if (openWindow === 'inventory') updateInventory();
+        if (openWindow === 'fuse') updateFuse();
         break;
       case 'sale':
         onSale(msg);
@@ -1313,6 +1464,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'bought': {
         const f = flavorById[msg.flavor];
         toast(`You bought ${f.name}! Hold it and place it on your stand.`);
+        break;
+      }
+      case 'fused': {
+        const f = flavorById[msg.flavor];
+        toast(msg.isNew && !f.parts
+          ? `⚡ SECRET RECIPE! You made ${f.name}! It's in your hotbar.`
+          : `⚡ You made ${f.name} ($${f.price.toLocaleString()} a scoop)! It's in your hotbar.`);
+        confetti(FUSE_MACHINE.x, FUSE_MACHINE.y - 20, msg.isNew && !f.parts ? 90 : 40);
+        fusePick = [];
+        if (openWindow === 'fuse') updateFuse();
         break;
       }
       case 'placed': {
@@ -1611,7 +1772,87 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     $('shopModal').classList.add('hidden');
     $('invModal').classList.add('hidden');
     $('avatarModal').classList.add('hidden');
+    $('fuseModal').classList.add('hidden');
   }
+
+  // ---------- Fuse Machine ----------
+  let fusePick = []; // the (up to) two ice creams you picked
+
+  function openFuse() {
+    closeWindows();
+    openWindow = 'fuse';
+    fusePick = [];
+    $('fuseModal').classList.remove('hidden');
+    updateFuse();
+  }
+
+  // how many of each ice cream you have (hotbar + Inventory)
+  function myItems() {
+    const s = me();
+    const counts = {};
+    if (s) for (const it of [...s.hotbar, ...s.storage]) if (it) counts[it.flavor] = (counts[it.flavor] || 0) + it.count;
+    return counts;
+  }
+
+  function updateFuse() {
+    const s = me();
+    if (!s) return;
+    const counts = myItems();
+    const busy = !!s.fusing;
+    // the two input slots and the result
+    [0, 1].forEach(i => {
+      const el = $('fuseSlot' + i);
+      const id = fusePick[i];
+      const html = id ? `${iconHtml(id)}<div class="fsName">${flavorById[id].name}</div>` : '<div class="fsEmpty">Tap an ice cream below</div>';
+      if (el.innerHTML !== html) el.innerHTML = html;
+    });
+    const result = fusePick.length === 2 ? fuseResult(fusePick[0], fusePick[1]) : null;
+    const rf = result && flavorById[result];
+    // special recipes stay a secret until you've made them once
+    const secret = rf && !rf.parts && !s.seen.includes(result);
+    const out = busy ? `<div class="fsEmpty">⚡ Fusing… ${Math.ceil(s.fusing.left)}s</div>`
+      : rf ? (secret ? '<div class="icon mystery">?</div><div class="fsName">??? Secret recipe!</div>'
+        : `${iconHtml(result)}<div class="fsName">${rf.name}<br>$${rf.price.toLocaleString()} / scoop</div>`)
+      : '<div class="fsEmpty">?</div>';
+    if ($('fuseResult').innerHTML !== out) $('fuseResult').innerHTML = out;
+    $('fuseBtn').disabled = busy || !result;
+    $('fuseBtn').textContent = busy ? '⚡ Fusing…' : '⚡ FUSE!';
+
+    // your ice creams to pick from
+    const list = Object.entries(counts).filter(([id]) => !flavorById[id].fused);
+    const left = { ...counts };
+    for (const id of fusePick) left[id]--;
+    const key = JSON.stringify([list, fusePick]);
+    if ($('fuseItems').dataset.key !== key) {
+      $('fuseItems').dataset.key = key;
+      $('fuseItems').innerHTML = list.length ? '' : '<div class="sub">You have no ice creams to fuse. Buy some at the shop!</div>';
+      for (const [id] of list) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'fuseItem';
+        b.disabled = left[id] <= 0 || fusePick.length >= 2;
+        b.innerHTML = `${iconHtml(id)}<span class="count">${left[id]}</span>`;
+        b.title = flavorById[id].name;
+        b.addEventListener('click', () => { if (fusePick.length < 2) { fusePick.push(id); updateFuse(); } });
+        $('fuseItems').appendChild(b);
+      }
+    }
+
+    // recipe book: special recipes you've found
+    const book = Object.entries(FUSE_RECIPES).map(([pair, id]) => {
+      const f = flavorById[id];
+      const found = s.seen.includes(id);
+      const [a, b] = pair.split('+').map(x => flavorById[x].name);
+      return `<div class="recipe${found ? ' found' : ''}">${found ? `${a} + ${b} = <b>${f.name}</b>` : '❓ Secret recipe'}</div>`;
+    }).join('');
+    if ($('fuseBook').innerHTML !== book) $('fuseBook').innerHTML = book;
+  }
+
+  [0, 1].forEach(i => $('fuseSlot' + i).addEventListener('click', () => { fusePick.splice(i, 1); updateFuse(); }));
+  $('fuseBtn').addEventListener('click', () => {
+    if (fusePick.length === 2) send({ type: 'fuse', a: fusePick[0], b: fusePick[1] });
+  });
+  $('fuseClose').addEventListener('click', closeWindows);
 
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
@@ -1899,6 +2140,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (inRect(wx, wy, { x: chest.x - 45, y: chest.y - 62, w: 90, h: 90 })) {
       return goDo(chest, REACH - 40, openInventory);
     }
+    // the Fuse Machine
+    if (inRect(wx, wy, { x: FUSE_MACHINE.x - 100, y: FUSE_MACHINE.y - 100, w: 200, h: 190 })) {
+      return goDo({ x: FUSE_MACHINE.x, y: FUSE_MACHINE.y + 85 }, 60, openFuse);
+    }
     // the Avatar Shop
     if (inRect(wx, wy, { x: AVATAR_SHOP.x - 110, y: AVATAR_SHOP.y - 95, w: 220, h: 185 })) {
       return goDo({ x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }, 60, openAvatar);
@@ -1961,6 +2206,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // close windows when you walk away
     const s = me();
     if (openWindow === 'shop' && dist(player, { x: SHOP.x, y: SHOP.y + 90 }) > REACH) closeWindows();
+    if (openWindow === 'fuse' && dist(player, { x: FUSE_MACHINE.x, y: FUSE_MACHINE.y + 85 }) > REACH) closeWindows();
     if (openWindow === 'avatar' && dist(player, { x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }) > REACH) closeWindows();
     if (openWindow === 'inventory' && s && !near(chestPos(slots[s.slot]), 40)) closeWindows();
   }
@@ -2020,7 +2266,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     for (let i = 0; i < slots.length; i += 4) {
       for (const x of [22, 326, 952, 1258]) drawTree(x, slots[i].y - 40);
     }
-    for (const x of [60, 180, 300, 1220]) drawTree(x, 60);
+    for (const x of [40, 1220]) drawTree(x, 60);
   }
 
   function drawTree(x, y) {
@@ -2339,6 +2585,46 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.restore();
       return;
     }
+    if (f.effect === 'swirl2') {
+      // two flavors swirled together, slowly turning
+      ctx.save();
+      outline(); ctx.clip();
+      for (let k = 0; k < 6; k++) {
+        const a0 = nowSec * 0.8 + (k / 6) * Math.PI * 2;
+        ctx.fillStyle = f.colors[k % 2];
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r * 1.1, a0, a0 + Math.PI / 3 + 0.02); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.4, r * 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      return;
+    }
+    if (f.effect === 'fireice') {
+      // half fire, half ice
+      ctx.save();
+      outline(); ctx.clip();
+      ctx.fillStyle = '#ff4500'; ctx.fillRect(x - r, y - r, r, 2 * r);
+      ctx.fillStyle = '#9be7ff'; ctx.fillRect(x, y - r, r, 2 * r);
+      ctx.restore();
+      return;
+    }
+    if (f.effect === 'rainbowunicorn') {
+      ctx.save();
+      outline(); ctx.clip();
+      const pastel = ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', '#e0bbff'];
+      const band = (2 * r) / pastel.length;
+      pastel.forEach((c, k) => { ctx.fillStyle = c; ctx.fillRect(x - r, y - r + k * band, 2 * r, band + 0.5); });
+      ctx.restore();
+      return;
+    }
+    if (f.effect === 'darkfire' || f.effect === 'goldendragon') {
+      const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+      const stops = f.effect === 'darkfire' ? ['#c86bff', '#4a0072', '#12001f'] : ['#fff6c2', '#ffc61a', '#d9480f'];
+      stops.forEach((c, k) => g.addColorStop(k / 2, c));
+      ctx.fillStyle = g;
+      outline(); ctx.fill();
+      return;
+    }
     if (f.effect === 'nova' || f.effect === 'storm' || f.effect === 'crown') {
       const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
       const stops = { nova: ['#ffffff', '#ffe066', '#ff8a00'], storm: ['#8aa0c8', '#3b4a6b', '#1b2238'],
@@ -2585,6 +2871,53 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           }
         }
         break;
+      case 'swirl2': // fused swirl: a little electric spark from the Fuse Machine
+        if (!back) sparkle(x + r * 0.45, y - r * 0.45, r * 0.4 * Math.max(0, Math.sin(t * 4)), '#7df9ff');
+        break;
+      case 'fireice': // ⚡ Fire & Ice: red glow on one side, icy blue on the other
+        if (back) {
+          glow(x - r * 0.6, y, r * 2.4, '255, 60, 0', 0.5 + 0.2 * pulse);
+          glow(x + r * 0.6, y, r * 2.4, '120, 220, 255', 0.5 + 0.2 * (1 - pulse));
+          flame(x - r * 0.5, y - r * 0.4, r * 0.35, r * (1.6 + 0.4 * Math.sin(t * 12)), '#ff6a00');
+        } else {
+          risers(x - r * 0.4, y, r * 0.6, t, '#ffb000', 2);
+          sparkle(x + r * 0.45, y - r * 0.45, r * 0.4 * (0.4 + 0.6 * pulse), '#ffffff');
+        }
+        break;
+      case 'rainbowunicorn': // ⚡ Rainbow Unicorn: pastel rainbow, color-changing glow and a little horn
+        if (back) {
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.8);
+          const hue = (t * 90) % 360;
+          g.addColorStop(0, `hsla(${hue}, 90%, 75%, 0.65)`);
+          g.addColorStop(1, `hsla(${hue}, 90%, 75%, 0)`);
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(x, y, r * 2.8, 0, Math.PI * 2); ctx.fill();
+        } else {
+          ctx.fillStyle = '#ffd43b';
+          ctx.beginPath(); ctx.moveTo(x - r * 0.2, y - r * 0.85); ctx.lineTo(x, y - r * 1.8); ctx.lineTo(x + r * 0.2, y - r * 0.85); ctx.fill();
+          sparkle(x + Math.cos(t * 2) * r * 1.4, y + Math.sin(t * 2) * r * 0.8, r * 0.3, '#fff6a8');
+        }
+        break;
+      case 'goldendragon': // ⚡ Golden Dragon: golden fire glow, seeds and a shiny glint
+        if (back) glow(x, y, r * 2.8, '255, 150, 0', 0.5 + 0.2 * pulse);
+        else {
+          ctx.fillStyle = '#5a1a00';
+          for (const [dx, dy] of [[-0.4, -0.2], [0.3, -0.45], [0.1, 0.1], [0.5, 0]]) {
+            ctx.beginPath(); ctx.ellipse(x + dx * r, y + dy * r, r * 0.08, r * 0.13, 0.4, 0, Math.PI * 2); ctx.fill();
+          }
+          sparkle(x - r * 0.35, y - r * 0.45, r * 0.5 * Math.max(0, Math.sin(t * 3)), '#ffffff');
+        }
+        break;
+      case 'darkfire': // ⚡ Dark Phoenix: purple flames and dark embers
+        if (back) {
+          glow(x, y, r * 3.2, '150, 0, 255', 0.5 + 0.3 * pulse);
+          for (let k = -1; k <= 1; k++) {
+            const h = r * (2.2 + 0.7 * Math.sin(t * 13 + k * 2)) * (k ? 0.75 : 1);
+            flame(x + k * r * 0.6, y - r * 0.2, r * 0.5, h, '#7b2cbf');
+            flame(x + k * r * 0.6, y - r * 0.2, r * 0.3, h * 0.7, k ? '#c77dff' : '#f0c4ff');
+          }
+        } else risers(x, y, r, t, '#e0aaff', 3);
+        break;
       case 'frost': // Mint Chip: icy sparkle
         if (!back) sparkle(x + r * 0.4, y - r * 0.45, r * 0.4 * (0.4 + 0.6 * pulse), '#ffffff');
         break;
@@ -2823,6 +3156,70 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
   }
 
+  // the Fuse Machine: two funnels on top, a glowing core, and it shakes and sparks while fusing
+  function drawFuseMachine(time) {
+    const { x, y } = FUSE_MACHINE;
+    const mine = me();
+    const busy = mine && mine.fusing;
+    const shake = busy ? Math.sin(time * 40) * 1.5 : 0;
+    ctx.save();
+    ctx.translate(shake, 0);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 70, 100, 12, 0, 0, Math.PI * 2); ctx.fill();
+    // body
+    const g = ctx.createLinearGradient(x - 80, 0, x + 80, 0);
+    g.addColorStop(0, '#868e96'); g.addColorStop(0.5, '#dee2e6'); g.addColorStop(1, '#868e96');
+    ctx.fillStyle = g;
+    roundRect(x - 80, y - 30, 160, 100, 14); ctx.fill();
+    ctx.strokeStyle = '#495057'; ctx.lineWidth = 3; ctx.stroke();
+    // two funnels
+    for (const fx of [x - 45, x + 45]) {
+      ctx.fillStyle = '#adb5bd';
+      ctx.beginPath(); ctx.moveTo(fx - 26, y - 70); ctx.lineTo(fx + 26, y - 70); ctx.lineTo(fx + 9, y - 30); ctx.lineTo(fx - 9, y - 30); ctx.fill();
+      ctx.strokeStyle = '#495057'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    // glowing core window
+    const pulse = 0.5 + 0.5 * Math.sin(time * (busy ? 14 : 3));
+    glow(x, y + 15, busy ? 70 : 45, '0, 220, 255', 0.35 + 0.35 * pulse);
+    ctx.fillStyle = busy ? `hsl(${(time * 400) % 360}, 100%, 70%)` : '#7df9ff';
+    ctx.beginPath(); ctx.arc(x, y + 15, 22, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#343a40'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.font = 'bold 22px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#343a40';
+    ctx.fillText('⚡', x, y + 23);
+    // pipes and lights
+    ctx.fillStyle = '#495057';
+    ctx.fillRect(x - 78, y + 45, 156, 6);
+    for (let k = 0; k < 5; k++) {
+      ctx.fillStyle = (Math.floor(time * (busy ? 10 : 2)) + k) % 2 ? '#51cf66' : '#ff6b6b';
+      ctx.beginPath(); ctx.arc(x - 50 + k * 25, y + 60, 4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    // electric sparks while fusing
+    if (busy) {
+      ctx.strokeStyle = '#7df9ff'; ctx.lineWidth = 2;
+      for (let k = 0; k < 3; k++) {
+        const a = time * 13 + k * 2.1, r1 = 30, r2 = 60;
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(a) * r1, y + 15 + Math.sin(a) * r1);
+        ctx.lineTo(x + Math.cos(a + 0.3) * (r1 + r2) / 2 + 6, y + 15 + Math.sin(a + 0.3) * (r1 + r2) / 2);
+        ctx.lineTo(x + Math.cos(a) * r2, y + 15 + Math.sin(a) * r2);
+        ctx.stroke();
+      }
+    }
+    // sign
+    ctx.fillStyle = '#fff';
+    roundRect(x - 78, y - 102, 156, 26, 8); ctx.fill();
+    ctx.strokeStyle = '#00b4d8'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#0077b6';
+    ctx.font = 'bold 15px Trebuchet MS';
+    ctx.fillText('⚡ FUSE MACHINE', x, y - 83);
+    if (dist(player, { x, y: y + 85 }) <= REACH && openWindow !== 'fuse') {
+      drawBubbleButton(x, y - 116, '⚡ Tap to fuse 2 ice creams', '#00b4d8', time);
+    }
+  }
+
   // the Avatar Shop building next to the Ice Cream Shop
   function drawAvatarShop(time) {
     const { x, y } = AVATAR_SHOP;
@@ -2857,7 +3254,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.textAlign = 'center';
     ctx.fillText('👕 AVATAR SHOP', x, y - 41);
     if (dist(player, { x, y: y + 85 }) <= REACH && openWindow !== 'avatar') {
-      drawBubbleButton(x, y + 98, '👕 Tap to change your look', '#4dabf7', time);
+      drawBubbleButton(x, y - 100, '👕 Tap to change your look', '#4dabf7', time);
     }
   }
 
@@ -3062,6 +3459,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     for (const id of ['godly', 'heavenly']) if (ids.includes(id)) drawHolySky(time, id);
     drawShop(time);
     drawAvatarShop(time);
+    drawFuseMachine(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);
