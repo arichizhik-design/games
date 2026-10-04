@@ -21,12 +21,12 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 
 | Rarity    | Flavors                          | Price per scoop |
 |-----------|----------------------------------|-----------------|
-| Common    | Vanilla, Chocolate               | $2              |
-| Uncommon  | Strawberry, Mint Chip            | $5–$6           |
-| Rare      | Cookie Dough, Cotton Candy       | $14–$16         |
-| Epic      | Rainbow Sherbet, Galaxy Swirl    | $35–$40         |
-| Legendary | Golden Caramel, Dragon Fruit     | $90–$110        |
-| Mythic    | Unicorn Dream, Phoenix Fire      | $300–$350       |
+| Common    | Vanilla, Chocolate, Banana       | $2              |
+| Uncommon  | Strawberry, Blueberry, Mint Chip | $5–$6           |
+| Rare      | Cookie Dough, Bubblegum, Cotton Candy | $14–$16         |
+| Epic      | Rainbow Sherbet, Mango Tango, Galaxy Swirl | $35–$40         |
+| Legendary | Golden Caramel, Lava Swirl, Dragon Fruit | $90–$110        |
+| Mythic    | Unicorn Dream, Frozen Aurora, Phoenix Fire | $300–$350       |
 | Secret    | ??? (buy it to find out!)        | $1,200          |
 | 👑 Admin | Crown Jewel, Storm Cloud, Supernova, Prism Swirl (admins only) | $5,000–$15,000 |
 
@@ -62,6 +62,8 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   Lucky drops clovers, Ocean and Toxic fill the air with bubbles, Love rains hearts, Starfall turns the park
   into a night sky with shooting stars, Mystic swirls magic sparkles, and Meteor Shower sends flaming meteors.
 - **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
+  Bubblegum blows a bubble that pops, Mango Tango shines like the sun, Lava Swirl drips lava, Frozen Aurora
+  shifts green, blue and purple,
   Cosmic Void (the best ice cream) is a tiny black hole with a spinning purple disk, Galaxy Swirl twinkles with stars, Golden Caramel shines,
   Unicorn Dream glows in changing colors, and more.
 - **📖 Tutorial:** new players get a step-by-step guide with a bouncing arrow (walk, earn $10, visit the

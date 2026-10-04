@@ -24,16 +24,22 @@
   const FLAVORS = [
     { id: 'vanilla',     name: 'Vanilla',          rarity: 'common',    price: 2,    cost: 10,      color: '#fff3c4' },
     { id: 'chocolate',   name: 'Chocolate',        rarity: 'common',    price: 2,    cost: 10,      color: '#6b3e26' },
+    { id: 'banana',      name: 'Banana',           rarity: 'common',    price: 2,    cost: 10,      color: '#ffe680' },
     { id: 'strawberry',  name: 'Strawberry',       rarity: 'uncommon',  price: 5,    cost: 50,      color: '#ff8fab' },
     { id: 'mint',        name: 'Mint Chip',        rarity: 'uncommon',  price: 6,    cost: 120,     color: '#a8e6cf', effect: 'frost' },
+    { id: 'blueberry',   name: 'Blueberry',        rarity: 'uncommon',  price: 5.5,  cost: 80,      color: '#8a9ae6', effect: 'berries' },
     { id: 'cookiedough', name: 'Cookie Dough',     rarity: 'rare',      price: 14,   cost: 400,     color: '#e6c79c', effect: 'chips' },
     { id: 'cottoncandy', name: 'Cotton Candy',     rarity: 'rare',      price: 16,   cost: 800,     color: '#c3aed6', effect: 'fluff' },
+    { id: 'bubblegum',   name: 'Bubblegum',        rarity: 'rare',      price: 15,   cost: 600,     color: '#ff9ecf', effect: 'bubble' },
     { id: 'rainbow',     name: 'Rainbow Sherbet',  rarity: 'epic',      price: 35,   cost: 2500,    color: '#ffb347', effect: 'sherbet' },
     { id: 'galaxy',      name: 'Galaxy Swirl',     rarity: 'epic',      price: 40,   cost: 5000,    color: '#5b3cc4', effect: 'stars' },
+    { id: 'mango',       name: 'Mango Tango',      rarity: 'epic',      price: 38,   cost: 3500,    color: '#ffb020', effect: 'shine' },
     { id: 'golden',      name: 'Golden Caramel',   rarity: 'legendary', price: 90,   cost: 15000,   color: '#ffd700', effect: 'gold' },
     { id: 'dragonfruit', name: 'Dragon Fruit',     rarity: 'legendary', price: 110,  cost: 30000,   color: '#ff3cac', effect: 'dragon' },
+    { id: 'lava',        name: 'Lava Swirl',       rarity: 'legendary', price: 100,  cost: 22000,   color: '#ff5a1f', effect: 'lava' },
     { id: 'unicorn',     name: 'Unicorn Dream',    rarity: 'mythic',    price: 300,  cost: 100000,  color: '#e0bbff', effect: 'unicorn' },
     { id: 'phoenix',     name: 'Phoenix Fire',     rarity: 'mythic',    price: 350,  cost: 200000,  color: '#ff4500', effect: 'fire' },
+    { id: 'aurora',      name: 'Frozen Aurora',    rarity: 'mythic',    price: 320,  cost: 150000,  color: '#7fffd4', effect: 'aurora' },
     { id: 'void',        name: 'Cosmic Void',      rarity: 'secret',    price: 1200, cost: 1000000, color: '#0b0033', effect: 'void' },
     // 👑 admin-only
     { id: 'crownjewel',  name: 'Crown Jewel',      rarity: 'admin', price: 5000,  cost: 0, color: '#ffcf33', effect: 'crown', adminOnly: true },
@@ -91,6 +97,9 @@
     { id: 'divine',  name: 'Divine Block',  cost: 25e9,     color: '#ffe8a3', odds: { mythic: 30, secret: 40, celestial: 25, divine: 5 } },
     { id: 'infinity', name: 'Infinity Block', cost: 500e9,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
   ];
+
+  // list them from most common to rarest, cheapest first (for the shop and the Flavor guide)
+  FLAVORS.sort((a, b) => RARITIES[a.rarity].order - RARITIES[b.rarity].order || a.price - b.price);
 
   // cost of the next level = base * growth^level
   const UPGRADES = {

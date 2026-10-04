@@ -447,3 +447,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 /* Avatar Shop: the Save button stays at the bottom */
 .avSaveBar { position: sticky; bottom: -14px; background: #fff8fb; padding: 10px 0 2px; margin-top: 6px; }
 #avatarSave { width: 100%; font-size: 18px; background: #2f9e44; }
+/* the newer flavors' icons */
+.fx-berries.scoop, .fx-berries .ball { background: radial-gradient(#2d3a8c 1.6px, transparent 2.2px) 1px 1px / 8px 8px, #8a9ae6 !important; }
+.fx-bubble.scoop, .fx-bubble .ball { box-shadow: 7px -2px 0 -2px #ffc2e2, 0 0 5px #ffc2e2; }
+.fx-shine.scoop, .fx-shine .ball { box-shadow: 0 0 9px 3px rgba(255, 176, 0, 0.8); }
+.fx-lava.scoop, .fx-lava .ball { box-shadow: 0 0 8px 3px rgba(255, 90, 0, 0.8); animation: fxFire 0.6s infinite alternate; }
+.fx-aurora.scoop, .fx-aurora .ball { box-shadow: 0 0 10px 3px #7fffd4; animation: fxHue 4s linear infinite; }

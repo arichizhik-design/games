@@ -454,6 +454,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 /* Avatar Shop: the Save button stays at the bottom */
 .avSaveBar { position: sticky; bottom: -14px; background: #fff8fb; padding: 10px 0 2px; margin-top: 6px; }
 #avatarSave { width: 100%; font-size: 18px; background: #2f9e44; }
+/* the newer flavors' icons */
+.fx-berries.scoop, .fx-berries .ball { background: radial-gradient(#2d3a8c 1.6px, transparent 2.2px) 1px 1px / 8px 8px, #8a9ae6 !important; }
+.fx-bubble.scoop, .fx-bubble .ball { box-shadow: 7px -2px 0 -2px #ffc2e2, 0 0 5px #ffc2e2; }
+.fx-shine.scoop, .fx-shine .ball { box-shadow: 0 0 9px 3px rgba(255, 176, 0, 0.8); }
+.fx-lava.scoop, .fx-lava .ball { box-shadow: 0 0 8px 3px rgba(255, 90, 0, 0.8); animation: fxFire 0.6s infinite alternate; }
+.fx-aurora.scoop, .fx-aurora .ball { box-shadow: 0 0 10px 3px #7fffd4; animation: fxHue 4s linear infinite; }
 </style>
 </head>
 <body>
@@ -733,16 +739,22 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const FLAVORS = [
     { id: 'vanilla',     name: 'Vanilla',          rarity: 'common',    price: 2,    cost: 10,      color: '#fff3c4' },
     { id: 'chocolate',   name: 'Chocolate',        rarity: 'common',    price: 2,    cost: 10,      color: '#6b3e26' },
+    { id: 'banana',      name: 'Banana',           rarity: 'common',    price: 2,    cost: 10,      color: '#ffe680' },
     { id: 'strawberry',  name: 'Strawberry',       rarity: 'uncommon',  price: 5,    cost: 50,      color: '#ff8fab' },
     { id: 'mint',        name: 'Mint Chip',        rarity: 'uncommon',  price: 6,    cost: 120,     color: '#a8e6cf', effect: 'frost' },
+    { id: 'blueberry',   name: 'Blueberry',        rarity: 'uncommon',  price: 5.5,  cost: 80,      color: '#8a9ae6', effect: 'berries' },
     { id: 'cookiedough', name: 'Cookie Dough',     rarity: 'rare',      price: 14,   cost: 400,     color: '#e6c79c', effect: 'chips' },
     { id: 'cottoncandy', name: 'Cotton Candy',     rarity: 'rare',      price: 16,   cost: 800,     color: '#c3aed6', effect: 'fluff' },
+    { id: 'bubblegum',   name: 'Bubblegum',        rarity: 'rare',      price: 15,   cost: 600,     color: '#ff9ecf', effect: 'bubble' },
     { id: 'rainbow',     name: 'Rainbow Sherbet',  rarity: 'epic',      price: 35,   cost: 2500,    color: '#ffb347', effect: 'sherbet' },
     { id: 'galaxy',      name: 'Galaxy Swirl',     rarity: 'epic',      price: 40,   cost: 5000,    color: '#5b3cc4', effect: 'stars' },
+    { id: 'mango',       name: 'Mango Tango',      rarity: 'epic',      price: 38,   cost: 3500,    color: '#ffb020', effect: 'shine' },
     { id: 'golden',      name: 'Golden Caramel',   rarity: 'legendary', price: 90,   cost: 15000,   color: '#ffd700', effect: 'gold' },
     { id: 'dragonfruit', name: 'Dragon Fruit',     rarity: 'legendary', price: 110,  cost: 30000,   color: '#ff3cac', effect: 'dragon' },
+    { id: 'lava',        name: 'Lava Swirl',       rarity: 'legendary', price: 100,  cost: 22000,   color: '#ff5a1f', effect: 'lava' },
     { id: 'unicorn',     name: 'Unicorn Dream',    rarity: 'mythic',    price: 300,  cost: 100000,  color: '#e0bbff', effect: 'unicorn' },
     { id: 'phoenix',     name: 'Phoenix Fire',     rarity: 'mythic',    price: 350,  cost: 200000,  color: '#ff4500', effect: 'fire' },
+    { id: 'aurora',      name: 'Frozen Aurora',    rarity: 'mythic',    price: 320,  cost: 150000,  color: '#7fffd4', effect: 'aurora' },
     { id: 'void',        name: 'Cosmic Void',      rarity: 'secret',    price: 1200, cost: 1000000, color: '#0b0033', effect: 'void' },
     // 👑 admin-only
     { id: 'crownjewel',  name: 'Crown Jewel',      rarity: 'admin', price: 5000,  cost: 0, color: '#ffcf33', effect: 'crown', adminOnly: true },
@@ -800,6 +812,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'divine',  name: 'Divine Block',  cost: 25e9,     color: '#ffe8a3', odds: { mythic: 30, secret: 40, celestial: 25, divine: 5 } },
     { id: 'infinity', name: 'Infinity Block', cost: 500e9,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
   ];
+
+  // list them from most common to rarest, cheapest first (for the shop and the Flavor guide)
+  FLAVORS.sort((a, b) => RARITIES[a.rarity].order - RARITIES[b.rarity].order || a.price - b.price);
 
   // cost of the next level = base * growth^level
   const UPGRADES = {
@@ -4221,6 +4236,55 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
             sparkle(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 0.8, r * 0.3, `hsl(${k * 60}, 100%, 70%)`);
           }
         }
+        break;
+      case 'berries': // Blueberry: little blueberries on top
+        if (!back) {
+          ctx.fillStyle = '#2d3a8c';
+          for (const [dx, dy] of [[-0.35, -0.35], [0.3, -0.45], [0.05, -0.05]]) {
+            ctx.beginPath(); ctx.arc(x + dx * r, y + dy * r, r * 0.17, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        break;
+      case 'bubble': // Bubblegum: a bubble that slowly grows, then pops
+        if (!back) {
+          const g = (t * 0.45) % 1, br = r * (0.15 + 0.75 * g);
+          ctx.save();
+          ctx.globalAlpha = g > 0.92 ? 0 : 0.8;
+          ctx.fillStyle = '#ffc2e2'; ctx.strokeStyle = '#ff7ab8'; ctx.lineWidth = Math.max(0.6, r * 0.08);
+          ctx.beginPath(); ctx.arc(x + r * 0.75 + br * 0.6, y - r * 0.1, br, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.beginPath(); ctx.arc(x + r * 0.75 + br * 0.35, y - r * 0.1 - br * 0.35, br * 0.22, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+        break;
+      case 'shine': // Mango Tango: warm sunny glow with slowly turning rays
+        if (back) {
+          glow(x, y, r * 2.6, '255, 170, 0', 0.35 + 0.2 * pulse);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(t * 0.8);
+          ctx.fillStyle = 'rgba(255, 200, 60, 0.4)';
+          for (let k = 0; k < 8; k++) {
+            ctx.rotate(Math.PI / 4);
+            ctx.beginPath(); ctx.moveTo(-r * 0.18, r * 1.05); ctx.lineTo(r * 0.18, r * 1.05); ctx.lineTo(0, r * 2); ctx.fill();
+          }
+          ctx.restore();
+        } else sparkle(x + r * 0.35, y - r * 0.45, r * 0.35 * (0.4 + 0.6 * pulse), '#fff6d0');
+        break;
+      case 'lava': // Lava Swirl: hot glow, a dark cooling swirl and dripping lava
+        if (back) glow(x, y, r * 2.8, '255, 80, 0', 0.4 + 0.25 * pulse);
+        else {
+          ctx.strokeStyle = 'rgba(90, 20, 0, 0.7)';
+          ctx.lineWidth = Math.max(0.6, r * 0.12);
+          ctx.beginPath(); ctx.arc(x, y - r * 0.15, r * 0.55, t * 1.5, t * 1.5 + Math.PI * 1.2); ctx.stroke();
+          const drip = (t * 0.8) % 1;
+          ctx.fillStyle = '#ffb000';
+          ctx.beginPath(); ctx.arc(x - r * 0.55, y + r * 0.3 + drip * r * 0.9, r * 0.14 * (1 - drip * 0.5), 0, Math.PI * 2); ctx.fill();
+        }
+        break;
+      case 'aurora': // Frozen Aurora: a glow that shifts green, blue and purple, with icy sparkles
+        if (back) glow(x, y, r * 3, hueRgb(140 + 70 * (1 + Math.sin(t * 1.2))), 0.45 + 0.15 * pulse);
+        else sparkle(x - r * 0.4, y - r * 0.5, r * 0.4 * (0.4 + 0.6 * pulse), '#e6fcff');
         break;
       case 'frost': // Mint Chip: icy sparkle
         if (!back) sparkle(x + r * 0.4, y - r * 0.45, r * 0.4 * (0.4 + 0.6 * pulse), '#ffffff');

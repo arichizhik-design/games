@@ -2514,6 +2514,55 @@
           }
         }
         break;
+      case 'berries': // Blueberry: little blueberries on top
+        if (!back) {
+          ctx.fillStyle = '#2d3a8c';
+          for (const [dx, dy] of [[-0.35, -0.35], [0.3, -0.45], [0.05, -0.05]]) {
+            ctx.beginPath(); ctx.arc(x + dx * r, y + dy * r, r * 0.17, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        break;
+      case 'bubble': // Bubblegum: a bubble that slowly grows, then pops
+        if (!back) {
+          const g = (t * 0.45) % 1, br = r * (0.15 + 0.75 * g);
+          ctx.save();
+          ctx.globalAlpha = g > 0.92 ? 0 : 0.8;
+          ctx.fillStyle = '#ffc2e2'; ctx.strokeStyle = '#ff7ab8'; ctx.lineWidth = Math.max(0.6, r * 0.08);
+          ctx.beginPath(); ctx.arc(x + r * 0.75 + br * 0.6, y - r * 0.1, br, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.beginPath(); ctx.arc(x + r * 0.75 + br * 0.35, y - r * 0.1 - br * 0.35, br * 0.22, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+        break;
+      case 'shine': // Mango Tango: warm sunny glow with slowly turning rays
+        if (back) {
+          glow(x, y, r * 2.6, '255, 170, 0', 0.35 + 0.2 * pulse);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(t * 0.8);
+          ctx.fillStyle = 'rgba(255, 200, 60, 0.4)';
+          for (let k = 0; k < 8; k++) {
+            ctx.rotate(Math.PI / 4);
+            ctx.beginPath(); ctx.moveTo(-r * 0.18, r * 1.05); ctx.lineTo(r * 0.18, r * 1.05); ctx.lineTo(0, r * 2); ctx.fill();
+          }
+          ctx.restore();
+        } else sparkle(x + r * 0.35, y - r * 0.45, r * 0.35 * (0.4 + 0.6 * pulse), '#fff6d0');
+        break;
+      case 'lava': // Lava Swirl: hot glow, a dark cooling swirl and dripping lava
+        if (back) glow(x, y, r * 2.8, '255, 80, 0', 0.4 + 0.25 * pulse);
+        else {
+          ctx.strokeStyle = 'rgba(90, 20, 0, 0.7)';
+          ctx.lineWidth = Math.max(0.6, r * 0.12);
+          ctx.beginPath(); ctx.arc(x, y - r * 0.15, r * 0.55, t * 1.5, t * 1.5 + Math.PI * 1.2); ctx.stroke();
+          const drip = (t * 0.8) % 1;
+          ctx.fillStyle = '#ffb000';
+          ctx.beginPath(); ctx.arc(x - r * 0.55, y + r * 0.3 + drip * r * 0.9, r * 0.14 * (1 - drip * 0.5), 0, Math.PI * 2); ctx.fill();
+        }
+        break;
+      case 'aurora': // Frozen Aurora: a glow that shifts green, blue and purple, with icy sparkles
+        if (back) glow(x, y, r * 3, hueRgb(140 + 70 * (1 + Math.sin(t * 1.2))), 0.45 + 0.15 * pulse);
+        else sparkle(x - r * 0.4, y - r * 0.5, r * 0.4 * (0.4 + 0.6 * pulse), '#e6fcff');
+        break;
       case 'frost': // Mint Chip: icy sparkle
         if (!back) sparkle(x + r * 0.4, y - r * 0.45, r * 0.4 * (0.4 + 0.6 * pulse), '#ffffff');
         break;
