@@ -188,8 +188,9 @@
         // remember the admin code on this device, so next time just the name is enough
         if (msg.admin && adminCode) { try { localStorage.setItem(codeKey(), adminCode); } catch (e) {} }
         resize();
-        if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
-        else toast(msg.returning ? 'Welcome back! Your stand is open again.'
+        if (!msg.returning && !tutorialDone()) startTutorial();
+        else if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
+        else if (msg.returning || tutorialDone()) toast(msg.returning ? 'Welcome back! Your stand is open again.'
           : 'Welcome! Walk with the arrow keys or tap where you want to go.');
         break;
       case 'error':
@@ -214,6 +215,9 @@
         break;
       case 'players':
         if (openWindow === 'ban') showPlayers(msg.players);
+        break;
+      case 'chat':
+        addChat(msg);
         break;
       case 'gift':
         toast(msg.money !== undefined
@@ -253,11 +257,13 @@
       case 'bought': {
         const f = flavorById[msg.flavor];
         toast(`You bought ${f.name}! Hold it and place it on your stand.`);
+        tut.bought = true;
         break;
       }
       case 'placed': {
         const f = flavorById[msg.flavor];
         toast(`${f.name} is growing! Ready in ${growText(RARITIES[f.rarity].growSec)}.`);
+        tut.placed = true;
         if (s) confetti(slots[s.slot].x, slots[s.slot].y, 12);
         break;
       }
@@ -683,6 +689,129 @@
   $('giftBtn').addEventListener('click', openGift);
   $('giftClose').addEventListener('click', closeWindows);
 
+  // ---------- 💬 Chat (top left) ----------
+  const STAND_COLORS = id => (stands.find(st => st.id === id) || {}).color;
+
+  function addChat(msg) {
+    const log = $('chatLog');
+    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
+    const line = document.createElement('div');
+    line.className = 'msg';
+    const from = document.createElement('span');
+    from.className = 'from' + (msg.admin ? ' admin' : '');
+    from.textContent = (msg.admin ? '👑 ' : '') + msg.from + ': ';
+    if (!msg.admin && STAND_COLORS(msg.id)) from.style.color = STAND_COLORS(msg.id);
+    line.appendChild(from);
+    line.appendChild(document.createTextNode(msg.text));
+    log.appendChild(line);
+    while (log.children.length > 50) log.firstChild.remove();
+    if (atBottom || msg.id === myId) log.scrollTop = log.scrollHeight;
+    // a new message pops the chat open again
+    if (msg.id !== myId) $('chat').classList.remove('collapsed');
+  }
+
+  function sendChat() {
+    const text = $('chatInput').value.trim();
+    if (!text) return $('chatInput').blur();
+    send({ type: 'chat', text });
+    $('chatInput').value = '';
+  }
+  $('chatSend').addEventListener('click', sendChat);
+  $('chatInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
+    else if (e.key === 'Escape') $('chatInput').blur();
+  });
+  $('chatToggle').addEventListener('click', () => $('chat').classList.toggle('collapsed'));
+  $('chatLog').innerHTML = '<div class="msg hint">Say hi to everyone in the park! Press Enter to chat.</div>';
+  if (window.innerWidth < 700) $('chat').classList.add('collapsed');
+
+  // ---------- 📖 Tutorial: a guide card and a bouncing arrow for new players ----------
+  const tut = { step: -1, bought: false, placed: false, start: null };
+  const myStandPos = () => { const s = me(); return s ? slots[s.slot] : null; };
+  const SHOP_DOOR = () => ({ x: SHOP.x, y: SHOP.y + 90 });
+  const TUT_STEPS = [
+    { text: '👋 Welcome to Ice Cream Tycoon! Walk around with the <b>arrow keys</b> (or W A S D), or <b>tap</b> where you want to go.',
+      done: () => tut.start && dist(player, tut.start) > 80 },
+    { text: '🍨 Customers walk up to your stand to buy scoops. Press <b>Scoop!</b> (or Space) to serve them faster. Earn <b>$10</b>!',
+      target: myStandPos, done: () => (me()?.money || 0) >= 10 },
+    { text: '🛒 Now walk to the <b>Ice Cream Shop</b>. Follow the arrow!',
+      target: SHOP_DOOR, done: () => dist(player, SHOP_DOOR()) <= REACH },
+    { text: '💵 Tap the shop to open it, then buy a tub of ice cream. <span class="sub">Rarer ones sell for more but cost more!</span>',
+      target: () => SHOP, done: () => tut.bought },
+    { text: '✋ Your tub is in your <b>hotbar</b> at the bottom. Tap it (or press its number key) to hold it.',
+      hotbar: true, done: () => !!heldItem() || tut.placed },
+    { text: '🏪 Walk back to your stand and tap a <b>dashed space</b> to put it there. It grows, then customers can buy it!',
+      target: myStandPos, done: () => tut.placed },
+    { text: '🎉 You did it! More to try: 🎒 the <b>chest</b> on your plot is your Inventory, 👕 the <b>Avatar Shop</b> changes your look, ' +
+      '🎁 <b>Gift</b> sends money or ice cream to friends, and 🌈 <b>mutations</b> make scoops worth way more!', last: true },
+  ];
+
+  function tutorialDone() { try { return !!localStorage.getItem('icecream-tutorial-done'); } catch (e) { return false; } }
+
+  function startTutorial() {
+    tut.bought = tut.placed = false;
+    showTutStep(0);
+  }
+
+  function showTutStep(i) {
+    tut.step = i;
+    tut.start = player.placed ? { x: player.x, y: player.y } : null;
+    const st = TUT_STEPS[i];
+    $('tutorial').classList.remove('hidden');
+    $('tutorial').querySelector('.tutStep').textContent = `Tutorial · Step ${i + 1} of ${TUT_STEPS.length}`;
+    $('tutorial').querySelector('.tutText').innerHTML = st.text;
+    $('tutNext').classList.toggle('hidden', !st.last);
+    $('tutSkip').classList.toggle('hidden', !!st.last);
+    $('hotbar').classList.toggle('tutGlow', !!st.hotbar);
+  }
+
+  function endTutorial() {
+    tut.step = -1;
+    $('tutorial').classList.add('hidden');
+    $('hotbar').classList.remove('tutGlow');
+    try { localStorage.setItem('icecream-tutorial-done', '1'); } catch (e) {}
+  }
+
+  function updateTutorial() {
+    const st = TUT_STEPS[tut.step];
+    if (!st || st.last || !me() || !player.placed) return;
+    if (!tut.start) tut.start = { x: player.x, y: player.y };
+    if (st.done()) {
+      confetti(player.x, player.y - 40, 16);
+      showTutStep(tut.step + 1);
+    }
+  }
+
+  // a bouncing arrow over where to go, plus a little pointer next to you when it's far away
+  function drawTutorialArrow(time) {
+    const st = TUT_STEPS[tut.step];
+    const t = st && st.target && st.target();
+    if (!t) return;
+    const bob = Math.sin(time * 6) * 8;
+    const ax = t.x, ay = t.y - 110 + bob;
+    ctx.fillStyle = '#ff3b82';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay + 30); ctx.lineTo(ax - 22, ay + 6); ctx.lineTo(ax - 9, ay + 6); ctx.lineTo(ax - 9, ay - 22);
+    ctx.lineTo(ax + 9, ay - 22); ctx.lineTo(ax + 9, ay + 6); ctx.lineTo(ax + 22, ay + 6); ctx.closePath();
+    ctx.stroke(); ctx.fill();
+    const d = dist(player, t);
+    if (d > 220) {
+      const a = Math.atan2(t.y - player.y, t.x - player.x);
+      ctx.save();
+      ctx.translate(player.x + Math.cos(a) * 55, player.y - 25 + Math.sin(a) * 55);
+      ctx.rotate(a);
+      ctx.beginPath(); ctx.moveTo(16 + bob / 2, 0); ctx.lineTo(-8, -12); ctx.lineTo(-8, 12); ctx.closePath();
+      ctx.stroke(); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  $('tutSkip').addEventListener('click', endTutorial);
+  $('tutNext').addEventListener('click', endTutorial);
+  $('tutBtn').addEventListener('click', startTutorial);
+
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
     hat: { cap: 'Cap', none: 'No hat', tophat: 'Top hat', beanie: 'Beanie', party: 'Party hat',
@@ -937,6 +1066,10 @@
     } else if (/^Digit\d$/.test(e.code)) {
       const i = (Number(e.code.slice(5)) + 9) % 10; // 1..9 -> 0..8, 0 -> 9
       selectHand(hand === i ? -1 : i);
+    } else if (e.code === 'Enter') {
+      e.preventDefault();
+      $('chat').classList.remove('collapsed');
+      $('chatInput').focus();
     } else if (e.code === 'Escape') {
       closeWindows();
       selectHand(-1);
@@ -2173,6 +2306,7 @@
     }
 
     drawEventEffects(time, dt);
+    if (tut.step >= 0) { updateTutorial(); drawTutorialArrow(time); }
 
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
@@ -2212,5 +2346,5 @@
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  window.__icecream = { view, player }; // for automated tests
+  window.__icecream = { view, player, home: () => myStandPos() }; // for automated tests
 })();

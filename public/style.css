@@ -271,7 +271,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #leaderboard li.me { font-weight: bold; color: #e0457b; }
 
 #toast {
-  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: 84px; left: 50%; transform: translateX(-50%); z-index: 9;
   background: rgba(40, 20, 35, 0.85); color: white; padding: 10px 18px;
   border-radius: 12px; font-weight: bold; opacity: 0; transition: opacity 0.3s;
   pointer-events: none; text-align: center; max-width: 90%;
@@ -325,3 +325,40 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #giftBody .moneyRow input { flex: 1; width: auto; }
 #giftBody .backBtn { background: #868e96; margin-bottom: 8px; }
 #giftBody h3 { margin: 10px 0 6px; font-size: 15px; color: #e0457b; }
+
+/* 📖 Tutorial */
+#tutorial {
+  position: absolute; top: 12px; right: 12px; z-index: 7; width: min(300px, calc(100% - 24px));
+  background: #fff; border: 3px solid #ff6fa5; border-radius: 16px; padding: 12px 14px;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.25); animation: annPop 0.3s ease-out;
+}
+#tutorial.hidden { display: none; }
+#tutorial .tutStep { font-size: 12px; font-weight: bold; color: #e0457b; }
+#tutorial .tutText { font-size: 15px; font-weight: bold; color: #3a2a35; margin: 4px 0 8px; line-height: 1.35; }
+#tutorial .tutText .sub { font-weight: normal; }
+#tutorial .tutButtons { display: flex; gap: 8px; }
+#tutorial #tutNext { background: #2f9e44; }
+#tutorial #tutSkip { background: #868e96; font-size: 12px; padding: 6px 10px; }
+#tutorial .hidden { display: none; }
+.tutBtn { width: 100%; margin-top: 6px; background: #868e96; font-size: 13px; padding: 6px; }
+#hotbar.tutGlow { animation: tutGlow 1s ease-in-out infinite alternate; border-radius: 14px; }
+@keyframes tutGlow { to { box-shadow: 0 0 0 4px #ff6fa5, 0 0 24px #ff6fa5; } }
+@media (max-width: 700px) { #tutorial { top: auto; bottom: 64px; right: 8px; padding: 8px 10px; } #tutorial .tutText { font-size: 13px; } }
+
+/* 💬 Chat (top left) */
+#chat {
+  position: absolute; top: 12px; left: 12px; z-index: 6; width: min(280px, calc(100% - 24px));
+  background: rgba(40, 20, 35, 0.72); border-radius: 12px; padding: 6px 8px; color: #fff;
+}
+#chat .chatHead { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 14px; }
+#chat .chatHead button { background: rgba(255,255,255,0.2); padding: 0 8px; font-size: 14px; line-height: 20px; }
+#chatLog { max-height: 150px; overflow-y: auto; font-size: 13px; margin: 4px 0; word-wrap: break-word; }
+#chatLog .msg { padding: 1px 0; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+#chatLog .from { font-weight: bold; }
+#chatLog .from.admin { color: #ffd43b; }
+#chatLog .hint { opacity: 0.8; font-style: italic; }
+#chat .chatRow { display: flex; gap: 4px; }
+#chat .chatRow input { flex: 1; min-width: 0; padding: 5px 8px; font-size: 13px; }
+#chat .chatRow button { padding: 5px 10px; font-size: 13px; }
+#chat.collapsed #chatLog, #chat.collapsed .chatRow { display: none; }
+#chat.collapsed { width: auto; }

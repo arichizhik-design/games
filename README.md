@@ -58,6 +58,10 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
   Cosmic Void (the best ice cream) is a tiny black hole with a spinning purple disk, Galaxy Swirl twinkles with stars, Golden Caramel shines,
   Unicorn Dream glows in changing colors, and more.
+- **📖 Tutorial:** new players get a step-by-step guide with a bouncing arrow (walk, earn $10, visit the
+  shop, buy a tub, hold it, place it). Skip it any time, or replay it with the 📖 Tutorial button.
+- **💬 Chat:** the chat box in the top left corner talks to everyone in the park (press Enter to type).
+  Mean words get turned into ****. Press — to hide it.
 - **🎁 Gift:** press the Gift button, pick someone who is playing right now, then send them money
   or ice cream from your hotbar or Inventory. It lands in their hotbar (or Inventory if the hotbar is full).
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.

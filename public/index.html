@@ -29,6 +29,27 @@
       <div id="toast"></div>
       <div id="announce" class="hidden"><div class="annFrom"></div><div class="annText"></div></div>
 
+      <div id="chat">
+        <div class="chatHead">
+          <span>💬 Chat</span>
+          <button id="chatToggle" type="button" title="Hide or show the chat">—</button>
+        </div>
+        <div id="chatLog"></div>
+        <div class="chatRow">
+          <input id="chatInput" maxlength="120" placeholder="Say something nice…" autocomplete="off">
+          <button id="chatSend" type="button">Send</button>
+        </div>
+      </div>
+
+      <div id="tutorial" class="hidden">
+        <div class="tutStep"></div>
+        <div class="tutText"></div>
+        <div class="tutButtons">
+          <button id="tutNext" type="button" class="hidden">Let's go!</button>
+          <button id="tutSkip" type="button">Skip tutorial</button>
+        </div>
+      </div>
+
       <div id="handLabel"></div>
       <div id="hotbar"></div>
 
@@ -98,6 +119,7 @@
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
       <button id="giftBtn" class="giftBtn" type="button">🎁 Gift</button>
+      <button id="tutBtn" class="tutBtn" type="button">📖 Tutorial</button>
       <p class="sub howto">Walk with the arrow keys or tap where to go. Pick an ice cream in your hotbar
         (keys 1–0), then tap a dashed space on your stand to place it.</p>
       <div id="shopTimerSide" class="sideTimer"></div>

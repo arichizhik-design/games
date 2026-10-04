@@ -84,6 +84,16 @@
     return stock;
   }
 
+  // ---------- chat ----------
+  const BAD_WORDS = ['fuck', 'shit', 'bitch', 'bastard', 'asshole', 'dick', 'pussy', 'cunt', 'damn',
+    'crap', 'slut', 'whore', 'retard', 'nigger', 'nigga', 'fag', 'stupid', 'idiot', 'dumb', 'loser', 'shut up', 'hate you'];
+  const BAD_RE = new RegExp(BAD_WORDS.map(w => w.replace(/ /g, '\\s*')).join('|'), 'gi');
+
+  // keep chat short, on one line, and kind
+  function cleanChat(text) {
+    return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 120).replace(BAD_RE, m => '*'.repeat(m.length));
+  }
+
   // ---------- inventory helpers (a slot is null or { flavor, count }) ----------
   function addItem(slots, flavor, count) {
     for (const s of slots) {
@@ -483,6 +493,14 @@
         if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
         stand.upgrades[msg.key]++;
+      } else if (msg.type === 'chat') {
+        // park chat: everyone playing sees it
+        const text = cleanChat(msg.text);
+        const now = Date.now();
+        if (!text) return;
+        if (now - (stand.lastChat || 0) < 1000) return err('Slow down! Wait a second between messages.');
+        stand.lastChat = now;
+        broadcast({ type: 'chat', id: stand.id, from: stand.name, admin: !!stand.admin, text });
       } else if (msg.type === 'gift') {
         // give money or ice cream to another player in the park
         const target = stands.get(Number(msg.to));
