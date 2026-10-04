@@ -2236,6 +2236,30 @@
       ctx.restore();
       return;
     }
+    if (f.effect === 'infinity') {
+      // Infinity Swirl: every color swirling around and slowly spinning
+      const spin = nowSec * 1.5;
+      let g;
+      if (ctx.createConicGradient) {
+        g = ctx.createConicGradient(spin, x, y);
+        [0, 50, 110, 180, 250, 310, 360].forEach((h, i, a) => g.addColorStop(i / (a.length - 1), `hsl(${h}, 100%, 62%)`));
+      } else {
+        g = ctx.createLinearGradient(x - r, y, x + r, y);
+        [0, 60, 120, 200, 280].forEach((h, i, a) => g.addColorStop(i / (a.length - 1), `hsl(${(h + nowSec * 90) % 360}, 100%, 62%)`));
+      }
+      ctx.fillStyle = g;
+      outline(); ctx.fill();
+      // a white swirl and shine on top
+      ctx.save();
+      outline(); ctx.clip();
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = Math.max(0.6, r * 0.14);
+      ctx.beginPath(); ctx.arc(x, y, r * 0.5, spin, spin + Math.PI * 1.3); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.4, r * 0.28, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      return;
+    }
     if (f.effect === 'void') {
       // pitch-black middle fading to deep purple, with tiny stars inside
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
@@ -2513,6 +2537,24 @@
             sparkle(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 0.8, r * 0.3, `hsl(${k * 60}, 100%, 70%)`);
           }
         }
+        break;
+      case 'infinity': // ♾️ Infinity Swirl, the best ice cream: color-changing glow and stars flying in an infinity loop
+        if (back) {
+          const hue = (t * 80) % 360;
+          glow(x, y, r * 4.5, hueRgb(hue), 0.45 + 0.25 * pulse);
+          glow(x, y, r * 2.4, hueRgb((hue + 150) % 360), 0.35);
+          // the infinity (figure 8) path
+          const loop = u => { const d = 1 + Math.sin(u) ** 2; return [x + r * 2.6 * Math.cos(u) / d, y - r * 0.2 + r * 2.6 * Math.sin(u) * Math.cos(u) / d]; };
+          ctx.strokeStyle = `hsla(${hue}, 100%, 75%, 0.35)`;
+          ctx.lineWidth = Math.max(0.5, r * 0.1);
+          ctx.beginPath();
+          for (let k = 0; k <= 40; k++) { const [px, py] = loop(k / 40 * Math.PI * 2); k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+          ctx.stroke();
+          for (let k = 0; k < 3; k++) {
+            const [px, py] = loop(t * 2 + k * 2.094);
+            sparkle(px, py, r * 0.45, `hsl(${(hue + k * 120) % 360}, 100%, 80%)`);
+          }
+        } else sparkle(x + r * 0.3, y - r * 0.55, r * 0.45 * (0.4 + 0.6 * pulse), '#ffffff');
         break;
       case 'berries': // Blueberry: little blueberries on top
         if (!back) {

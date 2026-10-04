@@ -28,6 +28,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 | Legendary | Golden Caramel, Lava Swirl, Dragon Fruit | $90–$110        |
 | Mythic    | Unicorn Dream, Frozen Aurora, Phoenix Fire | $300–$350       |
 | Secret    | ??? (buy it to find out!)        | $1,200          |
+| Celestial | ♾️ Infinity Swirl, the best ice cream (super rare in the shop) | $3,000 |
 | 👑 Admin | Crown Jewel, Storm Cloud, Supernova, Prism Swirl (admins only) | $5,000–$15,000 |
 
 - **Stand spaces:** your stand starts with 5 spaces for tubs. When they're all full, an **Extra Space** button appears on top of your stand. Buy it to get 3 more spaces ($300, then $6,000, then $75,000).
@@ -62,6 +63,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   Lucky drops clovers, Ocean and Toxic fill the air with bubbles, Love rains hearts, Starfall turns the park
   into a night sky with shooting stars, Mystic swirls magic sparkles, and Meteor Shower sends flaming meteors.
 - **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
+  Infinity Swirl spins with every color and has stars flying in an infinity loop around it,
   Bubblegum blows a bubble that pops, Mango Tango shines like the sun, Lava Swirl drips lava, Frozen Aurora
   shifts green, blue and purple,
   Cosmic Void (the best ice cream) is a tiny black hole with a spinning purple disk, Galaxy Swirl twinkles with stars, Golden Caramel shines,

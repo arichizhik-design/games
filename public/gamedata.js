@@ -14,7 +14,8 @@
     // admin-only ice creams: never in the shop, only admins can give or spawn them
     admin:     { name: 'Admin',     color: '#e8a200', order: 7, growSec: 30,  stock: { chance: 0,     min: 0, max: 0 } },
     // pet-only rarities, even better than Secret
-    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
+    // Celestial is also the rarity of the very best ice cream (even rarer in the shop than Secret)
+    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 900, stock: { chance: 0.0015, min: 1, max: 1 } },
     divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
   };
@@ -41,6 +42,8 @@
     { id: 'phoenix',     name: 'Phoenix Fire',     rarity: 'mythic',    price: 350,  cost: 200000,  color: '#ff4500', effect: 'fire' },
     { id: 'aurora',      name: 'Frozen Aurora',    rarity: 'mythic',    price: 320,  cost: 150000,  color: '#7fffd4', effect: 'aurora' },
     { id: 'void',        name: 'Cosmic Void',      rarity: 'secret',    price: 1200, cost: 1000000, color: '#0b0033', effect: 'void' },
+    // ♾️ the best ice cream in the shop, even better than Cosmic Void
+    { id: 'infinity',    name: 'Infinity Swirl',   rarity: 'celestial', price: 3000, cost: 5000000, color: '#ff66ff', effect: 'infinity' },
     // 👑 admin-only
     { id: 'crownjewel',  name: 'Crown Jewel',      rarity: 'admin', price: 5000,  cost: 0, color: '#ffcf33', effect: 'crown', adminOnly: true },
     { id: 'storm',       name: 'Storm Cloud',      rarity: 'admin', price: 7500,  cost: 0, color: '#3b4a6b', effect: 'storm', adminOnly: true },

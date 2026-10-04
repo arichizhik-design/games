@@ -460,6 +460,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .fx-shine.scoop, .fx-shine .ball { box-shadow: 0 0 9px 3px rgba(255, 176, 0, 0.8); }
 .fx-lava.scoop, .fx-lava .ball { box-shadow: 0 0 8px 3px rgba(255, 90, 0, 0.8); animation: fxFire 0.6s infinite alternate; }
 .fx-aurora.scoop, .fx-aurora .ball { box-shadow: 0 0 10px 3px #7fffd4; animation: fxHue 4s linear infinite; }
+/* ♾️ Infinity Swirl: spinning rainbow with a color-changing glow */
+.fx-infinity.scoop, .fx-infinity .ball {
+  background: conic-gradient(#ff4040, #ffb000, #ffee00, #39d353, #3d9bff, #9b5cff, #ff4fd8, #ff4040) !important;
+  animation: fxSpin 1.6s linear infinite, infGlow 2s linear infinite;
+}
 </style>
 </head>
 <body>
@@ -729,7 +734,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // admin-only ice creams: never in the shop, only admins can give or spawn them
     admin:     { name: 'Admin',     color: '#e8a200', order: 7, growSec: 30,  stock: { chance: 0,     min: 0, max: 0 } },
     // pet-only rarities, even better than Secret
-    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
+    // Celestial is also the rarity of the very best ice cream (even rarer in the shop than Secret)
+    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 900, stock: { chance: 0.0015, min: 1, max: 1 } },
     divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
   };
@@ -756,6 +762,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'phoenix',     name: 'Phoenix Fire',     rarity: 'mythic',    price: 350,  cost: 200000,  color: '#ff4500', effect: 'fire' },
     { id: 'aurora',      name: 'Frozen Aurora',    rarity: 'mythic',    price: 320,  cost: 150000,  color: '#7fffd4', effect: 'aurora' },
     { id: 'void',        name: 'Cosmic Void',      rarity: 'secret',    price: 1200, cost: 1000000, color: '#0b0033', effect: 'void' },
+    // ♾️ the best ice cream in the shop, even better than Cosmic Void
+    { id: 'infinity',    name: 'Infinity Swirl',   rarity: 'celestial', price: 3000, cost: 5000000, color: '#ff66ff', effect: 'infinity' },
     // 👑 admin-only
     { id: 'crownjewel',  name: 'Crown Jewel',      rarity: 'admin', price: 5000,  cost: 0, color: '#ffcf33', effect: 'crown', adminOnly: true },
     { id: 'storm',       name: 'Storm Cloud',      rarity: 'admin', price: 7500,  cost: 0, color: '#3b4a6b', effect: 'storm', adminOnly: true },
@@ -3959,6 +3967,30 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.restore();
       return;
     }
+    if (f.effect === 'infinity') {
+      // Infinity Swirl: every color swirling around and slowly spinning
+      const spin = nowSec * 1.5;
+      let g;
+      if (ctx.createConicGradient) {
+        g = ctx.createConicGradient(spin, x, y);
+        [0, 50, 110, 180, 250, 310, 360].forEach((h, i, a) => g.addColorStop(i / (a.length - 1), `hsl(${h}, 100%, 62%)`));
+      } else {
+        g = ctx.createLinearGradient(x - r, y, x + r, y);
+        [0, 60, 120, 200, 280].forEach((h, i, a) => g.addColorStop(i / (a.length - 1), `hsl(${(h + nowSec * 90) % 360}, 100%, 62%)`));
+      }
+      ctx.fillStyle = g;
+      outline(); ctx.fill();
+      // a white swirl and shine on top
+      ctx.save();
+      outline(); ctx.clip();
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = Math.max(0.6, r * 0.14);
+      ctx.beginPath(); ctx.arc(x, y, r * 0.5, spin, spin + Math.PI * 1.3); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.4, r * 0.28, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      return;
+    }
     if (f.effect === 'void') {
       // pitch-black middle fading to deep purple, with tiny stars inside
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
@@ -4236,6 +4268,24 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
             sparkle(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 0.8, r * 0.3, `hsl(${k * 60}, 100%, 70%)`);
           }
         }
+        break;
+      case 'infinity': // ♾️ Infinity Swirl, the best ice cream: color-changing glow and stars flying in an infinity loop
+        if (back) {
+          const hue = (t * 80) % 360;
+          glow(x, y, r * 4.5, hueRgb(hue), 0.45 + 0.25 * pulse);
+          glow(x, y, r * 2.4, hueRgb((hue + 150) % 360), 0.35);
+          // the infinity (figure 8) path
+          const loop = u => { const d = 1 + Math.sin(u) ** 2; return [x + r * 2.6 * Math.cos(u) / d, y - r * 0.2 + r * 2.6 * Math.sin(u) * Math.cos(u) / d]; };
+          ctx.strokeStyle = `hsla(${hue}, 100%, 75%, 0.35)`;
+          ctx.lineWidth = Math.max(0.5, r * 0.1);
+          ctx.beginPath();
+          for (let k = 0; k <= 40; k++) { const [px, py] = loop(k / 40 * Math.PI * 2); k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+          ctx.stroke();
+          for (let k = 0; k < 3; k++) {
+            const [px, py] = loop(t * 2 + k * 2.094);
+            sparkle(px, py, r * 0.45, `hsl(${(hue + k * 120) % 360}, 100%, 80%)`);
+          }
+        } else sparkle(x + r * 0.3, y - r * 0.55, r * 0.45 * (0.4 + 0.6 * pulse), '#ffffff');
         break;
       case 'berries': // Blueberry: little blueberries on top
         if (!back) {
