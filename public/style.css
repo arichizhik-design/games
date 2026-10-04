@@ -291,6 +291,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 @keyframes annPop { from { transform: translateX(-50%) scale(0.7); opacity: 0; } }
 #adminPanel .talkBtn { width: 100%; margin-bottom: 6px; background: #f76707; font-size: 15px; }
 #talkRow.hidden { display: none; }
+#adminPanel .banBtn { width: 100%; margin-bottom: 6px; background: #c92a2a; font-size: 15px; }
+#banList .row { gap: 10px; }
+#banList .who { flex: 1; }
+#banList .status { font-size: 12px; color: #8a7480; }
+#banList button { background: #c92a2a; }
+#banList button.sure { background: #000; }
+#banList .adminTag { font-size: 12px; font-weight: bold; color: #e8a200; }
+#bannedModal { text-align: center; border-color: #c92a2a; }
+#bannedModal .modalTitle { color: #c92a2a; font-size: 24px; }
+#bannedOk { background: #c92a2a; font-size: 16px; padding: 10px 20px; }
 #talkInput { flex: 1; }
 
 @media (max-width: 760px) {

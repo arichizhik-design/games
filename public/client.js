@@ -212,6 +212,15 @@
       case 'announce':
         showAnnouncement(msg.from, msg.text);
         break;
+      case 'players':
+        if (openWindow === 'ban') showPlayers(msg.players);
+        break;
+      case 'banned':
+        closeWindows();
+        hand = -1;
+        $('bannedText').textContent = `${msg.by} (admin) banned you. You lost everything and have to start over from the beginning.`;
+        $('bannedModal').classList.remove('hidden');
+        break;
       case 'state':
         stands = msg.stands;
         gameEvent = msg.event;
@@ -529,7 +538,53 @@
     $('shopModal').classList.add('hidden');
     $('invModal').classList.add('hidden');
     $('avatarModal').classList.add('hidden');
+    $('banModal').classList.add('hidden');
   }
+
+  // ---------- Ban Players (admins) ----------
+  let banSure = null; // the player whose Ban button was pressed once ("Sure?")
+
+  function openBan() {
+    closeWindows();
+    openWindow = 'ban';
+    banSure = null;
+    $('banList').innerHTML = '<div class="sub">Loading players…</div>';
+    $('banModal').classList.remove('hidden');
+    send({ type: 'adminPlayers' });
+  }
+
+  function showPlayers(players) {
+    const list = $('banList');
+    list.innerHTML = '';
+    if (!players.length) list.innerHTML = '<div class="sub">No players yet.</div>';
+    for (const pl of players) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const who = document.createElement('div');
+      who.className = 'who';
+      who.innerHTML = `<div class="name"></div><div class="status">${pl.online ? '🟢 Playing now' : '⚪ Away'} · ${fmt(pl.money)}</div>`;
+      who.querySelector('.name').textContent = pl.name;
+      row.appendChild(who);
+      if (pl.admin) {
+        row.insertAdjacentHTML('beforeend', '<span class="adminTag">👑 Admin</span>');
+      } else {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = banSure === pl.key ? 'Sure? Ban!' : 'Ban';
+        b.classList.toggle('sure', banSure === pl.key);
+        // tap once to get "Sure?", tap again to ban
+        b.addEventListener('click', () => {
+          if (banSure === pl.key) { banSure = null; send({ type: 'adminBan', key: pl.key }); }
+          else { banSure = pl.key; showPlayers(players); }
+        });
+        row.appendChild(b);
+      }
+      list.appendChild(row);
+    }
+  }
+  $('banBtn').addEventListener('click', openBan);
+  $('banClose').addEventListener('click', closeWindows);
+  $('bannedOk').addEventListener('click', () => $('bannedModal').classList.add('hidden'));
 
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {

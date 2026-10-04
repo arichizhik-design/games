@@ -55,6 +55,22 @@
         <div id="avatarOptions"></div>
       </div>
 
+      <div id="banModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">🚫 Ban Players</div>
+          <button id="banClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Banning a player wipes everything they have (money, ice creams, upgrades) and they have to
+          start over. Admins can't be banned.</p>
+        <div id="banList"></div>
+      </div>
+
+      <div id="bannedModal" class="modal hidden">
+        <div class="modalTitle">🚫 You were banned!</div>
+        <p id="bannedText"></p>
+        <button id="bannedOk" type="button">Start over</button>
+      </div>
+
       <div id="invModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">🎒 Inventory</div>
@@ -79,6 +95,7 @@
       <div id="adminPanel" class="hidden">
         <div class="adminTitle">👑 Admin commands</div>
         <button id="talkBtn" class="talkBtn" type="button">📢 All Server Talk</button>
+        <button id="banBtn" class="banBtn" type="button">🚫 Ban Players</button>
         <div id="talkRow" class="adminRow hidden">
           <input id="talkInput" maxlength="150" placeholder="Message to everyone in the server" autocomplete="off">
           <button id="talkSend" type="button">Send</button>

@@ -186,6 +186,26 @@
       return stand;
     }
 
+    // the progress a brand-new player starts with (used when an admin bans someone)
+    function freshProgress() {
+      return {
+        money: 0, totalEarned: 0, sold: 0, spaces: START_SPACES,
+        tubs: [{ flavor: 'vanilla', grow: 0 }, { flavor: 'chocolate', grow: 0 }, ...Array(START_SPACES - 2).fill(null)],
+        hotbar: Array(HOTBAR_SIZE).fill(null), storage: Array(STORAGE_SIZE).fill(null),
+        seen: ['vanilla', 'chocolate'], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
+        mutations: {}, avatar: fixAvatar(null), bought: {}, hand: -1, serveProgress: 0,
+      };
+    }
+
+    // everyone an admin can see in the Ban list: players here now, then saved players who are away
+    function playerList() {
+      const online = [...stands.values()].map(s => ({ key: s.key, name: s.name, online: true, money: s.money,
+        admin: ADMIN_NAMES.includes(s.key) }));
+      const away = Object.entries(saves).filter(([key]) => !online.some(p => p.key === key))
+        .map(([key, sv]) => ({ key, name: sv.name || key, online: false, money: sv.money || 0, admin: ADMIN_NAMES.includes(key) }));
+      return [...online, ...away];
+    }
+
     function queuePos(stand, index) {
       const s = SLOTS[stand.slot];
       return { x: s.x, y: s.y + 88 + index * 20 };
@@ -482,6 +502,24 @@
         if (!text || now - (stand.lastAnnounce || 0) < 1500) return;
         stand.lastAnnounce = now;
         broadcast({ type: 'announce', from: stand.name, text });
+      } else if (stand.admin && msg.type === 'adminPlayers') {
+        conn.send({ type: 'players', players: playerList() });
+      } else if (stand.admin && msg.type === 'adminBan') {
+        // Ban: the player loses everything and starts over
+        const key = String(msg.key || '').toLowerCase();
+        if (ADMIN_NAMES.includes(key)) return err("You can't ban an admin.");
+        const target = [...stands.values()].find(s => s.key === key);
+        if (target) {
+          for (const id of target.queue) { const c = customers.get(id); if (c) sendOffCustomer(c); }
+          target.queue = [];
+          Object.assign(target, freshProgress());
+          target.conn.send({ type: 'banned', by: stand.name });
+        } else if (saves[key]) {
+          const { adminDevice, name } = saves[key];
+          saves[key] = { name, ...(adminDevice ? { adminDevice } : {}), ...freshProgress() };
+        } else return err('No player with that name.');
+        conn.send({ type: 'admin', text: `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
+        conn.send({ type: 'players', players: playerList() });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();
       } else if (stand.admin && msg.type === 'adminMutations') {
