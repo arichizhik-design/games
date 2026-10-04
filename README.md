@@ -43,18 +43,24 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 
   | Mutation | Money | Mutation | Money |
   |---|---|---|---|
-  | 🪙 Gold | x2 | 🌑 Shadow | x12 |
+  | 🪙 Gold | x2 | 💖 Love | x14 |
   | 🍬 Candy | x3 | 🪐 Galaxy | x15 |
-  | ❄️ Frozen | x3 | ☯️ Yin Yang | x20 |
+  | ❄️ Frozen | x3 | 🌠 Starfall | x18 |
+  | 🌸 Sakura | x4 | ☯️ Yin Yang | x20 |
+  | 🍀 Lucky | x4 | 🔮 Mystic | x22 |
   | 💎 Diamond | x5 | 🌕 Blood Moon | x25 |
   | ⚡ Thunder | x6 | 🌈 Rainbow | x30 |
+  | 🌊 Ocean | x7 | ☄️ Meteor Shower | x40 |
   | 🌋 Molten | x8 | ⚜️ **Godly** | **x50** |
-  | 🌌 Aurora | x10 | 😇 **Heavenly** | **x75** |
-  | | | ♾️ **Impossible** | **x100** |
+  | ☢️ Toxic | x9 | 😇 **Heavenly** | **x75** |
+  | 🌌 Aurora | x10 | ♾️ **Impossible** | **x100** |
+  | 🌑 Shadow | x12 |  |  |
 
   Rarer mutations (bigger money) come up less often. Rainbow brings a real rainbow over the park,
   Godly fills the sky with golden light rays, Heavenly brings clouds, light beams and falling feathers,
-  and Impossible (the rarest of all) makes the whole park glitch with color.
+  and Impossible (the rarest of all) makes the whole park glitch with color. Sakura drops cherry blossoms,
+  Lucky drops clovers, Ocean and Toxic fill the air with bubbles, Love rains hearts, Starfall turns the park
+  into a night sky with shooting stars, Mystic swirls magic sparkles, and Meteor Shower sends flaming meteors.
 - **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
   Cosmic Void (the best ice cream) is a tiny black hole with a spinning purple disk, Galaxy Swirl twinkles with stars, Golden Caramel shines,
   Unicorn Dream glows in changing colors, and more.

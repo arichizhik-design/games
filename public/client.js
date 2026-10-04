@@ -500,7 +500,7 @@
     const ev = evs[0];
     box.classList.toggle('active', !!ev);
     // light-colored mutations get dark text so it stays readable
-    const light = evs.length === 1 && ['heavenly', 'frozen', 'diamond', 'godly', 'gold'].includes(ev.id);
+    const light = evs.length === 1 && ['heavenly', 'frozen', 'diamond', 'godly', 'gold', 'sakura', 'lucky', 'toxic'].includes(ev.id);
     box.style.color = light ? '#5a4300' : '';
     box.style.textShadow = light ? '0 1px 2px rgba(255,255,255,0.8)' : '';
     if (evs.length > 1) {
@@ -2866,7 +2866,8 @@
     if (m.id === 'rainbow') {
       drawSunShower(dt);
     } else if (m) {
-      const tint = ({ bloodmoon: 0.22, shadow: 0.32, molten: 0.16, godly: 0.1, heavenly: 0, impossible: 0.1 }[m.id] ?? 0.13) *
+      const tint = ({ bloodmoon: 0.22, shadow: 0.32, molten: 0.16, godly: 0.1, heavenly: 0, impossible: 0.1,
+        sakura: 0.08, lucky: 0.07, ocean: 0.16, toxic: 0.15, love: 0.09, starfall: 0.3, mystic: 0.18, meteor: 0.12 }[m.id] ?? 0.13) *
         Math.max(share, 0.5);
       if (tint) {
         ctx.globalAlpha = tint;
@@ -2874,12 +2875,31 @@
         ctx.fillRect(0, 0, world.width, world.height);
         ctx.globalAlpha = 1;
       }
+      // fewer of the big things (shooting stars, meteors)
+      const rate = { starfall: 2.5, meteor: 1.5, ocean: 12, toxic: 12 }[m.id] ?? 20;
       for (let i = 0; i < 2; i++) {
-        if (Math.random() >= dt * 20) continue;
+        if (Math.random() >= dt * rate) continue;
         const p = { x: Math.random() * world.width, y: -10, vy: 40 + Math.random() * 60,
           vx: (Math.random() - 0.5) * 30, r: 2 + Math.random() * 3, color: pickColor(m), shape: 'dot' };
         if (m.id === 'godly' || m.id === 'molten') { p.y = world.height + 10; p.vy = -p.vy; } // rising sparks
         if (m.id === 'heavenly') { p.shape = 'feather'; p.r += 3; p.vy *= 0.6; }
+        if (m.id === 'sakura') { p.shape = 'petal'; p.r += 2; p.vy *= 0.6; p.vx += 25; }      // drifting cherry blossoms
+        if (m.id === 'lucky') { p.shape = 'clover'; p.r += 2; p.vy *= 0.7; p.color = Math.random() < 0.15 ? '#ffd43b' : '#2fb344'; }
+        if (m.id === 'love') { p.shape = 'heart'; p.r += 3; p.vy *= 0.6; }
+        if (m.id === 'ocean' || m.id === 'toxic') {                                         // bubbles rising up
+          Object.assign(p, { y: world.height + 10, vy: -(30 + Math.random() * 50), shape: m.id === 'ocean' ? 'bubble' : 'goo', r: 3 + Math.random() * 5 });
+        }
+        if (m.id === 'mystic') {                                                            // sparkles swirling up
+          Object.assign(p, { y: Math.random() * world.height, vy: -20, shape: 'swirl', life: 2.5, phase: Math.random() * 6 });
+        }
+        if (m.id === 'starfall') {                                                          // shooting stars across the night sky
+          Object.assign(p, { x: Math.random() * world.width * 0.8, y: -10, vx: 380 + Math.random() * 120, vy: 220 + Math.random() * 60,
+            shape: 'streak', r: 2.5, color: Math.random() < 0.5 ? '#fff3bf' : '#a5d8ff', life: 3 });
+        }
+        if (m.id === 'meteor') {                                                            // big flaming meteors
+          Object.assign(p, { x: world.width * 0.2 + Math.random() * world.width, y: -20, vx: -220 - Math.random() * 80, vy: 340 + Math.random() * 80,
+            shape: 'meteor', r: 6 + Math.random() * 6, life: 4 });
+        }
         if (m.id === 'impossible') {
           // sparks fly out in every direction
           const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 120;
@@ -2909,6 +2929,64 @@
         ctx.strokeStyle = 'rgba(180,190,210,0.8)'; ctx.lineWidth = 0.8;
         ctx.beginPath(); ctx.moveTo(0, -p.r * 1.3); ctx.lineTo(0, p.r * 1.5); ctx.stroke();
         ctx.restore();
+      } else if (p.shape === 'petal') {
+        // a pink petal tumbling in the wind
+        ctx.save();
+        ctx.translate(p.x + Math.sin(time * 1.5 + i) * 14, p.y);
+        ctx.rotate(time * 2 + i);
+        ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.beginPath(); ctx.ellipse(-p.r * 0.3, 0, p.r * 0.35, p.r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (p.shape === 'clover') {
+        ctx.save();
+        ctx.translate(p.x + Math.sin(time + i) * 8, p.y);
+        ctx.rotate(time + i);
+        for (let k = 0; k < 4; k++) {
+          ctx.rotate(Math.PI / 2);
+          ctx.beginPath(); ctx.arc(0, -p.r * 0.55, p.r * 0.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+      } else if (p.shape === 'heart') {
+        ctx.font = `bold ${p.r * 2.4}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('♥', p.x + Math.sin(time * 2 + i) * 10, p.y);
+      } else if (p.shape === 'bubble') {
+        ctx.strokeStyle = p.color; ctx.lineWidth = 1.5;
+        const bx = p.x + Math.sin(time * 3 + i) * 5;
+        ctx.beginPath(); ctx.arc(bx, p.y, p.r, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.beginPath(); ctx.arc(bx - p.r * 0.35, p.y - p.r * 0.35, p.r * 0.25, 0, Math.PI * 2); ctx.fill();
+      } else if (p.shape === 'goo') {
+        // glowing toxic bubbles
+        const bx = p.x + Math.sin(time * 3 + i) * 4;
+        glow(bx, p.y, p.r * 2.4, '120, 255, 0', 0.35);
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(bx, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+      } else if (p.shape === 'swirl') {
+        const sx = p.x + Math.cos(time * 3 + p.phase) * 18, sy = p.y + Math.sin(time * 3 + p.phase) * 8;
+        glow(sx, sy, 10, '200, 160, 255', 0.6);
+        star(sx, sy, p.r + 1.5, p.color);
+      } else if (p.shape === 'streak' || p.shape === 'meteor') {
+        // a bright head with a fading tail behind it
+        const sp = Math.hypot(p.vx, p.vy), tx = -p.vx / sp, ty = -p.vy / sp;
+        const len = p.shape === 'meteor' ? 90 : 60;
+        const tail = ctx.createLinearGradient(p.x, p.y, p.x + tx * len, p.y + ty * len);
+        tail.addColorStop(0, p.shape === 'meteor' ? 'rgba(255,200,60,0.9)' : 'rgba(255,255,255,0.9)');
+        tail.addColorStop(1, 'rgba(255,120,0,0)');
+        ctx.strokeStyle = tail; ctx.lineWidth = p.r * (p.shape === 'meteor' ? 1.4 : 1); ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + tx * len, p.y + ty * len); ctx.stroke();
+        ctx.lineCap = 'butt';
+        if (p.shape === 'meteor') {
+          glow(p.x, p.y, p.r * 3, '255, 120, 0', 0.6);
+          ctx.fillStyle = '#5c2a00';
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffd43b';
+          ctx.beginPath(); ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.45, 0, Math.PI * 2); ctx.fill();
+        } else {
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+        }
       } else {
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.7 + 0.3 * Math.sin(time * 8 + i)), 0, Math.PI * 2); ctx.fill();
       }

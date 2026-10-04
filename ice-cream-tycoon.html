@@ -831,22 +831,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'gold',      name: 'Gold',       emoji: '🪙', mult: 2,  weight: 20, colors: ['#ffd700', '#ffec80'] },
     { id: 'candy',     name: 'Candy',      emoji: '🍬', mult: 3,  weight: 16, colors: ['#ff8fcf', '#8fe3ff', '#fff38f'] },
     { id: 'frozen',    name: 'Frozen',     emoji: '❄️', mult: 3,  weight: 16, colors: ['#bfefff', '#ffffff'] },
+    { id: 'sakura',    name: 'Sakura',     emoji: '🌸', mult: 4,  weight: 14, colors: ['#ffb7d5', '#ffe3ef', '#ff8fbf'] },
+    { id: 'lucky',     name: 'Lucky',      emoji: '🍀', mult: 4,  weight: 14, colors: ['#2fb344', '#8ce99a', '#ffd43b'] },
     { id: 'diamond',   name: 'Diamond',    emoji: '💎', mult: 5,  weight: 12, colors: ['#b9f2ff', '#e8fdff', '#7fdcff'] },
+    { id: 'ocean',     name: 'Ocean',      emoji: '🌊', mult: 7,  weight: 9,  colors: ['#1c7ed6', '#74c0fc', '#d0ebff'] },
+    { id: 'toxic',     name: 'Toxic',      emoji: '☢️', mult: 9,  weight: 7,  colors: ['#66ff00', '#b2ff59', '#2b8a3e'] },
     { id: 'thunder',   name: 'Thunder',    emoji: '⚡', mult: 6,  weight: 10, colors: ['#fff200', '#5a5aff'] },
     { id: 'molten',    name: 'Molten',     emoji: '🌋', mult: 8,  weight: 8,  colors: ['#ff5a00', '#ffb300', '#5a1a00'] },
     { id: 'aurora',    name: 'Aurora',     emoji: '🌌', mult: 10, weight: 6,  colors: ['#33ffaa', '#33ccff', '#b366ff'] },
     { id: 'shadow',    name: 'Shadow',     emoji: '🌑', mult: 12, weight: 5,  colors: ['#1a1a2e', '#4b3f72', '#000000'] },
     { id: 'galaxy',    name: 'Galaxy',     emoji: '🪐', mult: 15, weight: 5,  colors: ['#2a1060', '#7b3cff', '#ff66d9'] },
+    { id: 'love',      name: 'Love',       emoji: '💖', mult: 14, weight: 5,  colors: ['#ff4d8d', '#ff9ec4', '#ffffff'] },
+    { id: 'starfall',  name: 'Starfall',   emoji: '🌠', mult: 18, weight: 4,  colors: ['#0b1d51', '#fff3bf', '#a5d8ff'] },
     { id: 'yinyang',   name: 'Yin Yang',   emoji: '☯️', mult: 20, weight: 4,  colors: ['#111111', '#ffffff'] },
+    { id: 'mystic',    name: 'Mystic',     emoji: '🔮', mult: 22, weight: 3.5, colors: ['#7048e8', '#d0bfff', '#f783ac'] },
     { id: 'bloodmoon', name: 'Blood Moon', emoji: '🌕', mult: 25, weight: 3,  colors: ['#b3001b', '#ff3b3b', '#4a0008'] },
     { id: 'rainbow',   name: 'Rainbow',    emoji: '🌈', mult: 30, weight: 2,
       colors: ['#e8202a', '#f7811e', '#fbd31a', '#3cb44a', '#2a7fd4', '#4b3aa8', '#8f3fb8'] },
+    { id: 'meteor',    name: 'Meteor Shower', emoji: '☄️', mult: 40, weight: 1.6, colors: ['#ff6b00', '#ffd43b', '#5c2a00'] },
     // the super-rare top three
     { id: 'godly',      name: 'Godly',      emoji: '⚜️', mult: 50,  weight: 1.2, colors: ['#ffd700', '#fff6c2', '#ffb000'] },
     { id: 'heavenly',   name: 'Heavenly',   emoji: '😇', mult: 75,  weight: 0.7, colors: ['#ffffff', '#e3f2ff', '#fff3b0'] },
     { id: 'impossible', name: 'Impossible', emoji: '♾️', mult: 100, weight: 0.3,
       colors: ['#ff00ff', '#00ffff', '#ffff00', '#ff0055', '#00ff66'] },
   ];
+  MUTATIONS.sort((a, b) => a.mult - b.mult); // lowest to highest money, for the Mutations list
   const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
   const MUTATION_CHANCE = 0.35;           // chance a scoop mutates while an event is on
@@ -2199,7 +2208,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const ev = evs[0];
     box.classList.toggle('active', !!ev);
     // light-colored mutations get dark text so it stays readable
-    const light = evs.length === 1 && ['heavenly', 'frozen', 'diamond', 'godly', 'gold'].includes(ev.id);
+    const light = evs.length === 1 && ['heavenly', 'frozen', 'diamond', 'godly', 'gold', 'sakura', 'lucky', 'toxic'].includes(ev.id);
     box.style.color = light ? '#5a4300' : '';
     box.style.textShadow = light ? '0 1px 2px rgba(255,255,255,0.8)' : '';
     if (evs.length > 1) {
@@ -4565,7 +4574,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (m.id === 'rainbow') {
       drawSunShower(dt);
     } else if (m) {
-      const tint = ({ bloodmoon: 0.22, shadow: 0.32, molten: 0.16, godly: 0.1, heavenly: 0, impossible: 0.1 }[m.id] ?? 0.13) *
+      const tint = ({ bloodmoon: 0.22, shadow: 0.32, molten: 0.16, godly: 0.1, heavenly: 0, impossible: 0.1,
+        sakura: 0.08, lucky: 0.07, ocean: 0.16, toxic: 0.15, love: 0.09, starfall: 0.3, mystic: 0.18, meteor: 0.12 }[m.id] ?? 0.13) *
         Math.max(share, 0.5);
       if (tint) {
         ctx.globalAlpha = tint;
@@ -4573,12 +4583,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         ctx.fillRect(0, 0, world.width, world.height);
         ctx.globalAlpha = 1;
       }
+      // fewer of the big things (shooting stars, meteors)
+      const rate = { starfall: 2.5, meteor: 1.5, ocean: 12, toxic: 12 }[m.id] ?? 20;
       for (let i = 0; i < 2; i++) {
-        if (Math.random() >= dt * 20) continue;
+        if (Math.random() >= dt * rate) continue;
         const p = { x: Math.random() * world.width, y: -10, vy: 40 + Math.random() * 60,
           vx: (Math.random() - 0.5) * 30, r: 2 + Math.random() * 3, color: pickColor(m), shape: 'dot' };
         if (m.id === 'godly' || m.id === 'molten') { p.y = world.height + 10; p.vy = -p.vy; } // rising sparks
         if (m.id === 'heavenly') { p.shape = 'feather'; p.r += 3; p.vy *= 0.6; }
+        if (m.id === 'sakura') { p.shape = 'petal'; p.r += 2; p.vy *= 0.6; p.vx += 25; }      // drifting cherry blossoms
+        if (m.id === 'lucky') { p.shape = 'clover'; p.r += 2; p.vy *= 0.7; p.color = Math.random() < 0.15 ? '#ffd43b' : '#2fb344'; }
+        if (m.id === 'love') { p.shape = 'heart'; p.r += 3; p.vy *= 0.6; }
+        if (m.id === 'ocean' || m.id === 'toxic') {                                         // bubbles rising up
+          Object.assign(p, { y: world.height + 10, vy: -(30 + Math.random() * 50), shape: m.id === 'ocean' ? 'bubble' : 'goo', r: 3 + Math.random() * 5 });
+        }
+        if (m.id === 'mystic') {                                                            // sparkles swirling up
+          Object.assign(p, { y: Math.random() * world.height, vy: -20, shape: 'swirl', life: 2.5, phase: Math.random() * 6 });
+        }
+        if (m.id === 'starfall') {                                                          // shooting stars across the night sky
+          Object.assign(p, { x: Math.random() * world.width * 0.8, y: -10, vx: 380 + Math.random() * 120, vy: 220 + Math.random() * 60,
+            shape: 'streak', r: 2.5, color: Math.random() < 0.5 ? '#fff3bf' : '#a5d8ff', life: 3 });
+        }
+        if (m.id === 'meteor') {                                                            // big flaming meteors
+          Object.assign(p, { x: world.width * 0.2 + Math.random() * world.width, y: -20, vx: -220 - Math.random() * 80, vy: 340 + Math.random() * 80,
+            shape: 'meteor', r: 6 + Math.random() * 6, life: 4 });
+        }
         if (m.id === 'impossible') {
           // sparks fly out in every direction
           const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 120;
@@ -4608,6 +4637,64 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         ctx.strokeStyle = 'rgba(180,190,210,0.8)'; ctx.lineWidth = 0.8;
         ctx.beginPath(); ctx.moveTo(0, -p.r * 1.3); ctx.lineTo(0, p.r * 1.5); ctx.stroke();
         ctx.restore();
+      } else if (p.shape === 'petal') {
+        // a pink petal tumbling in the wind
+        ctx.save();
+        ctx.translate(p.x + Math.sin(time * 1.5 + i) * 14, p.y);
+        ctx.rotate(time * 2 + i);
+        ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.beginPath(); ctx.ellipse(-p.r * 0.3, 0, p.r * 0.35, p.r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (p.shape === 'clover') {
+        ctx.save();
+        ctx.translate(p.x + Math.sin(time + i) * 8, p.y);
+        ctx.rotate(time + i);
+        for (let k = 0; k < 4; k++) {
+          ctx.rotate(Math.PI / 2);
+          ctx.beginPath(); ctx.arc(0, -p.r * 0.55, p.r * 0.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+      } else if (p.shape === 'heart') {
+        ctx.font = `bold ${p.r * 2.4}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('♥', p.x + Math.sin(time * 2 + i) * 10, p.y);
+      } else if (p.shape === 'bubble') {
+        ctx.strokeStyle = p.color; ctx.lineWidth = 1.5;
+        const bx = p.x + Math.sin(time * 3 + i) * 5;
+        ctx.beginPath(); ctx.arc(bx, p.y, p.r, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.beginPath(); ctx.arc(bx - p.r * 0.35, p.y - p.r * 0.35, p.r * 0.25, 0, Math.PI * 2); ctx.fill();
+      } else if (p.shape === 'goo') {
+        // glowing toxic bubbles
+        const bx = p.x + Math.sin(time * 3 + i) * 4;
+        glow(bx, p.y, p.r * 2.4, '120, 255, 0', 0.35);
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(bx, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+      } else if (p.shape === 'swirl') {
+        const sx = p.x + Math.cos(time * 3 + p.phase) * 18, sy = p.y + Math.sin(time * 3 + p.phase) * 8;
+        glow(sx, sy, 10, '200, 160, 255', 0.6);
+        star(sx, sy, p.r + 1.5, p.color);
+      } else if (p.shape === 'streak' || p.shape === 'meteor') {
+        // a bright head with a fading tail behind it
+        const sp = Math.hypot(p.vx, p.vy), tx = -p.vx / sp, ty = -p.vy / sp;
+        const len = p.shape === 'meteor' ? 90 : 60;
+        const tail = ctx.createLinearGradient(p.x, p.y, p.x + tx * len, p.y + ty * len);
+        tail.addColorStop(0, p.shape === 'meteor' ? 'rgba(255,200,60,0.9)' : 'rgba(255,255,255,0.9)');
+        tail.addColorStop(1, 'rgba(255,120,0,0)');
+        ctx.strokeStyle = tail; ctx.lineWidth = p.r * (p.shape === 'meteor' ? 1.4 : 1); ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + tx * len, p.y + ty * len); ctx.stroke();
+        ctx.lineCap = 'butt';
+        if (p.shape === 'meteor') {
+          glow(p.x, p.y, p.r * 3, '255, 120, 0', 0.6);
+          ctx.fillStyle = '#5c2a00';
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffd43b';
+          ctx.beginPath(); ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.45, 0, Math.PI * 2); ctx.fill();
+        } else {
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+        }
       } else {
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.7 + 0.3 * Math.sin(time * 8 + i)), 0, Math.PI * 2); ctx.fill();
       }
