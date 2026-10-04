@@ -222,7 +222,11 @@
     return null;
   }
 
-  function createGame({ saves = {} } = {}) {
+  // backup (server only): { seal(key, save) -> blob, open(key, blob) -> save or null }.
+  // Each player's browser keeps a sealed copy of their progress. If the server forgets them
+  // (Render wipes its files on every update), the copy brings their progress back when they rejoin.
+  // The seal means nobody can edit their copy to give themselves money.
+  function createGame({ saves = {}, backup = null } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
@@ -413,8 +417,14 @@
       if (shop.left <= 0) restock();
     }
 
+    let backupTimer = 0;
     function tick(dt) {
       updateTimers(dt);
+      backupTimer -= dt;
+      if (backupTimer <= 0) { // refresh everyone's backup every few seconds
+        backupTimer = 5;
+        for (const s of stands.values()) sendBackup(s);
+      }
       for (const [id, t] of trades) {
         t.left -= dt;
         if (t.left > 0) continue;
@@ -491,6 +501,10 @@
       });
     }
 
+    function sendBackup(s) {
+      if (backup) s.conn.send({ type: 'backup', key: s.key, blob: backup.seal(s.key, toSave(s)) });
+    }
+
     function broadcast(msg) {
       for (const s of stands.values()) s.conn.send(msg);
     }
@@ -506,6 +520,12 @@
         const key = name.toLowerCase();
         if ([...stands.values()].some(s => s.key === key)) {
           return err('Someone with that name is already playing.');
+        }
+        // the server lost this player's progress (an update wiped it): bring it back from their backup
+        let restored = false;
+        if (backup && !saves[key] && msg.backup) {
+          const save = backup.open(key, msg.backup);
+          if (save) { saves[key] = save; restored = true; }
         }
         // admin names belong to the first device that used them
         const device = String(msg.device || '').slice(0, 64);
@@ -524,8 +544,9 @@
         s.admin = isAdminName;
         if (s.admin && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
-        conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS,
-          returning: !!saves[s.key], admin: s.admin });
+        conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS, key: s.key,
+          returning: !!saves[s.key], restored, admin: s.admin });
+        sendBackup(s);
         return;
       }
       if (!stand) return;
@@ -787,7 +808,10 @@
       for (const [id, t] of trades) if (t.from === stand.id || t.to === stand.id) trades.delete(id);
     }
 
-    return { handle, leave, tick, snapshotSaves };
+    // send everyone their latest backup right now (the server calls this just before it shuts down)
+    const sendBackups = () => { for (const s of stands.values()) sendBackup(s); };
+
+    return { handle, leave, tick, snapshotSaves, sendBackups };
   }
 
   const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos };

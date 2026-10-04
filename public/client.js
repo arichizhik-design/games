@@ -105,6 +105,12 @@
   }
   $('nameInput').addEventListener('input', updateCodeBox);
 
+  // your progress backup from the server, kept on this device (it brings your progress back after an update)
+  const nameKey = name => name.replace(/[^\w \-]/g, '').trim().slice(0, 16).toLowerCase();
+  function loadBackup(name) {
+    try { return JSON.parse(localStorage.getItem('icecream-backup:' + nameKey(name))) || null; } catch (e) { return null; }
+  }
+
   function join() {
     const name = $('nameInput').value.trim();
     if (!name) { $('joinError').textContent = 'Type your name first!'; return; }
@@ -141,7 +147,7 @@
     if (window.SOLO) return startSolo(name);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode });
+    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode, backup: loadBackup(name) });
     ws.onmessage = e => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
@@ -195,6 +201,7 @@
         resize();
         if (!msg.returning && !tutorialDone()) startTutorial();
         else if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
+        else if (msg.restored) toast('Welcome back! The game was updated, and your progress came back with you.');
         else if (msg.returning || tutorialDone()) toast(msg.returning ? 'Welcome back! Your stand is open again.'
           : 'Welcome! Walk with the arrow keys or tap where you want to go.');
         break;
@@ -211,6 +218,9 @@
             $('adminCodeInput').focus();
           }
         }
+        break;
+      case 'backup':
+        try { localStorage.setItem('icecream-backup:' + msg.key, JSON.stringify(msg.blob)); } catch (e) {}
         break;
       case 'admin':
         toast('👑 ' + msg.text);
@@ -1126,17 +1136,32 @@
   };
   const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
 
+  // you try things on first; nothing changes until you press Save
+  let avatarDraft = null;
   function openAvatar() {
     closeWindows();
     openWindow = 'avatar';
+    const s = me();
+    avatarDraft = s ? { ...s.avatar } : null;
     $('avatarModal').classList.remove('hidden');
     buildAvatarOptions();
   }
 
+  function saveAvatar() {
+    if (!avatarDraft) return;
+    send({ type: 'setAvatar', avatar: avatarDraft });
+    const s = me();
+    if (s) { s.avatar = { ...avatarDraft }; confetti(player.x, player.y - 40, 25); }
+    toast('💾 Saved! This is your new look.');
+    closeWindows();
+  }
+
   function buildAvatarOptions() {
     const s = me();
-    if (!s) return;
+    if (!s || !avatarDraft) return;
     const box = $('avatarOptions');
+    const changed = Object.keys(avatarDraft).some(k => avatarDraft[k] !== s.avatar[k]);
+    $('avatarSave').textContent = changed ? '💾 Save' : '💾 Save (no changes yet)';
     box.innerHTML = '';
     for (const [part, label] of AVATAR_PARTS) {
       const row = document.createElement('div');
@@ -1148,14 +1173,13 @@
         const b = document.createElement('button');
         b.type = 'button';
         const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
-        b.className = 'avOpt' + (isColor ? ' swatch' : '') + (s.avatar[part] === value ? ' on' : '');
+        b.className = 'avOpt' + (isColor ? ' swatch' : '') + (avatarDraft[part] === value ? ' on' : '');
         if (isColor) {
           b.style.background = value === 'stand' ? s.color : value;
           b.title = value === 'stand' ? 'Your stand color' : '';
         } else b.textContent = AVATAR_LABELS[part][value];
         b.addEventListener('click', () => {
-          s.avatar[part] = value; // show it right away; the server saves it
-          send({ type: 'setAvatar', avatar: { [part]: value } });
+          avatarDraft[part] = value; // try it on in the preview; Save makes it your look
           buildAvatarOptions();
         });
         opts.appendChild(b);
@@ -1179,12 +1203,13 @@
     ctx.beginPath(); ctx.arc(c.width / 2, c.height / 2 + 10, 62, 0, Math.PI * 2); ctx.fill();
     ctx.translate(c.width / 2, c.height / 2 + 30);
     ctx.scale(2.2, 2.2);
-    drawPlayer({ x: 0, y: 0, facing: 1, moving: false, color: s.color, avatar: s.avatar, name: '', admin: s.admin }, time);
+    drawPlayer({ x: 0, y: 0, facing: 1, moving: false, color: s.color, avatar: avatarDraft || s.avatar, name: '', admin: s.admin }, time);
     ctx = saved;
   }
   $('shopClose').addEventListener('click', closeWindows);
   $('invClose').addEventListener('click', closeWindows);
   $('avatarClose').addEventListener('click', closeWindows);
+  $('avatarSave').addEventListener('click', saveAvatar);
 
   function updateShop() {
     const s = me();

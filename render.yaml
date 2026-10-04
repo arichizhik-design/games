@@ -6,3 +6,7 @@ services:
     plan: free
     buildCommand: npm install
     startCommand: npm start
+    envVars:
+      # seals the progress backups in players' browsers; Render makes it once and keeps it
+      - key: SAVE_SECRET
+        generateValue: true

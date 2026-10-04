@@ -444,3 +444,6 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   background: linear-gradient(90deg, #ff4040, #ffb000, #39d353, #3d9bff, #9b5cff, #ff4fd8) !important; }
 .badge.celestial { background-color: #00b8d9 !important; }
 .badge.divine { background-color: #f5b700 !important; }
+/* Avatar Shop: the Save button stays at the bottom */
+.avSaveBar { position: sticky; bottom: -14px; background: #fff8fb; padding: 10px 0 2px; margin-top: 6px; }
+#avatarSave { width: 100%; font-size: 18px; background: #2f9e44; }

@@ -140,8 +140,14 @@ The multiplayer game needs a host that runs Node.js and allows WebSockets, such 
 You get a link like `https://ice-cream-tycoon.onrender.com` to share with friends.
 
 Good to know about Render's free plan: the game goes to sleep after about 15 minutes with nobody playing (the
-next visit takes up to a minute to wake it), and saved progress in `data/` is wiped whenever the server restarts
-or you update the game. A paid plan with a disk keeps progress for good.
+next visit takes up to a minute to wake it), and Render wipes the server's files (`data/`) whenever it restarts or
+the game is updated.
+
+**Progress still comes back after an update.** Every few seconds the server sends each player a sealed backup of
+their progress, which their browser keeps. When someone rejoins with the same name on the same device and the
+server has forgotten them, the backup brings everything back (money, ice creams, pets, avatar...). The backup is
+sealed with `SAVE_SECRET` (Render makes it from `render.yaml`), so editing it to cheat doesn't work: an edited
+backup is thrown away. A paid Render plan with a disk would keep progress on the server too.
 
 Static hosts like GitHub Pages or Netlify can only host the single-player `ice-cream-tycoon.html`, not the
 multiplayer game.

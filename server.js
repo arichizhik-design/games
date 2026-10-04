@@ -1,4 +1,5 @@
 const http = require('http');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
@@ -14,7 +15,28 @@ const TICK_RATE = 10;
 let saves = {};
 try { saves = JSON.parse(fs.readFileSync(SAVE_FILE, 'utf8')); } catch (e) { saves = {}; }
 
-const game = createGame({ saves });
+// sealed progress backups kept in each player's browser (see createGame in engine.js).
+// SAVE_SECRET is made by Render (render.yaml) and stays the same across updates.
+const SECRET = process.env.SAVE_SECRET || 'ice-cream-tycoon-local-secret';
+const seal = text => crypto.createHmac('sha256', SECRET).update(text).digest('hex');
+const backup = {
+  seal(key, save) {
+    const data = JSON.stringify(save);
+    return { data, sig: seal(key + '\n' + data) };
+  },
+  open(key, blob) {
+    try {
+      if (!blob || typeof blob.data !== 'string' || typeof blob.sig !== 'string' || blob.data.length > 200000) return null;
+      const want = Buffer.from(seal(key + '\n' + blob.data));
+      const got = Buffer.from(blob.sig);
+      if (want.length !== got.length || !crypto.timingSafeEqual(want, got)) return null;
+      const save = JSON.parse(blob.data);
+      return save && String(save.name || '').toLowerCase() === key ? save : null;
+    } catch (e) { return null; }
+  },
+};
+
+const game = createGame({ saves, backup });
 
 function saveAll() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -54,8 +76,14 @@ wss.on('connection', ws => {
 
 setInterval(() => game.tick(1 / TICK_RATE), 1000 / TICK_RATE);
 setInterval(saveAll, 10000);
-process.on('SIGINT', () => { saveAll(); process.exit(0); });
-process.on('SIGTERM', () => { saveAll(); process.exit(0); });
+// Render stops the old server on every update: give everyone a fresh backup first
+function shutDown() {
+  saveAll();
+  game.sendBackups();
+  setTimeout(() => process.exit(0), 500);
+}
+process.on('SIGINT', shutDown);
+process.on('SIGTERM', shutDown);
 
 server.listen(PORT, () => {
   console.log(`Ice Cream Tycoon running at http://localhost:${PORT}`);

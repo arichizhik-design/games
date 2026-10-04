@@ -451,6 +451,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   background: linear-gradient(90deg, #ff4040, #ffb000, #39d353, #3d9bff, #9b5cff, #ff4fd8) !important; }
 .badge.celestial { background-color: #00b8d9 !important; }
 .badge.divine { background-color: #f5b700 !important; }
+/* Avatar Shop: the Save button stays at the bottom */
+.avSaveBar { position: sticky; bottom: -14px; background: #fff8fb; padding: 10px 0 2px; margin-top: 6px; }
+#avatarSave { width: 100%; font-size: 18px; background: #2f9e44; }
 </style>
 </head>
 <body>
@@ -533,9 +536,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <div class="modalTitle">👕 Avatar Shop</div>
           <button id="avatarClose" class="closeBtn">✕</button>
         </div>
-        <p class="sub">Pick how your character looks. Everyone in the park will see it!</p>
+        <p class="sub">Try on anything you like, then press <b>Save</b> to make it your new look. Everyone in the park will see it!</p>
         <canvas id="avatarPreview" width="200" height="190"></canvas>
         <div id="avatarOptions"></div>
+        <div class="avSaveBar"><button id="avatarSave" type="button">💾 Save</button></div>
       </div>
 
       <div id="petShopModal" class="modal hidden">
@@ -1094,7 +1098,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return null;
   }
 
-  function createGame({ saves = {} } = {}) {
+  // backup (server only): { seal(key, save) -> blob, open(key, blob) -> save or null }.
+  // Each player's browser keeps a sealed copy of their progress. If the server forgets them
+  // (Render wipes its files on every update), the copy brings their progress back when they rejoin.
+  // The seal means nobody can edit their copy to give themselves money.
+  function createGame({ saves = {}, backup = null } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
@@ -1285,8 +1293,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       if (shop.left <= 0) restock();
     }
 
+    let backupTimer = 0;
     function tick(dt) {
       updateTimers(dt);
+      backupTimer -= dt;
+      if (backupTimer <= 0) { // refresh everyone's backup every few seconds
+        backupTimer = 5;
+        for (const s of stands.values()) sendBackup(s);
+      }
       for (const [id, t] of trades) {
         t.left -= dt;
         if (t.left > 0) continue;
@@ -1363,6 +1377,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       });
     }
 
+    function sendBackup(s) {
+      if (backup) s.conn.send({ type: 'backup', key: s.key, blob: backup.seal(s.key, toSave(s)) });
+    }
+
     function broadcast(msg) {
       for (const s of stands.values()) s.conn.send(msg);
     }
@@ -1378,6 +1396,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const key = name.toLowerCase();
         if ([...stands.values()].some(s => s.key === key)) {
           return err('Someone with that name is already playing.');
+        }
+        // the server lost this player's progress (an update wiped it): bring it back from their backup
+        let restored = false;
+        if (backup && !saves[key] && msg.backup) {
+          const save = backup.open(key, msg.backup);
+          if (save) { saves[key] = save; restored = true; }
         }
         // admin names belong to the first device that used them
         const device = String(msg.device || '').slice(0, 64);
@@ -1396,8 +1420,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         s.admin = isAdminName;
         if (s.admin && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
-        conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS,
-          returning: !!saves[s.key], admin: s.admin });
+        conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS, key: s.key,
+          returning: !!saves[s.key], restored, admin: s.admin });
+        sendBackup(s);
         return;
       }
       if (!stand) return;
@@ -1659,7 +1684,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       for (const [id, t] of trades) if (t.from === stand.id || t.to === stand.id) trades.delete(id);
     }
 
-    return { handle, leave, tick, snapshotSaves };
+    // send everyone their latest backup right now (the server calls this just before it shuts down)
+    const sendBackups = () => { for (const s of stands.values()) sendBackup(s); };
+
+    return { handle, leave, tick, snapshotSaves, sendBackups };
   }
 
   const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos };
@@ -1776,6 +1804,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   }
   $('nameInput').addEventListener('input', updateCodeBox);
 
+  // your progress backup from the server, kept on this device (it brings your progress back after an update)
+  const nameKey = name => name.replace(/[^\w \-]/g, '').trim().slice(0, 16).toLowerCase();
+  function loadBackup(name) {
+    try { return JSON.parse(localStorage.getItem('icecream-backup:' + nameKey(name))) || null; } catch (e) { return null; }
+  }
+
   function join() {
     const name = $('nameInput').value.trim();
     if (!name) { $('joinError').textContent = 'Type your name first!'; return; }
@@ -1812,7 +1846,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (window.SOLO) return startSolo(name);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode });
+    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode, backup: loadBackup(name) });
     ws.onmessage = e => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
@@ -1866,6 +1900,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         resize();
         if (!msg.returning && !tutorialDone()) startTutorial();
         else if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
+        else if (msg.restored) toast('Welcome back! The game was updated, and your progress came back with you.');
         else if (msg.returning || tutorialDone()) toast(msg.returning ? 'Welcome back! Your stand is open again.'
           : 'Welcome! Walk with the arrow keys or tap where you want to go.');
         break;
@@ -1882,6 +1917,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
             $('adminCodeInput').focus();
           }
         }
+        break;
+      case 'backup':
+        try { localStorage.setItem('icecream-backup:' + msg.key, JSON.stringify(msg.blob)); } catch (e) {}
         break;
       case 'admin':
         toast('👑 ' + msg.text);
@@ -2797,17 +2835,32 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   };
   const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
 
+  // you try things on first; nothing changes until you press Save
+  let avatarDraft = null;
   function openAvatar() {
     closeWindows();
     openWindow = 'avatar';
+    const s = me();
+    avatarDraft = s ? { ...s.avatar } : null;
     $('avatarModal').classList.remove('hidden');
     buildAvatarOptions();
   }
 
+  function saveAvatar() {
+    if (!avatarDraft) return;
+    send({ type: 'setAvatar', avatar: avatarDraft });
+    const s = me();
+    if (s) { s.avatar = { ...avatarDraft }; confetti(player.x, player.y - 40, 25); }
+    toast('💾 Saved! This is your new look.');
+    closeWindows();
+  }
+
   function buildAvatarOptions() {
     const s = me();
-    if (!s) return;
+    if (!s || !avatarDraft) return;
     const box = $('avatarOptions');
+    const changed = Object.keys(avatarDraft).some(k => avatarDraft[k] !== s.avatar[k]);
+    $('avatarSave').textContent = changed ? '💾 Save' : '💾 Save (no changes yet)';
     box.innerHTML = '';
     for (const [part, label] of AVATAR_PARTS) {
       const row = document.createElement('div');
@@ -2819,14 +2872,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const b = document.createElement('button');
         b.type = 'button';
         const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
-        b.className = 'avOpt' + (isColor ? ' swatch' : '') + (s.avatar[part] === value ? ' on' : '');
+        b.className = 'avOpt' + (isColor ? ' swatch' : '') + (avatarDraft[part] === value ? ' on' : '');
         if (isColor) {
           b.style.background = value === 'stand' ? s.color : value;
           b.title = value === 'stand' ? 'Your stand color' : '';
         } else b.textContent = AVATAR_LABELS[part][value];
         b.addEventListener('click', () => {
-          s.avatar[part] = value; // show it right away; the server saves it
-          send({ type: 'setAvatar', avatar: { [part]: value } });
+          avatarDraft[part] = value; // try it on in the preview; Save makes it your look
           buildAvatarOptions();
         });
         opts.appendChild(b);
@@ -2850,12 +2902,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.beginPath(); ctx.arc(c.width / 2, c.height / 2 + 10, 62, 0, Math.PI * 2); ctx.fill();
     ctx.translate(c.width / 2, c.height / 2 + 30);
     ctx.scale(2.2, 2.2);
-    drawPlayer({ x: 0, y: 0, facing: 1, moving: false, color: s.color, avatar: s.avatar, name: '', admin: s.admin }, time);
+    drawPlayer({ x: 0, y: 0, facing: 1, moving: false, color: s.color, avatar: avatarDraft || s.avatar, name: '', admin: s.admin }, time);
     ctx = saved;
   }
   $('shopClose').addEventListener('click', closeWindows);
   $('invClose').addEventListener('click', closeWindows);
   $('avatarClose').addEventListener('click', closeWindows);
+  $('avatarSave').addEventListener('click', saveAvatar);
 
   function updateShop() {
     const s = me();
