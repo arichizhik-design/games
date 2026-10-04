@@ -483,6 +483,49 @@
         if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
         stand.upgrades[msg.key]++;
+      } else if (msg.type === 'gift') {
+        // give money or ice cream to another player in the park
+        const target = stands.get(Number(msg.to));
+        if (!target || target === stand) return err('That player left the park.');
+        const now = Date.now();
+        if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second between gifts.');
+        if (msg.money !== undefined) {
+          const amount = Math.floor(Number(msg.money) || 0);
+          if (amount <= 0) return err('Type how much money to gift.');
+          if (amount > stand.money) return err("You don't have that much money!");
+          stand.money -= amount;
+          target.money += amount;
+          stand.lastGift = now;
+          target.conn.send({ type: 'gift', from: stand.name, money: amount });
+          conn.send({ type: 'giftSent', to: target.name, money: amount });
+          return;
+        }
+        const f = flavorById[msg.flavor];
+        if (!f) return;
+        const have = [...stand.hotbar, ...stand.storage]
+          .reduce((n, s) => n + (s && s.flavor === f.id ? s.count : 0), 0);
+        const count = Math.min(have, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        if (!have) return err(`You don't have any ${f.name}.`);
+        // only send what fits in their hotbar and Inventory
+        const room = [...target.hotbar, ...target.storage].reduce((n, s) =>
+          n + (!s ? MAX_STACK : s.flavor === f.id ? MAX_STACK - s.count : 0), 0);
+        const give = Math.min(count, room);
+        if (!give) return err(`${target.name}'s inventory is full!`);
+        let left = give;
+        for (const list of [stand.hotbar, stand.storage]) {
+          for (let i = 0; i < list.length && left > 0; i++) {
+            const s = list[i];
+            if (!s || s.flavor !== f.id) continue;
+            const n = Math.min(left, s.count);
+            s.count -= n; left -= n;
+            if (s.count <= 0) list[i] = null;
+          }
+        }
+        addItem(target.storage, f.id, addItem(target.hotbar, f.id, give));
+        if (!target.seen.includes(f.id)) target.seen.push(f.id);
+        stand.lastGift = now;
+        target.conn.send({ type: 'gift', from: stand.name, flavor: f.id, count: give });
+        conn.send({ type: 'giftSent', to: target.name, flavor: f.id, count: give });
       } else if (stand.admin && msg.type === 'adminMoney') {
         const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
         stand.money += amount;

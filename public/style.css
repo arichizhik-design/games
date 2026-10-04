@@ -315,3 +315,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   #invGrid .slot { width: 46px; height: 46px; }
   #panel { width: 100%; border-left: none; border-top: 4px solid #ffc2d9; }
 }
+
+/* 🎁 Gift */
+.giftBtn { width: 100%; margin-top: 8px; background: #2f9e44; font-size: 16px; }
+#giftBody .row { gap: 10px; }
+#giftBody .who, #giftBody .info { flex: 1; min-width: 0; }
+#giftBody .iconWrap { width: 30px; display: flex; justify-content: center; }
+#giftBody input { width: 70px; }
+#giftBody .moneyRow input { flex: 1; width: auto; }
+#giftBody .backBtn { background: #868e96; margin-bottom: 8px; }
+#giftBody h3 { margin: 10px 0 6px; font-size: 15px; color: #e0457b; }

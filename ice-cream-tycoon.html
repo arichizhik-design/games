@@ -322,6 +322,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   #invGrid .slot { width: 46px; height: 46px; }
   #panel { width: 100%; border-left: none; border-top: 4px solid #ffc2d9; }
 }
+
+/* 🎁 Gift */
+.giftBtn { width: 100%; margin-top: 8px; background: #2f9e44; font-size: 16px; }
+#giftBody .row { gap: 10px; }
+#giftBody .who, #giftBody .info { flex: 1; min-width: 0; }
+#giftBody .iconWrap { width: 30px; display: flex; justify-content: center; }
+#giftBody input { width: 70px; }
+#giftBody .moneyRow input { flex: 1; width: auto; }
+#giftBody .backBtn { background: #868e96; margin-bottom: 8px; }
+#giftBody h3 { margin: 10px 0 6px; font-size: 15px; color: #e0457b; }
 </style>
 </head>
 <body>
@@ -389,6 +399,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <button id="bannedOk" type="button">Start over</button>
       </div>
 
+      <div id="giftModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">🎁 Gift</div>
+          <button id="giftClose" class="closeBtn">✕</button>
+        </div>
+        <p id="giftSub" class="sub"></p>
+        <div id="giftBody"></div>
+      </div>
+
       <div id="invModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">🎒 Inventory</div>
@@ -406,6 +425,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       </div>
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
+      <button id="giftBtn" class="giftBtn" type="button">🎁 Gift</button>
       <p class="sub howto">Walk with the arrow keys or tap where to go. Pick an ice cream in your hotbar
         (keys 1–0), then tap a dashed space on your stand to place it.</p>
       <div id="shopTimerSide" class="sideTimer"></div>
@@ -1065,6 +1085,49 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
         stand.upgrades[msg.key]++;
+      } else if (msg.type === 'gift') {
+        // give money or ice cream to another player in the park
+        const target = stands.get(Number(msg.to));
+        if (!target || target === stand) return err('That player left the park.');
+        const now = Date.now();
+        if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second between gifts.');
+        if (msg.money !== undefined) {
+          const amount = Math.floor(Number(msg.money) || 0);
+          if (amount <= 0) return err('Type how much money to gift.');
+          if (amount > stand.money) return err("You don't have that much money!");
+          stand.money -= amount;
+          target.money += amount;
+          stand.lastGift = now;
+          target.conn.send({ type: 'gift', from: stand.name, money: amount });
+          conn.send({ type: 'giftSent', to: target.name, money: amount });
+          return;
+        }
+        const f = flavorById[msg.flavor];
+        if (!f) return;
+        const have = [...stand.hotbar, ...stand.storage]
+          .reduce((n, s) => n + (s && s.flavor === f.id ? s.count : 0), 0);
+        const count = Math.min(have, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        if (!have) return err(`You don't have any ${f.name}.`);
+        // only send what fits in their hotbar and Inventory
+        const room = [...target.hotbar, ...target.storage].reduce((n, s) =>
+          n + (!s ? MAX_STACK : s.flavor === f.id ? MAX_STACK - s.count : 0), 0);
+        const give = Math.min(count, room);
+        if (!give) return err(`${target.name}'s inventory is full!`);
+        let left = give;
+        for (const list of [stand.hotbar, stand.storage]) {
+          for (let i = 0; i < list.length && left > 0; i++) {
+            const s = list[i];
+            if (!s || s.flavor !== f.id) continue;
+            const n = Math.min(left, s.count);
+            s.count -= n; left -= n;
+            if (s.count <= 0) list[i] = null;
+          }
+        }
+        addItem(target.storage, f.id, addItem(target.hotbar, f.id, give));
+        if (!target.seen.includes(f.id)) target.seen.push(f.id);
+        stand.lastGift = now;
+        target.conn.send({ type: 'gift', from: stand.name, flavor: f.id, count: give });
+        conn.send({ type: 'giftSent', to: target.name, flavor: f.id, count: give });
       } else if (stand.admin && msg.type === 'adminMoney') {
         const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
         stand.money += amount;
@@ -1190,7 +1253,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // ---------- helpers ----------
   function fmt(n) {
-    if (n >= 1e12) return '$' + +(n / 1e12).toFixed(2) + 'T';
+    if (n >= 1e12 || n >= 1e9 && +(n / 1e9).toFixed(2) >= 1000) return '$' + +(n / 1e12).toFixed(2) + 'T';
     if (n >= 1e9) return '$' + +(n / 1e9).toFixed(2) + 'B';
     if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
     if (n >= 1e4) return '$' + (n / 1e3).toFixed(1) + 'K';
@@ -1367,6 +1430,18 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'players':
         if (openWindow === 'ban') showPlayers(msg.players);
         break;
+      case 'gift':
+        toast(msg.money !== undefined
+          ? `🎁 ${msg.from} gave you ${fmt(msg.money)}!`
+          : `🎁 ${msg.from} gave you ${msg.count} ${flavorById[msg.flavor].name}!`);
+        if (s) confetti(s.x, s.y - 30, 30);
+        break;
+      case 'giftSent':
+        toast(msg.money !== undefined
+          ? `🎁 You gave ${msg.to} ${fmt(msg.money)}!`
+          : `🎁 You gave ${msg.to} ${msg.count} ${flavorById[msg.flavor].name}!`);
+        giftRefresh = true; // redraw the gift window once the new counts arrive
+        break;
       case 'banned':
         closeWindows();
         hand = -1;
@@ -1385,6 +1460,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         updateHotbar();
         if (openWindow === 'shop') updateShop();
         if (openWindow === 'inventory') updateInventory();
+        if (openWindow === 'gift' && giftRefresh && giftTo !== null) { giftRefresh = false; showGiftItems(); }
         break;
       case 'sale':
         onSale(msg);
@@ -1673,6 +1749,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // ---------- shop and inventory windows ----------
   function openShop() {
     openWindow = 'shop';
+    $('giftModal').classList.add('hidden');
     $('invModal').classList.add('hidden');
     $('shopModal').classList.remove('hidden');
     updateShop();
@@ -1680,6 +1757,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   function openInventory() {
     openWindow = 'inventory';
+    $('giftModal').classList.add('hidden');
     $('shopModal').classList.add('hidden');
     $('invModal').classList.remove('hidden');
     updateInventory();
@@ -1691,6 +1769,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     $('invModal').classList.add('hidden');
     $('avatarModal').classList.add('hidden');
     $('banModal').classList.add('hidden');
+    $('giftModal').classList.add('hidden');
   }
 
   // ---------- Ban Players (admins) ----------
@@ -1738,6 +1817,87 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   $('banClose').addEventListener('click', closeWindows);
   $('bannedOk').addEventListener('click', () => $('bannedModal').classList.add('hidden'));
 
+  // ---------- 🎁 Gift: give money or ice cream to another player ----------
+  let giftTo = null; // the stand id of the player you're gifting to
+  let giftRefresh = false;
+
+  function openGift() {
+    closeWindows();
+    openWindow = 'gift';
+    giftTo = null;
+    $('giftModal').classList.remove('hidden');
+    showGiftPlayers();
+  }
+
+  function showGiftPlayers() {
+    giftTo = null;
+    $('giftSub').textContent = 'Who do you want to give a gift to?';
+    const body = $('giftBody');
+    body.innerHTML = '';
+    const others = stands.filter(st => st.id !== myId);
+    if (!others.length) body.innerHTML = '<div class="sub">No one else is playing right now. Invite a friend!</div>';
+    for (const st of others) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `<div class="who"><div class="name"></div><div class="meta">🟢 Playing now</div></div>
+        <button type="button">Pick</button>`;
+      row.querySelector('.name').textContent = (st.admin ? '👑 ' : '') + st.name;
+      row.querySelector('button').addEventListener('click', () => { giftTo = st.id; showGiftItems(); });
+      body.appendChild(row);
+    }
+  }
+
+  function showGiftItems() {
+    const target = stands.find(st => st.id === giftTo);
+    const mine = me();
+    if (!target || !mine) return showGiftPlayers();
+    $('giftSub').textContent = `What do you want to give ${target.name}?`;
+    const body = $('giftBody');
+    body.innerHTML = '';
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'backBtn';
+    back.textContent = '← Pick someone else';
+    back.addEventListener('click', showGiftPlayers);
+    body.appendChild(back);
+
+    body.insertAdjacentHTML('beforeend', `<h3>💵 Money <span class="sub">(you have ${fmt(mine.money)})</span></h3>`);
+    const moneyRow = document.createElement('div');
+    moneyRow.className = 'row moneyRow';
+    moneyRow.innerHTML = '<input type="number" min="1" placeholder="How much?"><button type="button">Send</button>';
+    const moneyInput = moneyRow.querySelector('input');
+    const sendMoney = () => send({ type: 'gift', to: giftTo, money: Math.floor(Number(moneyInput.value) || 0) });
+    moneyRow.querySelector('button').addEventListener('click', sendMoney);
+    moneyInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMoney(); });
+    body.appendChild(moneyRow);
+
+    // add up each flavor across the hotbar and the Inventory chest
+    const counts = {};
+    for (const it of [...mine.hotbar, ...mine.storage]) if (it) counts[it.flavor] = (counts[it.flavor] || 0) + it.count;
+    body.insertAdjacentHTML('beforeend', '<h3>🍦 Ice cream</h3>');
+    const ids = FLAVORS.map(f => f.id).filter(id => counts[id]);
+    if (!ids.length) body.insertAdjacentHTML('beforeend', '<div class="sub">You don\'t have any ice cream to give. Buy some at the shop!</div>');
+    for (const id of ids) {
+      const f = flavorById[id];
+      const r = RARITIES[f.rarity];
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `<div class="iconWrap">${iconHtml(id)}</div>
+        <div class="info"><div class="name"></div>
+          <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
+            You have ${counts[id]}</div></div>
+        <input type="number" min="1" max="${counts[id]}" value="1">
+        <button type="button">Send</button>`;
+      row.querySelector('.name').textContent = f.name;
+      const input = row.querySelector('input');
+      row.querySelector('button').addEventListener('click', () =>
+        send({ type: 'gift', to: giftTo, flavor: id, count: Math.floor(Number(input.value) || 1) }));
+      body.appendChild(row);
+    }
+  }
+  $('giftBtn').addEventListener('click', openGift);
+  $('giftClose').addEventListener('click', closeWindows);
+
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
     hat: { cap: 'Cap', none: 'No hat', tophat: 'Top hat', beanie: 'Beanie', party: 'Party hat',
@@ -1748,6 +1908,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   function openAvatar() {
     openWindow = 'avatar';
+    $('giftModal').classList.add('hidden');
     $('shopModal').classList.add('hidden');
     $('invModal').classList.add('hidden');
     $('avatarModal').classList.remove('hidden');

@@ -71,6 +71,15 @@
         <button id="bannedOk" type="button">Start over</button>
       </div>
 
+      <div id="giftModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">🎁 Gift</div>
+          <button id="giftClose" class="closeBtn">✕</button>
+        </div>
+        <p id="giftSub" class="sub"></p>
+        <div id="giftBody"></div>
+      </div>
+
       <div id="invModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">🎒 Inventory</div>
@@ -88,6 +97,7 @@
       </div>
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
+      <button id="giftBtn" class="giftBtn" type="button">🎁 Gift</button>
       <p class="sub howto">Walk with the arrow keys or tap where to go. Pick an ice cream in your hotbar
         (keys 1–0), then tap a dashed space on your stand to place it.</p>
       <div id="shopTimerSide" class="sideTimer"></div>

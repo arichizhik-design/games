@@ -38,7 +38,7 @@
 
   // ---------- helpers ----------
   function fmt(n) {
-    if (n >= 1e12) return '$' + +(n / 1e12).toFixed(2) + 'T';
+    if (n >= 1e12 || n >= 1e9 && +(n / 1e9).toFixed(2) >= 1000) return '$' + +(n / 1e12).toFixed(2) + 'T';
     if (n >= 1e9) return '$' + +(n / 1e9).toFixed(2) + 'B';
     if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
     if (n >= 1e4) return '$' + (n / 1e3).toFixed(1) + 'K';
@@ -215,6 +215,18 @@
       case 'players':
         if (openWindow === 'ban') showPlayers(msg.players);
         break;
+      case 'gift':
+        toast(msg.money !== undefined
+          ? `🎁 ${msg.from} gave you ${fmt(msg.money)}!`
+          : `🎁 ${msg.from} gave you ${msg.count} ${flavorById[msg.flavor].name}!`);
+        if (s) confetti(s.x, s.y - 30, 30);
+        break;
+      case 'giftSent':
+        toast(msg.money !== undefined
+          ? `🎁 You gave ${msg.to} ${fmt(msg.money)}!`
+          : `🎁 You gave ${msg.to} ${msg.count} ${flavorById[msg.flavor].name}!`);
+        giftRefresh = true; // redraw the gift window once the new counts arrive
+        break;
       case 'banned':
         closeWindows();
         hand = -1;
@@ -233,6 +245,7 @@
         updateHotbar();
         if (openWindow === 'shop') updateShop();
         if (openWindow === 'inventory') updateInventory();
+        if (openWindow === 'gift' && giftRefresh && giftTo !== null) { giftRefresh = false; showGiftItems(); }
         break;
       case 'sale':
         onSale(msg);
@@ -521,6 +534,7 @@
   // ---------- shop and inventory windows ----------
   function openShop() {
     openWindow = 'shop';
+    $('giftModal').classList.add('hidden');
     $('invModal').classList.add('hidden');
     $('shopModal').classList.remove('hidden');
     updateShop();
@@ -528,6 +542,7 @@
 
   function openInventory() {
     openWindow = 'inventory';
+    $('giftModal').classList.add('hidden');
     $('shopModal').classList.add('hidden');
     $('invModal').classList.remove('hidden');
     updateInventory();
@@ -539,6 +554,7 @@
     $('invModal').classList.add('hidden');
     $('avatarModal').classList.add('hidden');
     $('banModal').classList.add('hidden');
+    $('giftModal').classList.add('hidden');
   }
 
   // ---------- Ban Players (admins) ----------
@@ -586,6 +602,87 @@
   $('banClose').addEventListener('click', closeWindows);
   $('bannedOk').addEventListener('click', () => $('bannedModal').classList.add('hidden'));
 
+  // ---------- 🎁 Gift: give money or ice cream to another player ----------
+  let giftTo = null; // the stand id of the player you're gifting to
+  let giftRefresh = false;
+
+  function openGift() {
+    closeWindows();
+    openWindow = 'gift';
+    giftTo = null;
+    $('giftModal').classList.remove('hidden');
+    showGiftPlayers();
+  }
+
+  function showGiftPlayers() {
+    giftTo = null;
+    $('giftSub').textContent = 'Who do you want to give a gift to?';
+    const body = $('giftBody');
+    body.innerHTML = '';
+    const others = stands.filter(st => st.id !== myId);
+    if (!others.length) body.innerHTML = '<div class="sub">No one else is playing right now. Invite a friend!</div>';
+    for (const st of others) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `<div class="who"><div class="name"></div><div class="meta">🟢 Playing now</div></div>
+        <button type="button">Pick</button>`;
+      row.querySelector('.name').textContent = (st.admin ? '👑 ' : '') + st.name;
+      row.querySelector('button').addEventListener('click', () => { giftTo = st.id; showGiftItems(); });
+      body.appendChild(row);
+    }
+  }
+
+  function showGiftItems() {
+    const target = stands.find(st => st.id === giftTo);
+    const mine = me();
+    if (!target || !mine) return showGiftPlayers();
+    $('giftSub').textContent = `What do you want to give ${target.name}?`;
+    const body = $('giftBody');
+    body.innerHTML = '';
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'backBtn';
+    back.textContent = '← Pick someone else';
+    back.addEventListener('click', showGiftPlayers);
+    body.appendChild(back);
+
+    body.insertAdjacentHTML('beforeend', `<h3>💵 Money <span class="sub">(you have ${fmt(mine.money)})</span></h3>`);
+    const moneyRow = document.createElement('div');
+    moneyRow.className = 'row moneyRow';
+    moneyRow.innerHTML = '<input type="number" min="1" placeholder="How much?"><button type="button">Send</button>';
+    const moneyInput = moneyRow.querySelector('input');
+    const sendMoney = () => send({ type: 'gift', to: giftTo, money: Math.floor(Number(moneyInput.value) || 0) });
+    moneyRow.querySelector('button').addEventListener('click', sendMoney);
+    moneyInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMoney(); });
+    body.appendChild(moneyRow);
+
+    // add up each flavor across the hotbar and the Inventory chest
+    const counts = {};
+    for (const it of [...mine.hotbar, ...mine.storage]) if (it) counts[it.flavor] = (counts[it.flavor] || 0) + it.count;
+    body.insertAdjacentHTML('beforeend', '<h3>🍦 Ice cream</h3>');
+    const ids = FLAVORS.map(f => f.id).filter(id => counts[id]);
+    if (!ids.length) body.insertAdjacentHTML('beforeend', '<div class="sub">You don\'t have any ice cream to give. Buy some at the shop!</div>');
+    for (const id of ids) {
+      const f = flavorById[id];
+      const r = RARITIES[f.rarity];
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `<div class="iconWrap">${iconHtml(id)}</div>
+        <div class="info"><div class="name"></div>
+          <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
+            You have ${counts[id]}</div></div>
+        <input type="number" min="1" max="${counts[id]}" value="1">
+        <button type="button">Send</button>`;
+      row.querySelector('.name').textContent = f.name;
+      const input = row.querySelector('input');
+      row.querySelector('button').addEventListener('click', () =>
+        send({ type: 'gift', to: giftTo, flavor: id, count: Math.floor(Number(input.value) || 1) }));
+      body.appendChild(row);
+    }
+  }
+  $('giftBtn').addEventListener('click', openGift);
+  $('giftClose').addEventListener('click', closeWindows);
+
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
     hat: { cap: 'Cap', none: 'No hat', tophat: 'Top hat', beanie: 'Beanie', party: 'Party hat',
@@ -596,6 +693,7 @@
 
   function openAvatar() {
     openWindow = 'avatar';
+    $('giftModal').classList.add('hidden');
     $('shopModal').classList.add('hidden');
     $('invModal').classList.add('hidden');
     $('avatarModal').classList.remove('hidden');
