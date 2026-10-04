@@ -703,7 +703,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return out;
   }
 
-  function createGame({ saves = {}, allowTest = false } = {}) {
+  function createGame({ saves = {} } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
     let nextId = 1;
@@ -987,7 +987,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (s.admin && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS,
-          returning: !!saves[s.key], allowTest, admin: s.admin });
+          returning: !!saves[s.key], admin: s.admin });
         return;
       }
       if (!stand) return;
@@ -1120,15 +1120,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (!placed) return err('Your stand is full! Take a tub off or buy Extra Space.');
         if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Spawned ${placed} ${f.name} on your stand` });
-      } else if ((allowTest || stand.admin) && msg.type === 'testMutation') {
+      } else if (stand.admin && msg.type === 'testMutation') {
         // test button: start a (new) mutation event right away
         startMutation(msg.id);
-      } else if ((allowTest || stand.admin) && msg.type === 'testMoney') {
+      } else if (stand.admin && msg.type === 'testMoney') {
         stand.money += 1000;
         stand.totalEarned += 1000;
-      } else if ((allowTest || stand.admin) && msg.type === 'testRestock') {
+      } else if (stand.admin && msg.type === 'testRestock') {
         restock();
-      } else if ((allowTest || stand.admin) && msg.type === 'testGrow') {
+      } else if (stand.admin && msg.type === 'testGrow') {
         for (const t of stand.tubs) if (t) t.grow = 0;
       }
     }
@@ -1268,7 +1268,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   updateCodeBox();
   if (window.SOLO) {
     document.querySelector('.hint').textContent =
-      'Single-player test version: your progress is saved in this browser.';
+      'Single-player version: your progress is saved in this browser.';
   }
 
   // a random id saved on this device, so admin names stay locked to the device that first used them
@@ -1304,7 +1304,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const SAVE_KEY = 'icecream-solo-saves';
     let saves = {};
     try { saves = JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch (e) {}
-    const game = window.Engine.createGame({ saves, allowTest: true });
+    const game = window.Engine.createGame({ saves });
     const conn = { send: msg => onMessage(JSON.parse(JSON.stringify(msg))) };
     ws = { readyState: 1, send: data => game.handle(conn, JSON.parse(data)) };
     const save = () => {
@@ -1335,7 +1335,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         iAmAdmin = !!msg.admin;
         buildPanel();
         buildHotbar();
-        $('testTools').classList.toggle('hidden', !msg.allowTest && !msg.admin);
+        $('testTools').classList.toggle('hidden', !msg.admin); // test buttons are for admins only
         $('adminPanel').classList.toggle('hidden', !msg.admin);
         // remember the admin code on this device, so next time just the name is enough
         if (msg.admin && adminCode) { try { localStorage.setItem(codeKey(), adminCode); } catch (e) {} }

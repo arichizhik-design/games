@@ -121,7 +121,7 @@
     return out;
   }
 
-  function createGame({ saves = {}, allowTest = false } = {}) {
+  function createGame({ saves = {} } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
     let nextId = 1;
@@ -405,7 +405,7 @@
         if (s.admin && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS,
-          returning: !!saves[s.key], allowTest, admin: s.admin });
+          returning: !!saves[s.key], admin: s.admin });
         return;
       }
       if (!stand) return;
@@ -538,15 +538,15 @@
         if (!placed) return err('Your stand is full! Take a tub off or buy Extra Space.');
         if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Spawned ${placed} ${f.name} on your stand` });
-      } else if ((allowTest || stand.admin) && msg.type === 'testMutation') {
+      } else if (stand.admin && msg.type === 'testMutation') {
         // test button: start a (new) mutation event right away
         startMutation(msg.id);
-      } else if ((allowTest || stand.admin) && msg.type === 'testMoney') {
+      } else if (stand.admin && msg.type === 'testMoney') {
         stand.money += 1000;
         stand.totalEarned += 1000;
-      } else if ((allowTest || stand.admin) && msg.type === 'testRestock') {
+      } else if (stand.admin && msg.type === 'testRestock') {
         restock();
-      } else if ((allowTest || stand.admin) && msg.type === 'testGrow') {
+      } else if (stand.admin && msg.type === 'testGrow') {
         for (const t of stand.tubs) if (t) t.grow = 0;
       }
     }

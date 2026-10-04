@@ -1,0 +1,8 @@
+# Render setup (https://render.com): New → Blueprint, then pick this repo.
+services:
+  - type: web
+    name: ice-cream-tycoon
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start

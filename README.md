@@ -97,7 +97,7 @@ stopped. (The single-file test version runs only on the device that opens it, so
 ## Quick test (no install)
 
 Open `ice-cream-tycoon.html` in any web browser. It's a single-player version of the game in one
-file. Progress is saved in that browser, and it has test buttons to start any mutation right away,
+file. Progress is saved in that browser. Admins also get test buttons to start any mutation right away,
 add $1,000, restock the shop and finish growing your tubs. After changing the game, run `npm run build` to rebuild this file.
 
 ## Running it (multiplayer)
@@ -110,7 +110,21 @@ npm start
 ```
 
 Then open http://localhost:3000. Friends on the same Wi-Fi can join at `http://<your-computer's-IP>:3000`.
-Set the `PORT` environment variable to use a different port. Start with `TEST_MODE=1 npm start` to show the test buttons.
+Set the `PORT` environment variable to use a different port.
+
+## Putting it online (play with friends anywhere)
+
+The multiplayer game needs a host that runs Node.js and allows WebSockets, such as
+[Render](https://render.com) (free plan available). This repo has a `render.yaml`, so on Render you can choose
+**New → Blueprint**, pick this GitHub repo and branch, and Render sets it up (`npm install`, then `npm start`).
+You get a link like `https://ice-cream-tycoon.onrender.com` to share with friends.
+
+Good to know about Render's free plan: the game goes to sleep after about 15 minutes with nobody playing (the
+next visit takes up to a minute to wake it), and saved progress in `data/` is wiped whenever the server restarts
+or you update the game. A paid plan with a disk keeps progress for good.
+
+Static hosts like GitHub Pages or Netlify can only host the single-player `ice-cream-tycoon.html`, not the
+multiplayer game.
 
 ## Files
 

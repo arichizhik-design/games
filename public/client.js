@@ -116,7 +116,7 @@
   updateCodeBox();
   if (window.SOLO) {
     document.querySelector('.hint').textContent =
-      'Single-player test version: your progress is saved in this browser.';
+      'Single-player version: your progress is saved in this browser.';
   }
 
   // a random id saved on this device, so admin names stay locked to the device that first used them
@@ -152,7 +152,7 @@
     const SAVE_KEY = 'icecream-solo-saves';
     let saves = {};
     try { saves = JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch (e) {}
-    const game = window.Engine.createGame({ saves, allowTest: true });
+    const game = window.Engine.createGame({ saves });
     const conn = { send: msg => onMessage(JSON.parse(JSON.stringify(msg))) };
     ws = { readyState: 1, send: data => game.handle(conn, JSON.parse(data)) };
     const save = () => {
@@ -183,7 +183,7 @@
         iAmAdmin = !!msg.admin;
         buildPanel();
         buildHotbar();
-        $('testTools').classList.toggle('hidden', !msg.allowTest && !msg.admin);
+        $('testTools').classList.toggle('hidden', !msg.admin); // test buttons are for admins only
         $('adminPanel').classList.toggle('hidden', !msg.admin);
         // remember the admin code on this device, so next time just the name is enough
         if (msg.admin && adminCode) { try { localStorage.setItem(codeKey(), adminCode); } catch (e) {} }

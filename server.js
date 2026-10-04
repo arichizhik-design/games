@@ -5,7 +5,6 @@ const { WebSocketServer } = require('ws');
 const { createGame } = require('./public/engine.js');
 
 const PORT = process.env.PORT || 3000;
-const TEST_MODE = process.env.TEST_MODE === '1'; // shows test buttons (start mutation, +$1000)
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const SAVE_FILE = path.join(DATA_DIR, 'players.json');
@@ -15,7 +14,7 @@ const TICK_RATE = 10;
 let saves = {};
 try { saves = JSON.parse(fs.readFileSync(SAVE_FILE, 'utf8')); } catch (e) { saves = {}; }
 
-const game = createGame({ saves, allowTest: TEST_MODE });
+const game = createGame({ saves });
 
 function saveAll() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
