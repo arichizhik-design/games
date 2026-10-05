@@ -5,9 +5,16 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 ## How to play
 
 - You're a character in the park. Walk with the **arrow keys** (or WASD), or **tap/click** where you want to go.
-- Your plot has your stand and an **Inventory** chest. Everyone starts with **Chocolate** and **Vanilla** on their stand.
+- Your plot has your stand and an **Inventory** chest. **Your stand starts empty** and you get **$20**:
+  with no ice cream nobody can buy anything, so first buy a tub at the Supplies Shop and put it on your stand.
 - AI customers walk up to your stand, show which flavor they want, and pay when they're served.
-  Press **Scoop!** (or the Space bar) to serve them faster.
+- **⏱️ How fast you sell:**
+  - 1 ice cream on your stand: **1 scoop sold every 20 seconds**
+  - every extra ice cream: **1 second faster**
+  - flavors that cost **over $1,000**: **2 seconds faster**; **over $10,000**: **3 seconds faster**
+  - the fastest is **1 scoop every second**; only grown ice cream counts; no ice cream = no sales
+  - the side panel shows your speed, and the shop and Flavor guide show each flavor's ⏱️ -1s / -2s / -3s.
+  - Pressing **Scoop!** (or Space) helps a little: each press takes a quarter second off the wait.
 - Walk to the **Supplies Shop** in the middle of the park and tap it to buy tubs of ice cream.
   The shop's stock changes every **3 minutes**, and rare flavors aren't always in stock.
 - Tubs you buy go into your **hotbar**: the 10 see-through grey slots at the bottom (keys 1–0 to pick one).
@@ -37,7 +44,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   ice cream hat) and face. Everyone in the park sees your look, and it's saved with your name.
 - **Shop odds:** the really good ice creams are really rare. After each restock the shop has an Epic
   flavor 20% of the time, a Legendary 7%, a Mythic 2% and the Secret flavor only 0.4%.
-- **Upgrades:** Bigger Sign (more customers), Tip Jar (+10% money per level).
+- **Upgrades:** Tip Jar (+10% money per level).
 - ⭐ Sometimes a **lucky golden customer** shows up and pays triple.
 - **Mutations:** every 30, 45 or 50 minutes a mutation event hits the whole park for 5 minutes.
   While it's on, each scoop has a 35% chance to mutate and sell for more:
@@ -61,8 +68,11 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   shifts green, blue and purple,
   Cosmic Void (the best ice cream) is a tiny black hole with a spinning purple disk, Galaxy Swirl twinkles with stars, Golden Caramel shines,
   Unicorn Dream glows in changing colors, and more.
-- **📖 Tutorial:** new players get a step-by-step guide with a bouncing arrow (walk, earn $10, visit the
-  shop, buy a tub, hold it, place it). Skip it any time, or replay it with the 📖 Tutorial button.
+- **📖 Tutorial:** everyone new goes through a **click-through tour** first: the screen dims, the camera flies
+  to each place and spotlights it (your stand, the Supplies Shop, the scoop timer rules, specialty ice creams,
+  the chat, the Pet Shop and the Avatar Shop), and you click **Next** 8 times. Then a step-by-step guide with a
+  bouncing arrow walks you through it for real: go to the Supplies Shop, buy a tub, hold it, put it on your stand,
+  and wait for your first sale. Replay the tour any time with the 📖 Tutorial button.
 - **💬 Chat:** the chat box in the top left corner talks to everyone in the park (press Enter to type).
   Mean words get turned into ****. Press — to hide it.
 - **🍒 Toppings:** the Supplies Shop has a Toppings square on the side. Hold a topping and tap an ice cream

@@ -4,7 +4,7 @@
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
@@ -281,7 +281,7 @@
 
       // tubs on the stand: null (empty space) or { flavor, grow: seconds left until ready }
       let tubs = Array(spaces).fill(null);
-      const oldFlavors = saved.tubs ? null : (saved.flavors ?? ['vanilla', 'chocolate']); // older saves
+      const oldFlavors = saved.tubs ? null : (saved.flavors ?? []); // older saves; new players start with an empty stand
       (saved.tubs || oldFlavors.map(f => ({ flavor: f, grow: 0 }))).slice(0, spaces).forEach((t, i) => {
         if (t && flavorById[t.flavor]) {
           tubs[i] = { flavor: t.flavor, grow: Math.max(0, t.grow || 0) };
@@ -293,7 +293,7 @@
       const stand = {
         id: nextId++, conn, key, name, slot,
         color: COLORS[slot % COLORS.length],
-        money: saved.money ?? 0,
+        money: saved.money ?? START_MONEY,
         totalEarned: saved.totalEarned ?? 0,
         sold: saved.sold ?? 0,
         spaces, tubs,
@@ -310,9 +310,9 @@
         x: s.x + 60, y: s.y + 110,        // the player's character
         hand: -1,                         // hotbar slot in hand, -1 = nothing
         queue: [],
-        serveProgress: 0,
+        serveProgress: 0,                 // seconds toward the next scoop sold
         spawnTimer: 0,
-        clicks: 0,
+        lastScoop: 0,                     // when you last pressed Scoop!
       };
       fixWorn(stand);
       stands.set(stand.id, stand);
@@ -322,10 +322,10 @@
     // the progress a brand-new player starts with (used when an admin bans someone)
     function freshProgress() {
       return {
-        money: 0, totalEarned: 0, sold: 0, spaces: START_SPACES,
-        tubs: [{ flavor: 'vanilla', grow: 0 }, { flavor: 'chocolate', grow: 0 }, ...Array(START_SPACES - 2).fill(null)],
+        money: START_MONEY, totalEarned: 0, sold: 0, spaces: START_SPACES,
+        tubs: Array(START_SPACES).fill(null),
         hotbar: Array(HOTBAR_SIZE).fill(null), storage: Array(STORAGE_SIZE).fill(null),
-        seen: ['vanilla', 'chocolate'], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
+        seen: [], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
         mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {}, hand: -1, serveProgress: 0,
       };
     }
@@ -458,22 +458,21 @@
       for (const stand of stands.values()) {
         for (const t of stand.tubs) if (t && t.grow > 0) t.grow = Math.max(0, t.grow - dt);
 
-        // new customers: bigger sign and more ready tubs bring more people
-        const ready = readyTubs(stand).length;
-        const interval = 2.5 / (1 + 0.3 * stand.upgrades.sign + 0.1 * Math.max(0, ready - 2));
+        // ⏱️ a scoop is sold every few seconds (see scoopSeconds), only if there's grown ice cream
+        const every = scoopSeconds(readyTubs(stand).map(t => t.flavor));
+        stand.scoopEvery = every;
+        if (!every) { stand.serveProgress = 0; continue; }
+        stand.serveProgress = Math.min(every, stand.serveProgress + dt);
+
+        // customers walk up and wait in line, so one is ready each time a scoop is sold
         stand.spawnTimer -= dt;
         if (stand.spawnTimer <= 0) {
-          stand.spawnTimer = interval * (0.6 + Math.random() * 0.8);
-          if (stand.queue.length < MAX_QUEUE) spawnCustomer(stand);
+          stand.spawnTimer = Math.min(3, every * 0.6) * (0.7 + Math.random() * 0.6);
+          if (stand.queue.length < Math.min(MAX_QUEUE, 2 + Math.ceil(4 / every))) spawnCustomer(stand);
         }
 
-        // serve the customer at the front once they arrive
         const front = customers.get(stand.queue[0]);
-        if (front && front.state === 'waiting') {
-          stand.serveProgress += dt + Math.min(stand.clicks, 3) * 0.35;
-          if (stand.serveProgress >= SERVE_TIME) completeSale(stand);
-        }
-        stand.clicks = 0;
+        if (front && front.state === 'waiting' && stand.serveProgress >= every - 1e-6) completeSale(stand);
       }
 
       for (const c of customers.values()) {
@@ -513,7 +512,7 @@
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           pets: s.pets, worn: s.worn,
-          serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
+          serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
           id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor, topping: c.topping,
@@ -584,7 +583,12 @@
       } else if (msg.type === 'setAvatar') {
         stand.avatar = fixAvatar({ ...stand.avatar, ...(msg.avatar || {}) });
       } else if (msg.type === 'scoop') {
-        stand.clicks++;
+        // Scoop! helps a little: each press takes a quarter second off the wait (up to 4 presses a second)
+        const now = Date.now();
+        if (stand.scoopEvery && now - stand.lastScoop >= 250) {
+          stand.lastScoop = now;
+          stand.serveProgress = Math.min(stand.scoopEvery, stand.serveProgress + 0.25);
+        }
       } else if (msg.type === 'buy') {
         const f = flavorById[msg.flavor];
         if (!f || f.adminOnly) return;

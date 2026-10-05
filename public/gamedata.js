@@ -106,7 +106,6 @@
 
   // cost of the next level = base * growth^level
   const UPGRADES = {
-    sign:  { name: 'Bigger Sign',    desc: 'Attract more customers',      base: 40, growth: 1.9, max: 10 },
     tips:  { name: 'Tip Jar',        desc: '+10% money from every scoop', base: 60, growth: 2.0, max: 10 },
   };
 
@@ -115,7 +114,19 @@
     return Math.round(u.base * Math.pow(u.growth, level));
   }
 
-  const SERVE_TIME = 2.5; // seconds per scoop (the Scoop! button speeds it up)
+  // ⏱️ How fast your stand sells: with 1 ice cream (grown) on your stand, a customer buys a scoop every
+  // 20 seconds. Every ice cream takes time off: 1 second, 2 seconds if its tub costs over $1,000,
+  // 3 seconds if it costs over $10,000 (or it's an admin ice cream). The fastest is 1 scoop a second.
+  // No ice cream on your stand = no sales.
+  const SCOOP_SLOWEST = 20;
+  const SCOOP_FASTEST = 1;
+  const scoopSpeedup = f => f.adminOnly || f.cost > 10000 ? 3 : f.cost > 1000 ? 2 : 1;
+  function scoopSeconds(flavorIds) {
+    if (!flavorIds.length) return null;
+    const off = flavorIds.reduce((sum, id) => sum + scoopSpeedup(FLAVORS.find(f => f.id === id)), 0);
+    return Math.max(SCOOP_FASTEST, Math.min(SCOOP_SLOWEST, SCOOP_SLOWEST + 1 - off));
+  }
+  const START_MONEY = 20; // enough for a first tub of ice cream
 
   // Flavor spaces on the stand: start with 5, each Extra Space adds 3
   const START_SPACES = 5;
@@ -160,7 +171,8 @@
     face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
   };
 
-  const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
+  const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
+    SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };

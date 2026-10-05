@@ -1,6 +1,6 @@
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
-    MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
+    MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -199,8 +199,10 @@
         // remember the admin code on this device, so next time just the name is enough
         if (msg.admin && adminCode) { try { localStorage.setItem(codeKey(), adminCode); } catch (e) {} }
         resize();
-        if (!msg.returning && !tutorialDone()) startTutorial();
+        if (!tourDone()) startTour(); // everyone new on this device goes through the tour first
+        else if (!msg.returning && !tutorialDone()) startTutorial();
         else if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
+        if (tour.on) { /* the tour explains everything */ }
         else if (msg.restored) toast('Welcome back! The game was updated, and your progress came back with you.');
         else if (msg.returning || tutorialDone()) toast(msg.returning ? 'Welcome back! Your stand is open again.'
           : 'Welcome! Walk with the arrow keys or tap where you want to go.');
@@ -396,7 +398,7 @@
         <div class="info">
           <div class="name"></div>
           <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
-            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)}</div>
+            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)} · <b class="speedTag">⏱️ -${scoopSpeedup(f)}s</b></div>
         </div>`;
       fl.appendChild(row);
       f.row = row;
@@ -446,7 +448,7 @@
         <div class="info">
           <div class="name"></div>
           <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
-            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)}</div>
+            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)} · <b class="speedTag">⏱️ -${scoopSpeedup(f)}s</b></div>
           <div class="stock"></div>
         </div>
         <button>${fmt(f.cost)}</button>`;
@@ -474,6 +476,16 @@
     $('stats').textContent = `${s.sold} scoops sold · ${fmt(s.totalEarned)} earned · ` +
       `${filled}/${s.spaces} stand spaces used`;
     $('serveBar').style.width = Math.min(100, s.serve * 100) + '%';
+    const info = $('scoopInfo');
+    if (s.scoopEvery) {
+      info.className = 'ok';
+      info.textContent = `⏱️ You sell 1 scoop every ${s.scoopEvery} second${s.scoopEvery === 1 ? '' : 's'}` +
+        (s.scoopEvery === SCOOP_FASTEST ? ' (the fastest!)' : '');
+    } else {
+      info.className = 'none';
+      info.textContent = s.tubs.some(Boolean) ? '🌱 Your ice cream is still growing. Sales start when it\'s ready!'
+        : '🛒 No ice cream on your stand, so no sales! Buy some at the Supplies Shop.';
+    }
     $('shopTimerSide').textContent = `🛒 Shop restocks in ${clock(shop.left)}`;
 
     for (const f of guideFlavors()) {
@@ -1055,20 +1067,22 @@
   const myStandPos = () => { const s = me(); return s ? slots[s.slot] : null; };
   const SHOP_DOOR = () => ({ x: SHOP.x, y: SHOP.y + 90 });
   const TUT_STEPS = [
-    { text: '👋 Welcome to Ice Cream Tycoon! Walk around with the <b>arrow keys</b> (or W A S D), or <b>tap</b> where you want to go.',
+    { text: '👋 Let\'s open your stand! Walk with the <b>arrow keys</b> (or W A S D), or <b>tap</b> where you want to go.',
       done: () => tut.start && dist(player, tut.start) > 80 },
-    { text: '🍨 Customers walk up to your stand to buy scoops. Press <b>Scoop!</b> (or Space) to serve them faster. Earn <b>$10</b>!',
-      target: myStandPos, done: () => (me()?.money || 0) >= 10 },
-    { text: '🛒 Now walk to the <b>Supplies Shop</b> in the middle of the park. Follow the arrow!',
-      target: SHOP_DOOR, done: () => dist(player, SHOP_DOOR()) <= REACH },
-    { text: '💵 Tap the shop to open it, then buy a tub of ice cream. <span class="sub">Rarer ones sell for more but cost more!</span>',
+    { text: '🛒 Your stand is empty, so nobody can buy anything yet. Walk to the <b>Supplies Shop</b> in the middle of the park. Follow the arrow!',
+      target: SHOP_DOOR, done: () => dist(player, SHOP_DOOR()) <= REACH || tut.bought },
+    { text: '💵 Tap the shop and buy a tub of ice cream. <b>Vanilla, Chocolate and Banana cost $10</b>, and you have $20.',
       target: () => SHOP, done: () => tut.bought },
     { text: '✋ Your tub is in your <b>hotbar</b> at the bottom. Tap it (or press its number key) to hold it.',
       hotbar: true, done: () => !!heldItem() || tut.placed },
-    { text: '🏪 Walk back to your stand and tap a <b>dashed space</b> to put it there. It grows, then customers can buy it!',
+    { text: '🏪 Walk back to your stand and tap a <b>dashed space</b> to put your ice cream in.',
       target: myStandPos, done: () => tut.placed },
-    { text: '🎉 You did it! More to try: 🎒 the <b>chest</b> on your plot is your Inventory, 👕 the <b>Avatar Shop</b> changes your look, ' +
-      '🍒 <b>toppings</b> make scoops worth more, 🐾 the <b>Pet Shop</b> has lucky blocks with pets, 🎁 <b>Gift &amp; Trade</b> swaps stuff with friends, and 🌈 <b>mutations</b> make scoops worth way more!', last: true },
+    { text: `⏱️ Your ice cream is growing! When it's ready, a customer buys <b>1 scoop every ${SCOOP_SLOWEST} seconds</b>.
+      Every extra ice cream makes it faster: <b>1 second</b> each, <b>2 seconds</b> for flavors over $1,000,
+      <b>3 seconds</b> over $10,000, down to <b>1 scoop a second</b>. Wait for your first sale!`,
+      target: myStandPos, onShow: () => { tut.sold0 = me()?.sold || 0; }, done: () => (me()?.sold || 0) > tut.sold0 },
+    { text: '🎉 Your first sale! Buy more ice cream to sell faster. Also try: 🍒 <b>toppings</b>, 🎒 the <b>chest</b> (your Inventory), ' +
+      '🐾 the <b>Pet Shop</b>, 👕 the <b>Avatar Shop</b>, 🎁 <b>Gift &amp; Trade</b>, 💬 <b>chat</b>, and 🌈 <b>mutations</b>!', last: true },
   ];
 
   function tutorialDone() { try { return !!localStorage.getItem('icecream-tutorial-done'); } catch (e) { return false; } }
@@ -1088,6 +1102,7 @@
     $('tutNext').classList.toggle('hidden', !st.last);
     $('tutSkip').classList.toggle('hidden', !!st.last);
     $('hotbar').classList.toggle('tutGlow', !!st.hotbar);
+    if (st.onShow) st.onShow();
   }
 
   function endTutorial() {
@@ -1135,7 +1150,108 @@
 
   $('tutSkip').addEventListener('click', endTutorial);
   $('tutNext').addEventListener('click', endTutorial);
-  $('tutBtn').addEventListener('click', startTutorial);
+  $('tutBtn').addEventListener('click', () => startTour(true));
+
+  // ---------- 📖 the click-through tour: the camera flies to each place and spotlights it ----------
+  const box = (p, w, h, dy = 0) => p && { x: p.x - w / 2, y: p.y - h / 2 + dy, w, h };
+  const TOUR = [
+    { title: '🍦 Welcome to Ice Cream Tycoon!',
+      text: `You run your own ice cream stand: customers buy scoops and you get money.<br>
+        <b>Your stand starts empty</b>, and with no ice cream nobody can buy anything. You get <b>$20</b> to start.<br>
+        Click <b>Next</b> to see how everything works.`,
+      world: () => box(myStandPos(), 310, 210, -30) },
+    { title: '🛒 The Supplies Shop',
+      text: `In the middle of the park. Walk here and tap it to <b>buy tubs of ice cream</b>
+        (Vanilla, Chocolate and Banana cost $10). It also sells 🍒 toppings that make scoops worth more.`,
+      world: () => box(SHOP, 320, 270, -20) },
+    { title: '🏪 Put it in your store',
+      text: `Back at your stand, pick the tub in your <b>hotbar</b> (the boxes at the bottom), then tap a
+        <b>dashed space</b> on your stand. The ice cream grows for a bit, then customers buy it automatically.`,
+      world: () => box(myStandPos(), 310, 210, -30) },
+    { title: '⏱️ How fast you sell',
+      text: `<ul>
+        <li><b>1 ice cream</b> on your stand: 1 scoop sold every <b>${SCOOP_SLOWEST} seconds</b></li>
+        <li>Every extra ice cream: <b>1 second faster</b></li>
+        <li>Flavors that cost <b>over $1,000</b>: <b>2 seconds faster</b></li>
+        <li>Flavors that cost <b>over $10,000</b>: <b>3 seconds faster</b></li>
+        <li>The fastest is <b>1 scoop every second</b></li>
+        <li><b>No ice cream = no sales!</b> (Growing ice cream starts counting once it's ready.)</li></ul>`,
+      world: () => box(myStandPos(), 310, 210, -30) },
+    { title: '⭐ Specialty ice creams',
+      text: `Rare flavors cost a lot of money, but they sell for much more and make your stand faster.
+        Look for <b class="speedTag">⏱️ -2s</b> and <b class="speedTag">⏱️ -3s</b> in the shop. New stock comes every 3 minutes.`,
+      world: () => box(SHOP, 320, 270, -20) },
+    { title: '💬 Chat',
+      text: 'Talk to everyone in the park here. Press <b>Enter</b> to start typing. Be nice!',
+      dom: '#chat' },
+    { title: '🐾 The Pet Shop',
+      text: `Open lucky blocks to get pets. You can wear <b>3 pets</b>: they follow you around and make every
+        scoop worth more. The rarest pets are amazing!`,
+      world: () => box(PET_SHOP, 300, 250, -20) },
+    { title: '👕 The Avatar Shop',
+      text: `Change your shirt, pants, hat and face, then press <b>Save</b>. You're ready:
+        now go buy your first ice cream! (You can see this again with the 📖 Tutorial button.)`,
+      world: () => box(AVATAR_SHOP, 260, 230, -10), last: true },
+  ];
+  const tour = { on: false, i: 0, focus: null };
+  const tourDone = () => { try { return !!localStorage.getItem('icecream-tour-done'); } catch (e) { return false; } };
+
+  function startTour() {
+    closeWindows();
+    tour.on = true;
+    $('tutorial').classList.add('hidden');
+    $('tour').classList.remove('hidden');
+    showTourStep(0);
+  }
+
+  function showTourStep(i) {
+    tour.i = i;
+    const st = TOUR[i];
+    $('tour').querySelector('.tourStep').textContent = `Step ${i + 1} of ${TOUR.length}`;
+    $('tour').querySelector('.tourTitle').textContent = st.title;
+    $('tour').querySelector('.tourText').innerHTML = st.text;
+    $('tourBack').style.visibility = i ? 'visible' : 'hidden';
+    $('tourNext').textContent = st.last ? "Let's play! 🍦" : 'Next ▶';
+    placeTour();
+  }
+
+  function endTour() {
+    tour.on = false;
+    tour.focus = null;
+    cam.back = true;
+    $('tour').classList.add('hidden');
+    try { localStorage.setItem('icecream-tour-done', '1'); } catch (e) {}
+    startTutorial(); // then the step-by-step guide while you play
+  }
+
+  // move the spotlight ring (and the card) onto this step's place; runs every frame while the tour is on
+  function placeTour() {
+    if (!tour.on) return;
+    const st = TOUR[tour.i];
+    const ring = $('tourRing'), card = $('tourCard');
+    let r = null;
+    if (st.world) {
+      const b = st.world();
+      if (b) {
+        tour.focus = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+        const c = canvas.getBoundingClientRect();
+        r = { left: c.left + view.ox + b.x * view.scale, top: c.top + view.oy + b.y * view.scale, width: b.w * view.scale, height: b.h * view.scale };
+      }
+    } else if (st.dom) {
+      tour.focus = null;
+      const e = document.querySelector(st.dom);
+      if (e) { const q = e.getBoundingClientRect(); r = { left: q.left - 8, top: q.top - 8, width: q.width + 16, height: q.height + 16 }; }
+    }
+    if (r) Object.assign(ring.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', opacity: 1 });
+    else Object.assign(ring.style, { left: '50%', top: '50%', width: '0px', height: '0px', opacity: 0.99 });
+    // the card goes where it doesn't cover the spotlight
+    const low = r && r.top + r.height / 2 > window.innerHeight * 0.5;
+    card.classList.toggle('atTop', !!low);
+  }
+
+  $('tourNext').addEventListener('click', () => { if (TOUR[tour.i].last) endTour(); else showTourStep(tour.i + 1); });
+  $('tourBack').addEventListener('click', () => { if (tour.i > 0) showTourStep(tour.i - 1); });
+  window.addEventListener('resize', placeTour);
 
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
@@ -1409,6 +1525,11 @@
 
   document.addEventListener('keydown', e => {
     if (!myId || document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+    if (tour.on) {
+      if (e.code === 'Enter' || e.code === 'ArrowRight' || e.code === 'Space') { e.preventDefault(); $('tourNext').click(); }
+      else if (e.code === 'ArrowLeft') { e.preventDefault(); $('tourBack').click(); }
+      return;
+    }
     if (MOVE_KEYS[e.code]) {
       e.preventDefault();
       keys.add(e.code);
@@ -1544,9 +1665,17 @@
   window.addEventListener('resize', resize);
 
   // the camera follows your character
-  function updateCamera() {
+  const cam = { x: null, y: null, back: false };
+  function updateCamera(dt = 0) {
+    // follow your character; during the tour, fly to what it's showing (and glide back after)
+    const want = tour.on && tour.focus ? tour.focus : player;
+    if (cam.x !== null && (tour.on || cam.back)) {
+      const k = Math.min(1, dt * 4);
+      cam.x += (want.x - cam.x) * k; cam.y += (want.y - cam.y) * k;
+      if (!tour.on && Math.hypot(want.x - cam.x, want.y - cam.y) < 3) cam.back = false;
+    } else { cam.x = want.x; cam.y = want.y; }
     const sw = world.width * view.scale, sh = world.height * view.scale;
-    const ox = view.w / 2 - player.x * view.scale, oy = view.h / 2 - player.y * view.scale;
+    const ox = view.w / 2 - cam.x * view.scale, oy = view.h / 2 - cam.y * view.scale;
     view.ox = sw <= view.w ? (view.w - sw) / 2 : Math.min(0, Math.max(view.w - sw, ox));
     view.oy = sh <= view.h ? (view.h - sh) / 2 : Math.min(0, Math.max(view.h - sh, oy));
   }
@@ -3097,7 +3226,8 @@
     nowSec = time;
 
     updatePlayer(dt);
-    updateCamera();
+    updateCamera(dt);
+    if (tour.on) placeTour();
 
     ctx.fillStyle = '#6fb34c';
     ctx.fillRect(0, 0, view.w, view.h);

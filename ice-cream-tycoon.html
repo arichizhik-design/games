@@ -476,6 +476,36 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .petCard button { width: 100%; font-size: 12px; padding: 5px 4px; margin-top: 2px; }
 .petCard.equipped { border-color: #f08c00; background: #fff4e0; box-shadow: 0 0 10px rgba(240,140,0,0.4); }
 .petCard.equipped button { background: #868e96; }
+/* ⏱️ how fast your stand sells */
+#scoopInfo { margin-top: 6px; padding: 6px 8px; border-radius: 10px; font-size: 13px; font-weight: bold; text-align: center; }
+#scoopInfo.ok { background: #ebfbee; color: #2b8a3e; }
+#scoopInfo.none { background: #fff4e6; color: #d9480f; }
+.speedTag { color: #1971c2; }
+
+/* 📖 the click-through tour */
+#tour { position: fixed; inset: 0; z-index: 100; }
+#tour.hidden { display: none; }
+#tourRing {
+  position: fixed; border-radius: 22px; border: 4px solid #ffd43b; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(25, 10, 30, 0.66), 0 0 24px 6px rgba(255, 212, 59, 0.8);
+  transition: left 0.35s, top 0.35s, width 0.35s, height 0.35s;
+  animation: tourPulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes tourPulse { to { border-color: #ff6fa5; } }
+#tourCard {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); width: min(470px, calc(100% - 24px));
+  background: #fff8fb; border: 4px solid #ff6fa5; border-radius: 18px; padding: 14px 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4); animation: annPop 0.3s ease-out;
+}
+#tourCard.atTop { bottom: auto; top: 24px; }
+#tourCard .tourStep { font-size: 12px; font-weight: bold; color: #e0457b; }
+#tourCard .tourTitle { font-size: 22px; font-weight: bold; color: #3a2a35; margin: 2px 0 6px; }
+#tourCard .tourText { font-size: 15px; color: #3a2a35; line-height: 1.45; }
+#tourCard .tourText ul { margin: 4px 0 0; padding-left: 20px; }
+#tourCard .tourText li { margin: 2px 0; }
+#tourCard .tourBtns { display: flex; justify-content: space-between; margin-top: 12px; gap: 10px; }
+#tourBack { background: #868e96; }
+#tourNext { background: #2f9e44; font-size: 17px; padding: 10px 22px; }
 </style>
 </head>
 <body>
@@ -663,13 +693,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       </div>
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
+      <div id="scoopInfo"></div>
       <div class="btnRow">
         <button id="giftBtn" class="giftBtn" type="button">🎁 Gift &amp; Trade</button>
         <button id="petsBtn" class="petsBtn" type="button">🐾 My Pets</button>
       </div>
       <button id="tutBtn" class="tutBtn" type="button">📖 Tutorial</button>
-      <p class="sub howto">Walk with the arrow keys or tap where to go. Pick an ice cream in your hotbar
-        (keys 1–0), then tap a dashed space on your stand to place it.</p>
+      <p class="sub howto">Walk with the arrow keys or tap where to go. Buy ice cream at the Supplies Shop, pick it in
+        your hotbar (keys 1–0), then tap a dashed space on your stand. No ice cream on your stand = no sales!</p>
       <div id="shopTimerSide" class="sideTimer"></div>
       <div id="eventBox"></div>
       <div id="adminPanel" class="hidden">
@@ -727,6 +758,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       <h2>Leaderboard</h2>
       <ol id="leaderboard"></ol>
     </aside>
+  </div>
+
+  <!-- 📖 the click-through tour every new player sees first -->
+  <div id="tour" class="hidden">
+    <div id="tourRing"></div>
+    <div id="tourCard">
+      <div class="tourStep"></div>
+      <div class="tourTitle"></div>
+      <div class="tourText"></div>
+      <div class="tourBtns">
+        <button id="tourBack" type="button">◀ Back</button>
+        <button id="tourNext" type="button">Next ▶</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -838,7 +883,6 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // cost of the next level = base * growth^level
   const UPGRADES = {
-    sign:  { name: 'Bigger Sign',    desc: 'Attract more customers',      base: 40, growth: 1.9, max: 10 },
     tips:  { name: 'Tip Jar',        desc: '+10% money from every scoop', base: 60, growth: 2.0, max: 10 },
   };
 
@@ -847,7 +891,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return Math.round(u.base * Math.pow(u.growth, level));
   }
 
-  const SERVE_TIME = 2.5; // seconds per scoop (the Scoop! button speeds it up)
+  // ⏱️ How fast your stand sells: with 1 ice cream (grown) on your stand, a customer buys a scoop every
+  // 20 seconds. Every ice cream takes time off: 1 second, 2 seconds if its tub costs over $1,000,
+  // 3 seconds if it costs over $10,000 (or it's an admin ice cream). The fastest is 1 scoop a second.
+  // No ice cream on your stand = no sales.
+  const SCOOP_SLOWEST = 20;
+  const SCOOP_FASTEST = 1;
+  const scoopSpeedup = f => f.adminOnly || f.cost > 10000 ? 3 : f.cost > 1000 ? 2 : 1;
+  function scoopSeconds(flavorIds) {
+    if (!flavorIds.length) return null;
+    const off = flavorIds.reduce((sum, id) => sum + scoopSpeedup(FLAVORS.find(f => f.id === id)), 0);
+    return Math.max(SCOOP_FASTEST, Math.min(SCOOP_SLOWEST, SCOOP_SLOWEST + 1 - off));
+  }
+  const START_MONEY = 20; // enough for a first tub of ice cream
 
   // Flavor spaces on the stand: start with 5, each Extra Space adds 3
   const START_SPACES = 5;
@@ -892,7 +948,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
   };
 
-  const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, SERVE_TIME, AVATAR,
+  const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
+    SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, spaceCost,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
@@ -907,7 +964,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, SERVE_TIME, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
@@ -1184,7 +1241,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
       // tubs on the stand: null (empty space) or { flavor, grow: seconds left until ready }
       let tubs = Array(spaces).fill(null);
-      const oldFlavors = saved.tubs ? null : (saved.flavors ?? ['vanilla', 'chocolate']); // older saves
+      const oldFlavors = saved.tubs ? null : (saved.flavors ?? []); // older saves; new players start with an empty stand
       (saved.tubs || oldFlavors.map(f => ({ flavor: f, grow: 0 }))).slice(0, spaces).forEach((t, i) => {
         if (t && flavorById[t.flavor]) {
           tubs[i] = { flavor: t.flavor, grow: Math.max(0, t.grow || 0) };
@@ -1196,7 +1253,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const stand = {
         id: nextId++, conn, key, name, slot,
         color: COLORS[slot % COLORS.length],
-        money: saved.money ?? 0,
+        money: saved.money ?? START_MONEY,
         totalEarned: saved.totalEarned ?? 0,
         sold: saved.sold ?? 0,
         spaces, tubs,
@@ -1213,9 +1270,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         x: s.x + 60, y: s.y + 110,        // the player's character
         hand: -1,                         // hotbar slot in hand, -1 = nothing
         queue: [],
-        serveProgress: 0,
+        serveProgress: 0,                 // seconds toward the next scoop sold
         spawnTimer: 0,
-        clicks: 0,
+        lastScoop: 0,                     // when you last pressed Scoop!
       };
       fixWorn(stand);
       stands.set(stand.id, stand);
@@ -1225,10 +1282,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // the progress a brand-new player starts with (used when an admin bans someone)
     function freshProgress() {
       return {
-        money: 0, totalEarned: 0, sold: 0, spaces: START_SPACES,
-        tubs: [{ flavor: 'vanilla', grow: 0 }, { flavor: 'chocolate', grow: 0 }, ...Array(START_SPACES - 2).fill(null)],
+        money: START_MONEY, totalEarned: 0, sold: 0, spaces: START_SPACES,
+        tubs: Array(START_SPACES).fill(null),
         hotbar: Array(HOTBAR_SIZE).fill(null), storage: Array(STORAGE_SIZE).fill(null),
-        seen: ['vanilla', 'chocolate'], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
+        seen: [], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
         mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {}, hand: -1, serveProgress: 0,
       };
     }
@@ -1361,22 +1418,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       for (const stand of stands.values()) {
         for (const t of stand.tubs) if (t && t.grow > 0) t.grow = Math.max(0, t.grow - dt);
 
-        // new customers: bigger sign and more ready tubs bring more people
-        const ready = readyTubs(stand).length;
-        const interval = 2.5 / (1 + 0.3 * stand.upgrades.sign + 0.1 * Math.max(0, ready - 2));
+        // ⏱️ a scoop is sold every few seconds (see scoopSeconds), only if there's grown ice cream
+        const every = scoopSeconds(readyTubs(stand).map(t => t.flavor));
+        stand.scoopEvery = every;
+        if (!every) { stand.serveProgress = 0; continue; }
+        stand.serveProgress = Math.min(every, stand.serveProgress + dt);
+
+        // customers walk up and wait in line, so one is ready each time a scoop is sold
         stand.spawnTimer -= dt;
         if (stand.spawnTimer <= 0) {
-          stand.spawnTimer = interval * (0.6 + Math.random() * 0.8);
-          if (stand.queue.length < MAX_QUEUE) spawnCustomer(stand);
+          stand.spawnTimer = Math.min(3, every * 0.6) * (0.7 + Math.random() * 0.6);
+          if (stand.queue.length < Math.min(MAX_QUEUE, 2 + Math.ceil(4 / every))) spawnCustomer(stand);
         }
 
-        // serve the customer at the front once they arrive
         const front = customers.get(stand.queue[0]);
-        if (front && front.state === 'waiting') {
-          stand.serveProgress += dt + Math.min(stand.clicks, 3) * 0.35;
-          if (stand.serveProgress >= SERVE_TIME) completeSale(stand);
-        }
-        stand.clicks = 0;
+        if (front && front.state === 'waiting' && stand.serveProgress >= every - 1e-6) completeSale(stand);
       }
 
       for (const c of customers.values()) {
@@ -1416,7 +1472,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           pets: s.pets, worn: s.worn,
-          serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
+          serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
           id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor, topping: c.topping,
@@ -1487,7 +1543,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       } else if (msg.type === 'setAvatar') {
         stand.avatar = fixAvatar({ ...stand.avatar, ...(msg.avatar || {}) });
       } else if (msg.type === 'scoop') {
-        stand.clicks++;
+        // Scoop! helps a little: each press takes a quarter second off the wait (up to 4 presses a second)
+        const now = Date.now();
+        if (stand.scoopEvery && now - stand.lastScoop >= 250) {
+          stand.lastScoop = now;
+          stand.serveProgress = Math.min(stand.scoopEvery, stand.serveProgress + 0.25);
+        }
       } else if (msg.type === 'buy') {
         const f = flavorById[msg.flavor];
         if (!f || f.adminOnly) return;
@@ -1760,7 +1821,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   <script>
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
-    MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
+    MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -1959,8 +2020,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         // remember the admin code on this device, so next time just the name is enough
         if (msg.admin && adminCode) { try { localStorage.setItem(codeKey(), adminCode); } catch (e) {} }
         resize();
-        if (!msg.returning && !tutorialDone()) startTutorial();
+        if (!tourDone()) startTour(); // everyone new on this device goes through the tour first
+        else if (!msg.returning && !tutorialDone()) startTutorial();
         else if (msg.admin) toast('👑 Admin mode! You have $1T and admin commands.');
+        if (tour.on) { /* the tour explains everything */ }
         else if (msg.restored) toast('Welcome back! The game was updated, and your progress came back with you.');
         else if (msg.returning || tutorialDone()) toast(msg.returning ? 'Welcome back! Your stand is open again.'
           : 'Welcome! Walk with the arrow keys or tap where you want to go.');
@@ -2156,7 +2219,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <div class="info">
           <div class="name"></div>
           <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
-            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)}</div>
+            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)} · <b class="speedTag">⏱️ -${scoopSpeedup(f)}s</b></div>
         </div>`;
       fl.appendChild(row);
       f.row = row;
@@ -2206,7 +2269,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <div class="info">
           <div class="name"></div>
           <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span>
-            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)}</div>
+            ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)} · <b class="speedTag">⏱️ -${scoopSpeedup(f)}s</b></div>
           <div class="stock"></div>
         </div>
         <button>${fmt(f.cost)}</button>`;
@@ -2234,6 +2297,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     $('stats').textContent = `${s.sold} scoops sold · ${fmt(s.totalEarned)} earned · ` +
       `${filled}/${s.spaces} stand spaces used`;
     $('serveBar').style.width = Math.min(100, s.serve * 100) + '%';
+    const info = $('scoopInfo');
+    if (s.scoopEvery) {
+      info.className = 'ok';
+      info.textContent = `⏱️ You sell 1 scoop every ${s.scoopEvery} second${s.scoopEvery === 1 ? '' : 's'}` +
+        (s.scoopEvery === SCOOP_FASTEST ? ' (the fastest!)' : '');
+    } else {
+      info.className = 'none';
+      info.textContent = s.tubs.some(Boolean) ? '🌱 Your ice cream is still growing. Sales start when it\'s ready!'
+        : '🛒 No ice cream on your stand, so no sales! Buy some at the Supplies Shop.';
+    }
     $('shopTimerSide').textContent = `🛒 Shop restocks in ${clock(shop.left)}`;
 
     for (const f of guideFlavors()) {
@@ -2815,20 +2888,22 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const myStandPos = () => { const s = me(); return s ? slots[s.slot] : null; };
   const SHOP_DOOR = () => ({ x: SHOP.x, y: SHOP.y + 90 });
   const TUT_STEPS = [
-    { text: '👋 Welcome to Ice Cream Tycoon! Walk around with the <b>arrow keys</b> (or W A S D), or <b>tap</b> where you want to go.',
+    { text: '👋 Let\'s open your stand! Walk with the <b>arrow keys</b> (or W A S D), or <b>tap</b> where you want to go.',
       done: () => tut.start && dist(player, tut.start) > 80 },
-    { text: '🍨 Customers walk up to your stand to buy scoops. Press <b>Scoop!</b> (or Space) to serve them faster. Earn <b>$10</b>!',
-      target: myStandPos, done: () => (me()?.money || 0) >= 10 },
-    { text: '🛒 Now walk to the <b>Supplies Shop</b> in the middle of the park. Follow the arrow!',
-      target: SHOP_DOOR, done: () => dist(player, SHOP_DOOR()) <= REACH },
-    { text: '💵 Tap the shop to open it, then buy a tub of ice cream. <span class="sub">Rarer ones sell for more but cost more!</span>',
+    { text: '🛒 Your stand is empty, so nobody can buy anything yet. Walk to the <b>Supplies Shop</b> in the middle of the park. Follow the arrow!',
+      target: SHOP_DOOR, done: () => dist(player, SHOP_DOOR()) <= REACH || tut.bought },
+    { text: '💵 Tap the shop and buy a tub of ice cream. <b>Vanilla, Chocolate and Banana cost $10</b>, and you have $20.',
       target: () => SHOP, done: () => tut.bought },
     { text: '✋ Your tub is in your <b>hotbar</b> at the bottom. Tap it (or press its number key) to hold it.',
       hotbar: true, done: () => !!heldItem() || tut.placed },
-    { text: '🏪 Walk back to your stand and tap a <b>dashed space</b> to put it there. It grows, then customers can buy it!',
+    { text: '🏪 Walk back to your stand and tap a <b>dashed space</b> to put your ice cream in.',
       target: myStandPos, done: () => tut.placed },
-    { text: '🎉 You did it! More to try: 🎒 the <b>chest</b> on your plot is your Inventory, 👕 the <b>Avatar Shop</b> changes your look, ' +
-      '🍒 <b>toppings</b> make scoops worth more, 🐾 the <b>Pet Shop</b> has lucky blocks with pets, 🎁 <b>Gift &amp; Trade</b> swaps stuff with friends, and 🌈 <b>mutations</b> make scoops worth way more!', last: true },
+    { text: `⏱️ Your ice cream is growing! When it's ready, a customer buys <b>1 scoop every ${SCOOP_SLOWEST} seconds</b>.
+      Every extra ice cream makes it faster: <b>1 second</b> each, <b>2 seconds</b> for flavors over $1,000,
+      <b>3 seconds</b> over $10,000, down to <b>1 scoop a second</b>. Wait for your first sale!`,
+      target: myStandPos, onShow: () => { tut.sold0 = me()?.sold || 0; }, done: () => (me()?.sold || 0) > tut.sold0 },
+    { text: '🎉 Your first sale! Buy more ice cream to sell faster. Also try: 🍒 <b>toppings</b>, 🎒 the <b>chest</b> (your Inventory), ' +
+      '🐾 the <b>Pet Shop</b>, 👕 the <b>Avatar Shop</b>, 🎁 <b>Gift &amp; Trade</b>, 💬 <b>chat</b>, and 🌈 <b>mutations</b>!', last: true },
   ];
 
   function tutorialDone() { try { return !!localStorage.getItem('icecream-tutorial-done'); } catch (e) { return false; } }
@@ -2848,6 +2923,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     $('tutNext').classList.toggle('hidden', !st.last);
     $('tutSkip').classList.toggle('hidden', !!st.last);
     $('hotbar').classList.toggle('tutGlow', !!st.hotbar);
+    if (st.onShow) st.onShow();
   }
 
   function endTutorial() {
@@ -2895,7 +2971,108 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   $('tutSkip').addEventListener('click', endTutorial);
   $('tutNext').addEventListener('click', endTutorial);
-  $('tutBtn').addEventListener('click', startTutorial);
+  $('tutBtn').addEventListener('click', () => startTour(true));
+
+  // ---------- 📖 the click-through tour: the camera flies to each place and spotlights it ----------
+  const box = (p, w, h, dy = 0) => p && { x: p.x - w / 2, y: p.y - h / 2 + dy, w, h };
+  const TOUR = [
+    { title: '🍦 Welcome to Ice Cream Tycoon!',
+      text: `You run your own ice cream stand: customers buy scoops and you get money.<br>
+        <b>Your stand starts empty</b>, and with no ice cream nobody can buy anything. You get <b>$20</b> to start.<br>
+        Click <b>Next</b> to see how everything works.`,
+      world: () => box(myStandPos(), 310, 210, -30) },
+    { title: '🛒 The Supplies Shop',
+      text: `In the middle of the park. Walk here and tap it to <b>buy tubs of ice cream</b>
+        (Vanilla, Chocolate and Banana cost $10). It also sells 🍒 toppings that make scoops worth more.`,
+      world: () => box(SHOP, 320, 270, -20) },
+    { title: '🏪 Put it in your store',
+      text: `Back at your stand, pick the tub in your <b>hotbar</b> (the boxes at the bottom), then tap a
+        <b>dashed space</b> on your stand. The ice cream grows for a bit, then customers buy it automatically.`,
+      world: () => box(myStandPos(), 310, 210, -30) },
+    { title: '⏱️ How fast you sell',
+      text: `<ul>
+        <li><b>1 ice cream</b> on your stand: 1 scoop sold every <b>${SCOOP_SLOWEST} seconds</b></li>
+        <li>Every extra ice cream: <b>1 second faster</b></li>
+        <li>Flavors that cost <b>over $1,000</b>: <b>2 seconds faster</b></li>
+        <li>Flavors that cost <b>over $10,000</b>: <b>3 seconds faster</b></li>
+        <li>The fastest is <b>1 scoop every second</b></li>
+        <li><b>No ice cream = no sales!</b> (Growing ice cream starts counting once it's ready.)</li></ul>`,
+      world: () => box(myStandPos(), 310, 210, -30) },
+    { title: '⭐ Specialty ice creams',
+      text: `Rare flavors cost a lot of money, but they sell for much more and make your stand faster.
+        Look for <b class="speedTag">⏱️ -2s</b> and <b class="speedTag">⏱️ -3s</b> in the shop. New stock comes every 3 minutes.`,
+      world: () => box(SHOP, 320, 270, -20) },
+    { title: '💬 Chat',
+      text: 'Talk to everyone in the park here. Press <b>Enter</b> to start typing. Be nice!',
+      dom: '#chat' },
+    { title: '🐾 The Pet Shop',
+      text: `Open lucky blocks to get pets. You can wear <b>3 pets</b>: they follow you around and make every
+        scoop worth more. The rarest pets are amazing!`,
+      world: () => box(PET_SHOP, 300, 250, -20) },
+    { title: '👕 The Avatar Shop',
+      text: `Change your shirt, pants, hat and face, then press <b>Save</b>. You're ready:
+        now go buy your first ice cream! (You can see this again with the 📖 Tutorial button.)`,
+      world: () => box(AVATAR_SHOP, 260, 230, -10), last: true },
+  ];
+  const tour = { on: false, i: 0, focus: null };
+  const tourDone = () => { try { return !!localStorage.getItem('icecream-tour-done'); } catch (e) { return false; } };
+
+  function startTour() {
+    closeWindows();
+    tour.on = true;
+    $('tutorial').classList.add('hidden');
+    $('tour').classList.remove('hidden');
+    showTourStep(0);
+  }
+
+  function showTourStep(i) {
+    tour.i = i;
+    const st = TOUR[i];
+    $('tour').querySelector('.tourStep').textContent = `Step ${i + 1} of ${TOUR.length}`;
+    $('tour').querySelector('.tourTitle').textContent = st.title;
+    $('tour').querySelector('.tourText').innerHTML = st.text;
+    $('tourBack').style.visibility = i ? 'visible' : 'hidden';
+    $('tourNext').textContent = st.last ? "Let's play! 🍦" : 'Next ▶';
+    placeTour();
+  }
+
+  function endTour() {
+    tour.on = false;
+    tour.focus = null;
+    cam.back = true;
+    $('tour').classList.add('hidden');
+    try { localStorage.setItem('icecream-tour-done', '1'); } catch (e) {}
+    startTutorial(); // then the step-by-step guide while you play
+  }
+
+  // move the spotlight ring (and the card) onto this step's place; runs every frame while the tour is on
+  function placeTour() {
+    if (!tour.on) return;
+    const st = TOUR[tour.i];
+    const ring = $('tourRing'), card = $('tourCard');
+    let r = null;
+    if (st.world) {
+      const b = st.world();
+      if (b) {
+        tour.focus = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+        const c = canvas.getBoundingClientRect();
+        r = { left: c.left + view.ox + b.x * view.scale, top: c.top + view.oy + b.y * view.scale, width: b.w * view.scale, height: b.h * view.scale };
+      }
+    } else if (st.dom) {
+      tour.focus = null;
+      const e = document.querySelector(st.dom);
+      if (e) { const q = e.getBoundingClientRect(); r = { left: q.left - 8, top: q.top - 8, width: q.width + 16, height: q.height + 16 }; }
+    }
+    if (r) Object.assign(ring.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', opacity: 1 });
+    else Object.assign(ring.style, { left: '50%', top: '50%', width: '0px', height: '0px', opacity: 0.99 });
+    // the card goes where it doesn't cover the spotlight
+    const low = r && r.top + r.height / 2 > window.innerHeight * 0.5;
+    card.classList.toggle('atTop', !!low);
+  }
+
+  $('tourNext').addEventListener('click', () => { if (TOUR[tour.i].last) endTour(); else showTourStep(tour.i + 1); });
+  $('tourBack').addEventListener('click', () => { if (tour.i > 0) showTourStep(tour.i - 1); });
+  window.addEventListener('resize', placeTour);
 
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
@@ -3169,6 +3346,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   document.addEventListener('keydown', e => {
     if (!myId || document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+    if (tour.on) {
+      if (e.code === 'Enter' || e.code === 'ArrowRight' || e.code === 'Space') { e.preventDefault(); $('tourNext').click(); }
+      else if (e.code === 'ArrowLeft') { e.preventDefault(); $('tourBack').click(); }
+      return;
+    }
     if (MOVE_KEYS[e.code]) {
       e.preventDefault();
       keys.add(e.code);
@@ -3304,9 +3486,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   window.addEventListener('resize', resize);
 
   // the camera follows your character
-  function updateCamera() {
+  const cam = { x: null, y: null, back: false };
+  function updateCamera(dt = 0) {
+    // follow your character; during the tour, fly to what it's showing (and glide back after)
+    const want = tour.on && tour.focus ? tour.focus : player;
+    if (cam.x !== null && (tour.on || cam.back)) {
+      const k = Math.min(1, dt * 4);
+      cam.x += (want.x - cam.x) * k; cam.y += (want.y - cam.y) * k;
+      if (!tour.on && Math.hypot(want.x - cam.x, want.y - cam.y) < 3) cam.back = false;
+    } else { cam.x = want.x; cam.y = want.y; }
     const sw = world.width * view.scale, sh = world.height * view.scale;
-    const ox = view.w / 2 - player.x * view.scale, oy = view.h / 2 - player.y * view.scale;
+    const ox = view.w / 2 - cam.x * view.scale, oy = view.h / 2 - cam.y * view.scale;
     view.ox = sw <= view.w ? (view.w - sw) / 2 : Math.min(0, Math.max(view.w - sw, ox));
     view.oy = sh <= view.h ? (view.h - sh) / 2 : Math.min(0, Math.max(view.h - sh, oy));
   }
@@ -4857,7 +5047,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     nowSec = time;
 
     updatePlayer(dt);
-    updateCamera();
+    updateCamera(dt);
+    if (tour.on) placeTour();
 
     ctx.fillStyle = '#6fb34c';
     ctx.fillRect(0, 0, view.w, view.h);

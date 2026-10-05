@@ -191,13 +191,14 @@
       </div>
       <button id="scoopBtn">🍨 Scoop! <span class="sub">(Space)</span></button>
       <div class="progress"><div id="serveBar"></div></div>
+      <div id="scoopInfo"></div>
       <div class="btnRow">
         <button id="giftBtn" class="giftBtn" type="button">🎁 Gift &amp; Trade</button>
         <button id="petsBtn" class="petsBtn" type="button">🐾 My Pets</button>
       </div>
       <button id="tutBtn" class="tutBtn" type="button">📖 Tutorial</button>
-      <p class="sub howto">Walk with the arrow keys or tap where to go. Pick an ice cream in your hotbar
-        (keys 1–0), then tap a dashed space on your stand to place it.</p>
+      <p class="sub howto">Walk with the arrow keys or tap where to go. Buy ice cream at the Supplies Shop, pick it in
+        your hotbar (keys 1–0), then tap a dashed space on your stand. No ice cream on your stand = no sales!</p>
       <div id="shopTimerSide" class="sideTimer"></div>
       <div id="eventBox"></div>
       <div id="adminPanel" class="hidden">
@@ -255,6 +256,20 @@
       <h2>Leaderboard</h2>
       <ol id="leaderboard"></ol>
     </aside>
+  </div>
+
+  <!-- 📖 the click-through tour every new player sees first -->
+  <div id="tour" class="hidden">
+    <div id="tourRing"></div>
+    <div id="tourCard">
+      <div class="tourStep"></div>
+      <div class="tourTitle"></div>
+      <div class="tourText"></div>
+      <div class="tourBtns">
+        <button id="tourBack" type="button">◀ Back</button>
+        <button id="tourNext" type="button">Next ▶</button>
+      </div>
+    </div>
   </div>
 
   <script src="gamedata.js"></script>
