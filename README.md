@@ -105,7 +105,7 @@ doesn't have it yet. To put it online later, set `CYBER=1` on the server (an env
   flying 0s and 1s and neon breath. When the event ends the Cyber Block (and the Hydra) is gone, but anyone who
   got a Hydra keeps it.
 - **🤖 Cyber mutation** (x50, the second best). It never starts by itself; only admins can turn it on. It stays for good.
-- **Robo Ice Cream** (Cyber rarity): $25,000 a scoop, $50M a tub, a 0.5% chance to be in the shop. Shiny metal with
+- **Robo Ice Cream** (Cyber rarity): $25,000 a scoop, $50M a tub, a 0.1% chance to be in the shop. Shiny metal with
   glowing robot eyes and a blinking antenna.
 - **Robo avatar:** a Robo choice for shirt, pants, skin, hat (antenna) and face (glowing visor).
 - **⚡ Cyber Pass** (button at the bottom left): sell scoops during the event to unlock 10 prizes in a row, each better
