@@ -4,7 +4,8 @@
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
+    CYBER, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
@@ -54,11 +55,14 @@
   const chestPos = slot => ({ x: slot.x + 128, y: slot.y + 30 });
 
   // where flavor space i sits on the stand counter (up to 7 per row)
+  // (with lots of spaces they get smaller: 10 per row, so up to 30 still fit on the counter)
   function tubPos(slot, i, spaces) {
-    const row = Math.floor(i / 7);
-    const inRow = Math.min(7, spaces - row * 7);
-    const col = i % 7;
-    return { x: slot.x - ((inRow - 1) * 23) / 2 + col * 23, y: slot.y + 9 + row * 26 };
+    const big = spaces > 14;
+    const per = big ? 10 : 7, gap = big ? 16.5 : 23, rowH = big ? 18 : 26;
+    const row = Math.floor(i / per);
+    const inRow = Math.min(per, spaces - row * per);
+    const col = i % per;
+    return { x: slot.x - ((inRow - 1) * gap) / 2 + col * gap, y: slot.y + (big ? 7 : 9) + row * rowH, s: big ? 0.72 : 1 };
   }
 
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -250,6 +254,9 @@
   function createGame({ saves = {}, backup = null } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
+    // ⚡ the Cyber Event is on for one week (admins can switch it on or off to test with /cyber on|off|auto)
+    let cyberOverride = null;
+    const cyberOn = () => CYBER && (cyberOverride ?? (Date.now() >= CYBER_EVENT.start && Date.now() < CYBER_EVENT.end));
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
     let nextId = 1;
 
@@ -263,6 +270,7 @@
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
         upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn,
+        ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -304,6 +312,9 @@
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
         avatar: fixAvatar(saved.avatar),
         pets: (saved.pets || []).filter(id => petById[id]).slice(0, MAX_PETS),
+        passXP: saved.passXP || 0,                                   // ⚡ scoops sold during the Cyber Event
+        passClaimed: { free: [...(saved.passClaimed?.free || [])], premium: [...(saved.passClaimed?.premium || [])] },
+        premiumPass: !!saved.premiumPass,
         worn: saved.worn || (saved.pet ? [saved.pet] : []), // the pets following you (older saves had one)
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
@@ -326,7 +337,8 @@
         tubs: Array(START_SPACES).fill(null),
         hotbar: Array(HOTBAR_SIZE).fill(null), storage: Array(STORAGE_SIZE).fill(null),
         seen: [], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
-        mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {}, hand: -1, serveProgress: 0,
+        mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {},
+        passXP: 0, passClaimed: { free: [], premium: [] }, premiumPass: false, hand: -1, serveProgress: 0,
       };
     }
 
@@ -396,6 +408,7 @@
       stand.money += amount;
       stand.totalEarned += amount;
       stand.sold++;
+      if (cyberOn()) stand.passXP++;
       c.served = true;
       sendOffCustomer(c);
       broadcast({ type: 'sale', standId: stand.id, customerId: c.id, flavor: c.flavor,
@@ -505,6 +518,7 @@
           next: Math.ceil(event.next),
         },
         shop: { stock: shop.stock, left: Math.ceil(shop.left) },
+        cyber: CYBER ? { on: cyberOn(), endsAt: CYBER_EVENT.end, override: cyberOverride } : null,
         stands: [...stands.values()].map(s => ({
           id: s.id, name: s.name, slot: s.slot, color: s.color,
           money: s.money, totalEarned: s.totalEarned, sold: s.sold,
@@ -512,6 +526,7 @@
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           pets: s.pets, worn: s.worn,
+          ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
           serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
@@ -520,6 +535,32 @@
           served: !!c.served,
         })),
       });
+    }
+
+    // ⚡ give a Cyber Pass prize; returns an error message if it doesn't fit
+    function givePrize(stand, prize) {
+      if (prize.item) {
+        const copy = { hotbar: stand.hotbar.map(x => x && { ...x }), storage: stand.storage.map(x => x && { ...x }) };
+        if (addItem(copy.storage, prize.item, addItem(copy.hotbar, prize.item, prize.count || 1)) > 0) return 'Make room in your inventory first.';
+        stand.hotbar = copy.hotbar; stand.storage = copy.storage;
+        if (flavorById[prize.item] && !stand.seen.includes(prize.item)) stand.seen.push(prize.item);
+      }
+      if (prize.block) {
+        const n = prize.count || 1;
+        if (stand.pets.length + n > MAX_PETS) return `You have too many pets (the most is ${MAX_PETS}).`;
+        for (let k = 0; k < n; k++) {
+          const pet = rollPet(blockById[prize.block]);
+          stand.pets.push(pet.id);
+          const wearing = autoWear(stand, pet.id);
+          stand.conn.send({ type: 'petGot', pet: pet.id, block: prize.block, equipped: wearing });
+          if (RARITIES[pet.rarity].order >= 5) {
+            broadcast({ type: 'chat', id: 0, from: '⚡ Cyber Pass', admin: false,
+              text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` });
+          }
+        }
+      }
+      if (prize.money) stand.money += prize.money;
+      return null;
     }
 
     function sendBackup(s) {
@@ -652,9 +693,10 @@
         if (cost === null || stand.tubs.includes(null)) return;
         if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
-        stand.spaces += SPACES_PER_BUY;
-        for (let i = 0; i < SPACES_PER_BUY; i++) stand.tubs.push(null);
-        conn.send({ type: 'spaceAdded', spaces: stand.spaces });
+        const add = spacesPerBuy(stand.spaces);
+        stand.spaces += add;
+        for (let i = 0; i < add; i++) stand.tubs.push(null);
+        conn.send({ type: 'spaceAdded', spaces: stand.spaces, added: add });
       } else if (msg.type === 'buyUpgrade') {
         const u = UPGRADES[msg.key];
         if (!u) return;
@@ -689,6 +731,7 @@
         const b = blockById[msg.block];
         if (!b) return;
         if (!near(PET_SHOP)) return err('Walk to the Pet Shop to buy lucky blocks.');
+        if (b.event && !cyberOn()) return err('The Cyber Event is over, so the Cyber Block is gone!');
         if (stand.money < b.cost) return err('Not enough money!');
         if (stand.pets.length >= MAX_PETS) return err(`You have too many pets (the most is ${MAX_PETS}).`);
         stand.money -= b.cost;
@@ -712,6 +755,59 @@
           if (countOf(stand.worn, id) >= countOf(stand.pets, id)) return;
           stand.worn.push(id);
         }
+      } else if (CYBER && msg.type === 'passClaim') {
+        // ⚡ claim a Cyber Pass prize you've unlocked
+        if (!cyberOn()) return err('The Cyber Event is over.');
+        const row = msg.row === 'premium' ? 'premium' : 'free';
+        const i = Number(msg.tier);
+        const prize = CYBER_PASS[row][i];
+        if (!prize) return;
+        if (row === 'premium' && !stand.premiumPass) return err('This row needs the ⚡ Premium Cyber Pass.');
+        if (stand.passXP < prize.at) return err(`Sell ${prize.at - stand.passXP} more scoops to unlock this prize.`);
+        if (stand.passClaimed[row].includes(i)) return;
+        const error = givePrize(stand, prize);
+        if (error) return err(error);
+        stand.passClaimed[row].push(i);
+        conn.send({ type: 'passPrize', row, tier: i });
+      } else if (CYBER && msg.type === 'gamePass') {
+        // 💎 Game Passes (TEST: free here; real money isn't built)
+        const id = msg.id;
+        if (id === 'starter') {
+          const items = { strawberry: 2, mint: 2 };
+          const copy = { hotbar: stand.hotbar.map(x => x && { ...x }), storage: stand.storage.map(x => x && { ...x }) };
+          for (const [f, n] of Object.entries(items)) {
+            if (addItem(copy.storage, f, addItem(copy.hotbar, f, n)) > 0) return err('Make room in your inventory first.');
+          }
+          stand.hotbar = copy.hotbar; stand.storage = copy.storage;
+          stand.money += 20000;
+          for (const f of Object.keys(items)) if (!stand.seen.includes(f)) stand.seen.push(f);
+        } else if (id === 'premium') {
+          if (stand.premiumPass) return err('You already have the Premium Cyber Pass!');
+          stand.premiumPass = true;
+        } else if (id === 'fillall') {
+          // every empty space gets a fully grown ice cream (common ones more often, like the shop)
+          const empty = stand.tubs.map((t, i) => t ? -1 : i).filter(i => i >= 0);
+          if (!empty.length) return err('Your stand is already full!');
+          const pool = FLAVORS.filter(f => !f.adminOnly && RARITIES[f.rarity].stock.chance > 0);
+          for (const i of empty) {
+            let r = Math.random() * pool.reduce((sum, f) => sum + RARITIES[f.rarity].stock.chance, 0);
+            const f = pool.find(f => (r -= RARITIES[f.rarity].stock.chance) <= 0) || pool[0];
+            stand.tubs[i] = { flavor: f.id, grow: 0 };
+            if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+          }
+        } else if (id === 'icecream') {
+          const f = flavorById[msg.flavor];
+          if (!f || f.adminOnly || !ICE_CREAM_PRICES[f.rarity]) return err('Pick an ice cream from the shop list.');
+          if (addItem(stand.storage, f.id, addItem(stand.hotbar, f.id, 1)) > 0) return err('Your inventory is full!');
+          if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+        } else if (id === 'restock') {
+          restock();
+          broadcast({ type: 'chat', id: 0, from: '🛒 Supplies Shop', admin: false, text: `${stand.name} restocked the shop for everyone!` });
+        } else return;
+        conn.send({ type: 'gamePassDone', id, flavor: msg.flavor });
+      } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
+        cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
+        conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
       } else if (msg.type === 'equipBest') {
         stand.worn = bestPets(stand.pets).slice(0, MAX_WORN);
       } else if (msg.type === 'gift' || msg.type === 'tradeOffer') {

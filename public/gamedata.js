@@ -1,5 +1,9 @@
 // Shared game data, used by both the server (require) and the browser (window.GameData).
 (function (root) {
+  // ⚡ The Cyber Event is only switched on in the test file (build.js) for now, not in the online game.
+  // To put it in the online game later, start the server with CYBER=1.
+  const CYBER = !!(root && root.CYBER_TEST) || (typeof process !== 'undefined' && !!process.env && process.env.CYBER === '1');
+
   // growSec: how long a placed tub takes to grow before customers can buy it
   // stock: chance the shop has this rarity after a restock, and how many tubs
   const RARITIES = {
@@ -18,6 +22,8 @@
     celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 900, stock: { chance: 0, min: 0, max: 0 } },
     divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
+    // ⚡ Cyber: the Cyber Hydra pet and the Robo Ice Cream (0.5% chance to be in the shop)
+    cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1200, stock: { chance: 0.005, min: 1, max: 1 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -101,6 +107,59 @@
     { id: 'infinity', name: 'Infinity Block', cost: 500e9,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
   ];
 
+  // ---------- ⚡ Cyber Event (test file only for now) ----------
+  // The event lasts one week. The Cyber Block (and with it the Cyber Hydra) is only in the Pet Shop
+  // while it's on; pets you got from it stay yours. The Cyber mutation and Robo Ice Cream stay for good.
+  const CYBER_EVENT = { start: Date.UTC(2026, 9, 5), end: Date.UTC(2026, 9, 12) }; // Oct 5 to Oct 12, 2026
+  if (CYBER) {
+    FLAVORS.push({ id: 'robo', name: 'Robo Ice Cream', rarity: 'cyber', price: 25000, cost: 50e6, color: '#c3ccd6', effect: 'robo' });
+    PETS.push({ id: 'hydra', name: 'Cyber Hydra', emoji: '🐉', rarity: 'cyber', boost: 50, fx: 'hydra', kind: 'swim', event: 'cyber' });
+    LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 2e9, color: 'cyber', event: 'cyber',
+      odds: { legendary: 30, mythic: 35, secret: 22, celestial: 11, cyber: 2 } });
+  }
+
+  // ⚡ Cyber Pass: sell scoops during the event to unlock prizes. The bottom row needs the Premium Pass.
+  // prize kinds: money, item (ice cream or topping tubs), block (opens a lucky block for a pet)
+  const CYBER_PASS = {
+    free: [
+      { at: 10,   money: 5000 },
+      { at: 30,   item: 'sprinkles', count: 3 },
+      { at: 60,   block: 'iron' },
+      { at: 100,  money: 100000 },
+      { at: 160,  item: 'mango', count: 2 },
+      { at: 250,  block: 'gold' },
+      { at: 400,  money: 5e6 },
+      { at: 600,  item: 'goldflakes', count: 2 },
+      { at: 850,  block: 'diamond' },
+      { at: 1200, block: 'cyber' },
+    ],
+    premium: [
+      { at: 10,   money: 50000 },
+      { at: 30,   item: 'whipped', count: 5 },
+      { at: 60,   block: 'gold' },
+      { at: 100,  money: 2e6 },
+      { at: 160,  item: 'lava', count: 2 },
+      { at: 250,  block: 'diamond' },
+      { at: 400,  money: 100e6 },
+      { at: 600,  item: 'stardust', count: 3 },
+      { at: 850,  item: 'robo', count: 1 },
+      { at: 1200, block: 'cyber', count: 3 },
+    ],
+  };
+
+  // 💎 Game Passes: things bought with real money. Real payments aren't built (that needs a parent and a
+  // payment company), so in the test file they're free and marked TEST.
+  const GAME_PASSES = [
+    { id: 'starter', name: 'Starter Bundle', emoji: '🎁', price: '$1.99', desc: '$20,000, 2 Strawberry and 2 Mint Chip tubs' },
+    { id: 'premium', name: 'Premium Cyber Pass', emoji: '⚡', price: '$4.99', desc: 'Unlocks the better prize row in the Cyber Pass' },
+    { id: 'fillall', name: 'Fill All', emoji: '🧺', price: '$0.99', desc: 'Every empty space on your stand gets a fully grown ice cream' },
+    { id: 'icecream', name: 'Buy an Ice Cream', emoji: '🍦', price: '$0.49–$2.99', desc: 'Pick any ice cream from the shop list, even if it\'s sold out' },
+    { id: 'restock', name: 'Restock the Shop', emoji: '🛒', price: '$0.99', desc: 'New stock in the Supplies Shop for everyone, right now' },
+  ];
+  // real-money price of one ice cream by rarity (shown only)
+  const ICE_CREAM_PRICES = { common: '$0.49', uncommon: '$0.49', rare: '$0.99', epic: '$0.99', legendary: '$1.49',
+    mythic: '$1.99', secret: '$2.49', cyber: '$2.99' };
+
   // list them from most common to rarest, cheapest first (for the shop and the Flavor guide)
   FLAVORS.sort((a, b) => RARITIES[a.rarity].order - RARITIES[b.rarity].order || a.price - b.price);
 
@@ -131,12 +190,15 @@
   // Flavor spaces on the stand: start with 5, each Extra Space adds 3
   const START_SPACES = 5;
   const SPACES_PER_BUY = 3;
-  const SPACE_COSTS = [300, 6000, 75000];
+  const SPACE_COSTS = CYBER ? [300, 6000, 75000, 500000, 2.5e6, 10e6, 40e6, 150e6, 500e6] : [300, 6000, 75000];
+  const MAX_SPACES = CYBER ? 30 : 14; // the Extra Space button disappears once you have this many
 
   function spaceCost(spaces) {
-    if (spaces >= FLAVORS.filter(f => !f.adminOnly).length) return null; // already room for every shop flavor
+    if (spaces >= MAX_SPACES) return null;
+    if (!CYBER && spaces >= FLAVORS.filter(f => !f.adminOnly).length) return null; // already room for every shop flavor
     return SPACE_COSTS[Math.round((spaces - START_SPACES) / SPACES_PER_BUY)] ?? null;
   }
+  const spacesPerBuy = spaces => Math.min(SPACES_PER_BUY, MAX_SPACES - spaces);
 
   // Mutation events: every 30, 45 or 50 minutes one of these takes over the park for a few
   // minutes. While it's on, scoops can turn into that mutation and sell for `mult` times more.
@@ -152,6 +214,10 @@
     { id: 'impossible', name: 'Impossible', emoji: '♾️', mult: 100, weight: 0.3,
       colors: ['#ff00ff', '#00ffff', '#ffff00', '#ff0055', '#00ff66'] },
   ];
+  // ⚡ Cyber: the second best mutation. It never starts by itself (weight 0); only admins can turn it on.
+  MUTATIONS.push({ id: 'cyber', name: 'Cyber', emoji: '🤖', mult: 50, weight: 0, adminOnly: true,
+    colors: ['#00ffd5', '#00ff66', '#7df9ff'] });
+  if (!CYBER) MUTATIONS.pop(); // test file only for now
   MUTATIONS.sort((a, b) => a.mult - b.mult); // lowest to highest money, for the Mutations list
   const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
@@ -170,11 +236,14 @@
     hat:   ['cap', 'none', 'tophat', 'beanie', 'party', 'cowboy', 'wizard', 'bunny', 'cone'],
     face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
   };
+  // ⚡ the Robo look: a robo choice for every part (shiny metal, an antenna, glowing visor eyes)
+  if (CYBER) for (const part of Object.keys(AVATAR)) AVATAR[part].push('robo');
 
   const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
-    START_SPACES, SPACES_PER_BUY, spaceCost,
+    START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
+    CYBER, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;

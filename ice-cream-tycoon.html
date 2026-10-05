@@ -506,6 +506,47 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #tourCard .tourBtns { display: flex; justify-content: space-between; margin-top: 12px; gap: 10px; }
 #tourBack { background: #868e96; }
 #tourNext { background: #2f9e44; font-size: 17px; padding: 10px 22px; }
+
+/* ⚡ Cyber Event (test file only for now) */
+#cyberBtns { position: absolute; left: 12px; bottom: 12px; z-index: 6; display: flex; flex-direction: column; gap: 6px; }
+#cyberBtns.hidden { display: none; }
+#passBtn { background: linear-gradient(135deg, #0a1f2e, #00a389); color: #7df9ff; border: 2px solid #00ffd5;
+  font-size: 18px; padding: 10px 16px; box-shadow: 0 0 12px rgba(0,255,213,0.6); animation: passGlow 1.5s ease-in-out infinite alternate; }
+@keyframes passGlow { to { box-shadow: 0 0 20px rgba(0,255,213,0.95); } }
+#passBtn.hidden { display: none; }
+#storeBtn { background: linear-gradient(135deg, #5f3dc4, #ae3ec9); font-size: 13px; padding: 7px 10px; }
+#passModal { width: min(640px, calc(100% - 24px)); background: #0b1a26; border-color: #00ffd5; color: #e3fafc; }
+#passModal .modalTitle { color: #00ffd5; }
+#passModal .sub { color: #a5d8ff; }
+.passLabel { font-weight: bold; font-size: 13px; color: #8ce99a; margin: 10px 0 4px; letter-spacing: 1px; }
+.passLabel.premium { color: #ffd43b; }
+.passRow { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 10px; }
+.passTile { flex: 0 0 96px; background: #12293a; border: 2px solid #1f4b63; border-radius: 12px; padding: 7px 5px;
+  text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; }
+.passTile .prizeIcon { font-size: 26px; height: 34px; display: flex; align-items: center; justify-content: center; }
+.passTile .prizeName { font-weight: bold; line-height: 1.2; min-height: 30px; }
+.passTile .prizeAt { color: #74c0fc; font-size: 11px; }
+.passTile button { width: 100%; font-size: 11px; padding: 5px 2px; background: #00a389; }
+.passTile.ready { border-color: #00ffd5; box-shadow: 0 0 10px rgba(0,255,213,0.6); }
+.passTile.claimed { opacity: 0.55; }
+.passTile.claimed button { background: #2b8a3e; }
+#passPremium .passTile { border-color: #8f6a00; background: #2a2410; }
+#passPremium .passTile.ready { border-color: #ffd43b; box-shadow: 0 0 10px rgba(255,212,59,0.7); }
+#passPremium.locked .passTile { filter: grayscale(0.6); opacity: 0.7; }
+#passPremiumNote button { font-size: 11px; padding: 3px 8px; margin-left: 6px; background: #f59f00; }
+.passTile .luckyBlock { width: 30px; height: 30px; font-size: 16px; border-radius: 6px; }
+.testNote { background: #fff3bf; border: 2px dashed #f08c00; border-radius: 10px; padding: 8px 10px; font-size: 13px; color: #7a4a00; }
+#storeList .row { gap: 10px; }
+#storeList .gpEmoji { font-size: 28px; width: 36px; text-align: center; }
+#storeList .gpPrice { font-weight: bold; color: #5f3dc4; font-size: 13px; }
+#storeList select { max-width: 150px; }
+#storeList button { background: #7048e8; }
+.luckyBlock.cyber { background: linear-gradient(135deg, #04121c, #0a3d3a); border-color: #00ffd5;
+  box-shadow: 0 0 12px rgba(0,255,213,0.8), inset 0 0 8px rgba(0,255,213,0.5); color: #00ffd5; }
+.eventTag { display: inline-block; background: #00a389; color: #fff; font-size: 11px; font-weight: bold; border-radius: 6px; padding: 1px 6px; }
+.badge.cyber { background: linear-gradient(90deg, #00a389, #00ffd5) !important; color: #04121c !important; }
+.fx-robo.scoop, .fx-robo .ball { background: linear-gradient(135deg, #f1f5f9, #9aa7b4 50%, #5f6b78) !important;
+  box-shadow: 0 0 8px 2px rgba(0,255,213,0.7); }
 </style>
 </head>
 <body>
@@ -550,6 +591,37 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <button id="tutNext" type="button" class="hidden">Let's go!</button>
           <button id="tutSkip" type="button">Skip tutorial</button>
         </div>
+      </div>
+
+      <!-- ⚡ Cyber Event buttons (test file only for now) -->
+      <div id="cyberBtns" class="hidden">
+        <button id="passBtn" type="button">⚡ Pass</button>
+        <button id="storeBtn" type="button">💎 Game Passes</button>
+      </div>
+
+      <div id="passModal" class="modal hidden">
+        <div class="modalHead">
+          <div>
+            <div class="modalTitle">⚡ Cyber Pass</div>
+            <div id="passTimer" class="sub"></div>
+          </div>
+          <button id="passClose" class="closeBtn">✕</button>
+        </div>
+        <p id="passXP" class="sub"></p>
+        <div class="passLabel">FREE PRIZES</div>
+        <div id="passFree" class="passRow"></div>
+        <div class="passLabel premium">⚡ PREMIUM PRIZES <span id="passPremiumNote"></span></div>
+        <div id="passPremium" class="passRow"></div>
+      </div>
+
+      <div id="storeModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">💎 Game Passes</div>
+          <button id="storeClose" class="closeBtn">✕</button>
+        </div>
+        <p class="testNote">🧪 TEST VERSION: nothing here costs real money, so you can try everything for free.
+          Real payments aren't built yet (they need a parent and a payment company).</p>
+        <div id="storeList"></div>
       </div>
 
       <div id="handLabel"></div>
@@ -774,9 +846,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     </div>
   </div>
 
+  <script>window.CYBER_TEST = true;</script>
   <script>
 // Shared game data, used by both the server (require) and the browser (window.GameData).
 (function (root) {
+  // ⚡ The Cyber Event is only switched on in the test file (build.js) for now, not in the online game.
+  // To put it in the online game later, start the server with CYBER=1.
+  const CYBER = !!(root && root.CYBER_TEST) || (typeof process !== 'undefined' && !!process.env && process.env.CYBER === '1');
+
   // growSec: how long a placed tub takes to grow before customers can buy it
   // stock: chance the shop has this rarity after a restock, and how many tubs
   const RARITIES = {
@@ -795,6 +872,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 900, stock: { chance: 0, min: 0, max: 0 } },
     divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
+    // ⚡ Cyber: the Cyber Hydra pet and the Robo Ice Cream (0.5% chance to be in the shop)
+    cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1200, stock: { chance: 0.005, min: 1, max: 1 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -878,6 +957,59 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'infinity', name: 'Infinity Block', cost: 500e9,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
   ];
 
+  // ---------- ⚡ Cyber Event (test file only for now) ----------
+  // The event lasts one week. The Cyber Block (and with it the Cyber Hydra) is only in the Pet Shop
+  // while it's on; pets you got from it stay yours. The Cyber mutation and Robo Ice Cream stay for good.
+  const CYBER_EVENT = { start: Date.UTC(2026, 9, 5), end: Date.UTC(2026, 9, 12) }; // Oct 5 to Oct 12, 2026
+  if (CYBER) {
+    FLAVORS.push({ id: 'robo', name: 'Robo Ice Cream', rarity: 'cyber', price: 25000, cost: 50e6, color: '#c3ccd6', effect: 'robo' });
+    PETS.push({ id: 'hydra', name: 'Cyber Hydra', emoji: '🐉', rarity: 'cyber', boost: 50, fx: 'hydra', kind: 'swim', event: 'cyber' });
+    LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 2e9, color: 'cyber', event: 'cyber',
+      odds: { legendary: 30, mythic: 35, secret: 22, celestial: 11, cyber: 2 } });
+  }
+
+  // ⚡ Cyber Pass: sell scoops during the event to unlock prizes. The bottom row needs the Premium Pass.
+  // prize kinds: money, item (ice cream or topping tubs), block (opens a lucky block for a pet)
+  const CYBER_PASS = {
+    free: [
+      { at: 10,   money: 5000 },
+      { at: 30,   item: 'sprinkles', count: 3 },
+      { at: 60,   block: 'iron' },
+      { at: 100,  money: 100000 },
+      { at: 160,  item: 'mango', count: 2 },
+      { at: 250,  block: 'gold' },
+      { at: 400,  money: 5e6 },
+      { at: 600,  item: 'goldflakes', count: 2 },
+      { at: 850,  block: 'diamond' },
+      { at: 1200, block: 'cyber' },
+    ],
+    premium: [
+      { at: 10,   money: 50000 },
+      { at: 30,   item: 'whipped', count: 5 },
+      { at: 60,   block: 'gold' },
+      { at: 100,  money: 2e6 },
+      { at: 160,  item: 'lava', count: 2 },
+      { at: 250,  block: 'diamond' },
+      { at: 400,  money: 100e6 },
+      { at: 600,  item: 'stardust', count: 3 },
+      { at: 850,  item: 'robo', count: 1 },
+      { at: 1200, block: 'cyber', count: 3 },
+    ],
+  };
+
+  // 💎 Game Passes: things bought with real money. Real payments aren't built (that needs a parent and a
+  // payment company), so in the test file they're free and marked TEST.
+  const GAME_PASSES = [
+    { id: 'starter', name: 'Starter Bundle', emoji: '🎁', price: '$1.99', desc: '$20,000, 2 Strawberry and 2 Mint Chip tubs' },
+    { id: 'premium', name: 'Premium Cyber Pass', emoji: '⚡', price: '$4.99', desc: 'Unlocks the better prize row in the Cyber Pass' },
+    { id: 'fillall', name: 'Fill All', emoji: '🧺', price: '$0.99', desc: 'Every empty space on your stand gets a fully grown ice cream' },
+    { id: 'icecream', name: 'Buy an Ice Cream', emoji: '🍦', price: '$0.49–$2.99', desc: 'Pick any ice cream from the shop list, even if it\'s sold out' },
+    { id: 'restock', name: 'Restock the Shop', emoji: '🛒', price: '$0.99', desc: 'New stock in the Supplies Shop for everyone, right now' },
+  ];
+  // real-money price of one ice cream by rarity (shown only)
+  const ICE_CREAM_PRICES = { common: '$0.49', uncommon: '$0.49', rare: '$0.99', epic: '$0.99', legendary: '$1.49',
+    mythic: '$1.99', secret: '$2.49', cyber: '$2.99' };
+
   // list them from most common to rarest, cheapest first (for the shop and the Flavor guide)
   FLAVORS.sort((a, b) => RARITIES[a.rarity].order - RARITIES[b.rarity].order || a.price - b.price);
 
@@ -908,12 +1040,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // Flavor spaces on the stand: start with 5, each Extra Space adds 3
   const START_SPACES = 5;
   const SPACES_PER_BUY = 3;
-  const SPACE_COSTS = [300, 6000, 75000];
+  const SPACE_COSTS = CYBER ? [300, 6000, 75000, 500000, 2.5e6, 10e6, 40e6, 150e6, 500e6] : [300, 6000, 75000];
+  const MAX_SPACES = CYBER ? 30 : 14; // the Extra Space button disappears once you have this many
 
   function spaceCost(spaces) {
-    if (spaces >= FLAVORS.filter(f => !f.adminOnly).length) return null; // already room for every shop flavor
+    if (spaces >= MAX_SPACES) return null;
+    if (!CYBER && spaces >= FLAVORS.filter(f => !f.adminOnly).length) return null; // already room for every shop flavor
     return SPACE_COSTS[Math.round((spaces - START_SPACES) / SPACES_PER_BUY)] ?? null;
   }
+  const spacesPerBuy = spaces => Math.min(SPACES_PER_BUY, MAX_SPACES - spaces);
 
   // Mutation events: every 30, 45 or 50 minutes one of these takes over the park for a few
   // minutes. While it's on, scoops can turn into that mutation and sell for `mult` times more.
@@ -929,6 +1064,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'impossible', name: 'Impossible', emoji: '♾️', mult: 100, weight: 0.3,
       colors: ['#ff00ff', '#00ffff', '#ffff00', '#ff0055', '#00ff66'] },
   ];
+  // ⚡ Cyber: the second best mutation. It never starts by itself (weight 0); only admins can turn it on.
+  MUTATIONS.push({ id: 'cyber', name: 'Cyber', emoji: '🤖', mult: 50, weight: 0, adminOnly: true,
+    colors: ['#00ffd5', '#00ff66', '#7df9ff'] });
+  if (!CYBER) MUTATIONS.pop(); // test file only for now
   MUTATIONS.sort((a, b) => a.mult - b.mult); // lowest to highest money, for the Mutations list
   const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
@@ -947,11 +1086,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     hat:   ['cap', 'none', 'tophat', 'beanie', 'party', 'cowboy', 'wizard', 'bunny', 'cone'],
     face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
   };
+  // ⚡ the Robo look: a robo choice for every part (shiny metal, an antenna, glowing visor eyes)
+  if (CYBER) for (const part of Object.keys(AVATAR)) AVATAR[part].push('robo');
 
   const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
-    START_SPACES, SPACES_PER_BUY, spaceCost,
+    START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
+    CYBER, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;
@@ -964,7 +1106,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, START_SPACES, SPACES_PER_BUY, spaceCost, AVATAR,
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
+    CYBER, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
@@ -1014,11 +1157,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const chestPos = slot => ({ x: slot.x + 128, y: slot.y + 30 });
 
   // where flavor space i sits on the stand counter (up to 7 per row)
+  // (with lots of spaces they get smaller: 10 per row, so up to 30 still fit on the counter)
   function tubPos(slot, i, spaces) {
-    const row = Math.floor(i / 7);
-    const inRow = Math.min(7, spaces - row * 7);
-    const col = i % 7;
-    return { x: slot.x - ((inRow - 1) * 23) / 2 + col * 23, y: slot.y + 9 + row * 26 };
+    const big = spaces > 14;
+    const per = big ? 10 : 7, gap = big ? 16.5 : 23, rowH = big ? 18 : 26;
+    const row = Math.floor(i / per);
+    const inRow = Math.min(per, spaces - row * per);
+    const col = i % per;
+    return { x: slot.x - ((inRow - 1) * gap) / 2 + col * gap, y: slot.y + (big ? 7 : 9) + row * rowH, s: big ? 0.72 : 1 };
   }
 
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -1210,6 +1356,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   function createGame({ saves = {}, backup = null } = {}) {
     const stands = new Map();     // id -> stand (one per connected player)
     const customers = new Map();  // id -> customer
+    // ⚡ the Cyber Event is on for one week (admins can switch it on or off to test with /cyber on|off|auto)
+    let cyberOverride = null;
+    const cyberOn = () => CYBER && (cyberOverride ?? (Date.now() >= CYBER_EVENT.start && Date.now() < CYBER_EVENT.end));
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
     let nextId = 1;
 
@@ -1223,6 +1372,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
         upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn,
+        ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -1264,6 +1414,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
         avatar: fixAvatar(saved.avatar),
         pets: (saved.pets || []).filter(id => petById[id]).slice(0, MAX_PETS),
+        passXP: saved.passXP || 0,                                   // ⚡ scoops sold during the Cyber Event
+        passClaimed: { free: [...(saved.passClaimed?.free || [])], premium: [...(saved.passClaimed?.premium || [])] },
+        premiumPass: !!saved.premiumPass,
         worn: saved.worn || (saved.pet ? [saved.pet] : []), // the pets following you (older saves had one)
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
@@ -1286,7 +1439,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         tubs: Array(START_SPACES).fill(null),
         hotbar: Array(HOTBAR_SIZE).fill(null), storage: Array(STORAGE_SIZE).fill(null),
         seen: [], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
-        mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {}, hand: -1, serveProgress: 0,
+        mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {},
+        passXP: 0, passClaimed: { free: [], premium: [] }, premiumPass: false, hand: -1, serveProgress: 0,
       };
     }
 
@@ -1356,6 +1510,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       stand.money += amount;
       stand.totalEarned += amount;
       stand.sold++;
+      if (cyberOn()) stand.passXP++;
       c.served = true;
       sendOffCustomer(c);
       broadcast({ type: 'sale', standId: stand.id, customerId: c.id, flavor: c.flavor,
@@ -1465,6 +1620,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           next: Math.ceil(event.next),
         },
         shop: { stock: shop.stock, left: Math.ceil(shop.left) },
+        cyber: CYBER ? { on: cyberOn(), endsAt: CYBER_EVENT.end, override: cyberOverride } : null,
         stands: [...stands.values()].map(s => ({
           id: s.id, name: s.name, slot: s.slot, color: s.color,
           money: s.money, totalEarned: s.totalEarned, sold: s.sold,
@@ -1472,6 +1628,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           pets: s.pets, worn: s.worn,
+          ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
           serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
@@ -1480,6 +1637,32 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           served: !!c.served,
         })),
       });
+    }
+
+    // ⚡ give a Cyber Pass prize; returns an error message if it doesn't fit
+    function givePrize(stand, prize) {
+      if (prize.item) {
+        const copy = { hotbar: stand.hotbar.map(x => x && { ...x }), storage: stand.storage.map(x => x && { ...x }) };
+        if (addItem(copy.storage, prize.item, addItem(copy.hotbar, prize.item, prize.count || 1)) > 0) return 'Make room in your inventory first.';
+        stand.hotbar = copy.hotbar; stand.storage = copy.storage;
+        if (flavorById[prize.item] && !stand.seen.includes(prize.item)) stand.seen.push(prize.item);
+      }
+      if (prize.block) {
+        const n = prize.count || 1;
+        if (stand.pets.length + n > MAX_PETS) return `You have too many pets (the most is ${MAX_PETS}).`;
+        for (let k = 0; k < n; k++) {
+          const pet = rollPet(blockById[prize.block]);
+          stand.pets.push(pet.id);
+          const wearing = autoWear(stand, pet.id);
+          stand.conn.send({ type: 'petGot', pet: pet.id, block: prize.block, equipped: wearing });
+          if (RARITIES[pet.rarity].order >= 5) {
+            broadcast({ type: 'chat', id: 0, from: '⚡ Cyber Pass', admin: false,
+              text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` });
+          }
+        }
+      }
+      if (prize.money) stand.money += prize.money;
+      return null;
     }
 
     function sendBackup(s) {
@@ -1612,9 +1795,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (cost === null || stand.tubs.includes(null)) return;
         if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
-        stand.spaces += SPACES_PER_BUY;
-        for (let i = 0; i < SPACES_PER_BUY; i++) stand.tubs.push(null);
-        conn.send({ type: 'spaceAdded', spaces: stand.spaces });
+        const add = spacesPerBuy(stand.spaces);
+        stand.spaces += add;
+        for (let i = 0; i < add; i++) stand.tubs.push(null);
+        conn.send({ type: 'spaceAdded', spaces: stand.spaces, added: add });
       } else if (msg.type === 'buyUpgrade') {
         const u = UPGRADES[msg.key];
         if (!u) return;
@@ -1649,6 +1833,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const b = blockById[msg.block];
         if (!b) return;
         if (!near(PET_SHOP)) return err('Walk to the Pet Shop to buy lucky blocks.');
+        if (b.event && !cyberOn()) return err('The Cyber Event is over, so the Cyber Block is gone!');
         if (stand.money < b.cost) return err('Not enough money!');
         if (stand.pets.length >= MAX_PETS) return err(`You have too many pets (the most is ${MAX_PETS}).`);
         stand.money -= b.cost;
@@ -1672,6 +1857,59 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           if (countOf(stand.worn, id) >= countOf(stand.pets, id)) return;
           stand.worn.push(id);
         }
+      } else if (CYBER && msg.type === 'passClaim') {
+        // ⚡ claim a Cyber Pass prize you've unlocked
+        if (!cyberOn()) return err('The Cyber Event is over.');
+        const row = msg.row === 'premium' ? 'premium' : 'free';
+        const i = Number(msg.tier);
+        const prize = CYBER_PASS[row][i];
+        if (!prize) return;
+        if (row === 'premium' && !stand.premiumPass) return err('This row needs the ⚡ Premium Cyber Pass.');
+        if (stand.passXP < prize.at) return err(`Sell ${prize.at - stand.passXP} more scoops to unlock this prize.`);
+        if (stand.passClaimed[row].includes(i)) return;
+        const error = givePrize(stand, prize);
+        if (error) return err(error);
+        stand.passClaimed[row].push(i);
+        conn.send({ type: 'passPrize', row, tier: i });
+      } else if (CYBER && msg.type === 'gamePass') {
+        // 💎 Game Passes (TEST: free here; real money isn't built)
+        const id = msg.id;
+        if (id === 'starter') {
+          const items = { strawberry: 2, mint: 2 };
+          const copy = { hotbar: stand.hotbar.map(x => x && { ...x }), storage: stand.storage.map(x => x && { ...x }) };
+          for (const [f, n] of Object.entries(items)) {
+            if (addItem(copy.storage, f, addItem(copy.hotbar, f, n)) > 0) return err('Make room in your inventory first.');
+          }
+          stand.hotbar = copy.hotbar; stand.storage = copy.storage;
+          stand.money += 20000;
+          for (const f of Object.keys(items)) if (!stand.seen.includes(f)) stand.seen.push(f);
+        } else if (id === 'premium') {
+          if (stand.premiumPass) return err('You already have the Premium Cyber Pass!');
+          stand.premiumPass = true;
+        } else if (id === 'fillall') {
+          // every empty space gets a fully grown ice cream (common ones more often, like the shop)
+          const empty = stand.tubs.map((t, i) => t ? -1 : i).filter(i => i >= 0);
+          if (!empty.length) return err('Your stand is already full!');
+          const pool = FLAVORS.filter(f => !f.adminOnly && RARITIES[f.rarity].stock.chance > 0);
+          for (const i of empty) {
+            let r = Math.random() * pool.reduce((sum, f) => sum + RARITIES[f.rarity].stock.chance, 0);
+            const f = pool.find(f => (r -= RARITIES[f.rarity].stock.chance) <= 0) || pool[0];
+            stand.tubs[i] = { flavor: f.id, grow: 0 };
+            if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+          }
+        } else if (id === 'icecream') {
+          const f = flavorById[msg.flavor];
+          if (!f || f.adminOnly || !ICE_CREAM_PRICES[f.rarity]) return err('Pick an ice cream from the shop list.');
+          if (addItem(stand.storage, f.id, addItem(stand.hotbar, f.id, 1)) > 0) return err('Your inventory is full!');
+          if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
+        } else if (id === 'restock') {
+          restock();
+          broadcast({ type: 'chat', id: 0, from: '🛒 Supplies Shop', admin: false, text: `${stand.name} restocked the shop for everyone!` });
+        } else return;
+        conn.send({ type: 'gamePassDone', id, flavor: msg.flavor });
+      } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
+        cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
+        conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
       } else if (msg.type === 'equipBest') {
         stand.worn = bestPets(stand.pets).slice(0, MAX_WORN);
       } else if (msg.type === 'gift' || msg.type === 'tradeOffer') {
@@ -1821,7 +2059,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   <script>
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
-    MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup } = window.GameData;
+    MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
+    CYBER, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -2075,6 +2314,18 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         toast(msg.text);
         if (msg.ok) { confetti(player.x, player.y - 30, 30); giftRefresh = true; }
         break;
+      case 'passPrize':
+        toast('⚡ Prize claimed!');
+        confetti(player.x, player.y - 30, 30);
+        break;
+      case 'gamePassDone': {
+        const gp = GAME_PASSES.find(g => g.id === msg.id);
+        toast(msg.id === 'icecream' ? `🍦 You got a ${flavorById[msg.flavor].name}! (TEST: free)`
+          : msg.id === 'premium' ? '⚡ Premium Cyber Pass unlocked! Open the Pass to claim the better prizes. (TEST: free)'
+          : `${gp.emoji} ${gp.name} done! (TEST: free)`);
+        confetti(player.x, player.y - 30, 25);
+        break;
+      }
       case 'petGot':
         revealPet(msg);
         break;
@@ -2094,6 +2345,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         stands = msg.stands;
         gameEvent = msg.event;
         shop = msg.shop;
+        if (msg.cyber) cyberState = msg.cyber;
+        if (CYBER) updateCyber();
         if (!player.placed && me()) {
           player.x = me().x; player.y = me().y; player.placed = true;
         }
@@ -2143,7 +2396,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         toast(`The ${mutationById[msg.mutation].name} mutation is over.`);
         break;
       case 'spaceAdded':
-        toast(`+3 flavor spaces! Your stand now holds ${msg.spaces} tubs.`);
+        toast(`+${msg.added || 3} flavor space${msg.added === 1 ? '' : 's'}! Your stand now holds ${msg.spaces} tubs.` +
+          (spaceCost(msg.spaces) === null && CYBER ? ' That\'s the most!' : ''));
         if (s) confetti(slots[s.slot].x, slots[s.slot].y - 40, 40);
         break;
     }
@@ -2435,6 +2689,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     $('petShopModal').classList.add('hidden');
     $('petsModal').classList.add('hidden');
     $('adminPetsModal').classList.add('hidden');
+    $('passModal').classList.add('hidden');
+    $('storeModal').classList.add('hidden');
   }
 
   // ---------- Ban Players (admins) ----------
@@ -2706,16 +2962,154 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
   }
 
-  // ---------- 🐾 Pet Shop, lucky blocks and your pets ----------
-  const fancyBlock = b => ['rainbow', 'infinity'].includes(b.color) ? b.color : '';
+  // ---------- ⚡ Cyber Event: the Cyber Pass and Game Passes (test file only for now) ----------
+  // lucky block colors (fancy ones get a CSS class instead)
+  const fancyBlock = b => ['rainbow', 'infinity', 'cyber'].includes(b.color) ? b.color : '';
   const blockBg = b => fancyBlock(b) ? '' : `background:${b.color}`;
+  let cyberState = { on: false, endsAt: 0 };
+  const cyberIsOn = () => CYBER && cyberState.on;
+  function timeLeft(at) {
+    const sec = Math.max(0, Math.floor((at - Date.now()) / 1000));
+    const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
+    return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m ${sec % 60}s`;
+  }
+  const blockById = Object.fromEntries(LUCKY_BLOCKS.map(b => [b.id, b]));
+
+  function prizeHtml(p) {
+    if (p.money) return { icon: '💵', name: fmt(p.money) };
+    if (p.item) {
+      const it = itemById[p.item];
+      return { icon: iconHtml(p.item), name: `${p.count > 1 ? p.count + ' ' : ''}${it.name}` };
+    }
+    const b = blockById[p.block];
+    return { icon: `<div class="luckyBlock ${fancyBlock(b)}" style="${blockBg(b)}"></div>`,
+      name: `${p.count > 1 ? p.count + ' ' : ''}${b.name}${p.count > 1 ? 's' : ''}` };
+  }
+
+  function buildPass() {
+    for (const row of ['free', 'premium']) {
+      const box = $(row === 'free' ? 'passFree' : 'passPremium');
+      box.innerHTML = '';
+      CYBER_PASS[row].forEach((p, i) => {
+        const h = prizeHtml(p);
+        const tile = document.createElement('div');
+        tile.className = 'passTile';
+        tile.innerHTML = `<div class="prizeIcon">${h.icon}</div><div class="prizeName">${h.name}</div>
+          <div class="prizeAt">${p.at} scoops</div><button type="button"></button>`;
+        tile.querySelector('button').addEventListener('click', () => send({ type: 'passClaim', row, tier: i }));
+        box.appendChild(tile);
+        p.tile = tile;
+      });
+    }
+  }
+
+  function updatePass() {
+    const s = me();
+    if (!s) return;
+    $('passTimer').textContent = cyberIsOn() ? `Event ends in ${timeLeft(cyberState.endsAt)}` : 'The Cyber Event is over.';
+    $('passXP').textContent = `You've sold ${s.passXP || 0} scoops during the Cyber Event. Sell more to unlock prizes!`;
+    const premium = !!s.premiumPass;
+    $('passPremium').classList.toggle('locked', !premium);
+    const note = $('passPremiumNote');
+    const want = premium ? '✅ You have it!' : '🔒 Needs the Premium Pass';
+    if (note.dataset.state !== String(premium)) {
+      note.dataset.state = String(premium);
+      note.innerHTML = premium ? want : `${want} <button type="button">Get it</button>`;
+      const b = note.querySelector('button');
+      if (b) b.addEventListener('click', openStore);
+    }
+    for (const row of ['free', 'premium']) {
+      CYBER_PASS[row].forEach((p, i) => {
+        const claimed = (s.passClaimed?.[row] || []).includes(i);
+        const unlocked = (s.passXP || 0) >= p.at && (row === 'free' || premium);
+        const btn = p.tile.querySelector('button');
+        const text = claimed ? '✓ Claimed' : unlocked ? 'Claim!' : row === 'premium' && !premium ? '🔒 Premium' : `🔒 ${p.at - (s.passXP || 0)} more`;
+        if (btn.textContent !== text) btn.textContent = text;
+        btn.disabled = claimed || !unlocked;
+        p.tile.classList.toggle('claimed', claimed);
+        p.tile.classList.toggle('ready', unlocked && !claimed);
+      });
+    }
+  }
+
+  function openPass() {
+    closeWindows();
+    openWindow = 'pass';
+    $('passModal').classList.remove('hidden');
+    updatePass();
+  }
+
+  function buildStore() {
+    const list = $('storeList');
+    list.innerHTML = '';
+    for (const gp of GAME_PASSES) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `<div class="gpEmoji">${gp.emoji}</div>
+        <div class="info"><div class="name">${gp.name}</div><div class="meta">${gp.desc}</div>
+          <div class="gpPrice">${gp.price} real money</div></div>`;
+      let pick = null;
+      if (gp.id === 'icecream') {
+        pick = document.createElement('select');
+        for (const f of FLAVORS.filter(f => !f.adminOnly && ICE_CREAM_PRICES[f.rarity])) {
+          const o = document.createElement('option');
+          o.value = f.id;
+          o.textContent = `${f.name} (${ICE_CREAM_PRICES[f.rarity]})`;
+          pick.appendChild(o);
+        }
+        row.querySelector('.info').appendChild(pick);
+      }
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = 'Buy (TEST: free)';
+      b.addEventListener('click', () => send({ type: 'gamePass', id: gp.id, flavor: pick ? pick.value : undefined }));
+      row.appendChild(b);
+      list.appendChild(row);
+      gp.row = row;
+    }
+  }
+
+  function openStore() {
+    closeWindows();
+    openWindow = 'store';
+    $('storeModal').classList.remove('hidden');
+    updateStore();
+  }
+  function updateStore() {
+    const s = me();
+    const gp = GAME_PASSES.find(g => g.id === 'premium');
+    if (s && gp.row) {
+      const b = gp.row.querySelector('button');
+      b.disabled = !!s.premiumPass;
+      b.textContent = s.premiumPass ? '✅ You have it' : 'Buy (TEST: free)';
+    }
+  }
+
+  function updateCyber() {
+    $('cyberBtns').classList.remove('hidden');
+    $('passBtn').classList.toggle('hidden', !cyberIsOn());
+    if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
+    if (openWindow === 'store') updateStore();
+  }
+
+  if (CYBER) {
+    buildPass();
+    buildStore();
+    $('passBtn').addEventListener('click', openPass);
+    $('passClose').addEventListener('click', closeWindows);
+    $('storeBtn').addEventListener('click', openStore);
+    $('storeClose').addEventListener('click', closeWindows);
+  }
+
+  // ---------- 🐾 Pet Shop, lucky blocks and your pets ----------
   for (const b of LUCKY_BLOCKS) {
     const row = document.createElement('div');
     row.className = 'row';
     const odds = Object.entries(b.odds).map(([r, c]) =>
       `<b style="color:${RARITIES[r].color === '#111111' ? '#000' : RARITIES[r].color}">${RARITIES[r].name} ${c}%</b>`).join(' · ');
     row.innerHTML = `<div class="luckyBlock ${fancyBlock(b)}" style="${blockBg(b)}"></div>
-      <div class="info"><div class="name">${b.name}</div><div class="odds">${odds}</div></div>
+      <div class="info"><div class="name">${b.name} ${b.event ? '<span class="eventTag">⚡ CYBER EVENT · <span class="left"></span></span>' : ''}</div>
+        <div class="odds">${odds}</div></div>
       <button type="button">${fmt(b.cost)}</button>`;
     row.querySelector('button').addEventListener('click', () => send({ type: 'buyBlock', block: b.id }));
     $('blockList').appendChild(row);
@@ -2731,7 +3125,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   function updatePetShop() {
     const s = me();
     if (!s) return;
-    for (const b of LUCKY_BLOCKS) b.row.querySelector('button').disabled = s.money < b.cost || s.pets.length >= MAX_PETS;
+    for (const b of LUCKY_BLOCKS) {
+      b.row.querySelector('button').disabled = s.money < b.cost || s.pets.length >= MAX_PETS;
+      // event blocks are only in the shop while their event is on
+      if (b.event) {
+        b.row.classList.toggle('hidden', !cyberIsOn());
+        const left = b.row.querySelector('.left');
+        if (left) left.textContent = 'ends in ' + timeLeft(cyberState.endsAt);
+      }
+    }
   }
   $('petShopClose').addEventListener('click', closeWindows);
 
@@ -3077,8 +3479,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
     hat: { cap: 'Cap', none: 'No hat', tophat: 'Top hat', beanie: 'Beanie', party: 'Party hat',
-      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat' },
-    face: { happy: 'Happy', cool: 'Sunglasses', wink: 'Wink', silly: 'Silly', wow: 'Wow' },
+      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat', robo: '🤖 Robo antenna' },
+    face: { happy: 'Happy', cool: 'Sunglasses', wink: 'Wink', silly: 'Silly', wow: 'Wow', robo: '🤖 Robo visor' },
   };
   const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
 
@@ -3121,8 +3523,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
         b.className = 'avOpt' + (isColor ? ' swatch' : '') + (avatarDraft[part] === value ? ' on' : '');
         if (isColor) {
-          b.style.background = value === 'stand' ? s.color : value;
-          b.title = value === 'stand' ? 'Your stand color' : '';
+          b.style.background = value === 'stand' ? s.color
+            : value === 'robo' ? 'linear-gradient(135deg, #e9eef3, #8996a3 50%, #c3ccd6)' : value;
+          b.title = value === 'stand' ? 'Your stand color' : value === 'robo' ? 'Robo' : '';
+          if (value === 'robo') b.textContent = '🤖';
         } else b.textContent = AVATAR_LABELS[part][value];
         b.addEventListener('click', () => {
           avatarDraft[part] = value; // try it on in the preview; Save makes it your look
@@ -3304,6 +3708,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (!f) return toast('Try: /spawn void 3 (any flavor name)');
         return send({ type: 'adminSpawn', flavor: f.id, count });
       }
+      case 'cyber': { // /cyber on, /cyber off, /cyber auto (turn the Cyber Event on or off to test it)
+        if (!CYBER) return toast('The Cyber Event is only in the test file for now.');
+        const mode = squash(args[0] || '');
+        if (!['on', 'off', 'auto'].includes(mode)) return toast('Try: /cyber on, /cyber off or /cyber auto');
+        return send({ type: 'adminCyber', mode });
+      }
       case 'mutation': case 'mutations': case 'mutate': {
         if (squash(args[0]) === 'end' || squash(args[0]) === 'stop') return send({ type: 'adminEndMutation' });
         if (!args.length) return send({ type: 'testMutation' });
@@ -3413,7 +3823,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // a space on your stand
     for (let i = 0; i < s.spaces; i++) {
       const p = tubPos(slot, i, s.spaces);
-      if (Math.hypot(wx - p.x, wy - p.y) < 13) {
+      if (Math.hypot(wx - p.x, wy - p.y) < 13 * p.s) {
         const tub = s.tubs[i];
         if (tub && heldItem() && toppingById[heldItem().flavor]) {
           return goDo(stub, REACH - 40, () => send({ type: 'place', space: i }));
@@ -3674,7 +4084,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   }
 
   function drawTub(s, i, slot, time, holding) {
+    // smaller tubs when the stand has lots of spaces
     const p = tubPos(slot, i, s.spaces);
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.scale(p.s, p.s); ctx.translate(-p.x, -p.y);
+    drawTubAt(s, i, p, time, holding);
+    ctx.restore();
+  }
+
+  function drawTubAt(s, i, p, time, holding) {
     const tub = s.tubs[i];
     const mine = s.id === myId;
     if (!tub) {
@@ -3747,7 +4165,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { dragon: 1.45, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+  const PET_SIZE = { dragon: 1.45, hydra: 1.7, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // fire (or rainbow fire) out of the pet's mouth
   function breathe(x, y, facing, colors, rnd) {
@@ -3900,6 +4318,27 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (roar < 1) breathe(x, y, pp.facing, ['#fff3bf', '#ffd43b', '#ffa94d'], rnd);
         break;
       }
+      case 'hydra': {
+        // ⚡ Cyber Hydra, the best pet: a neon circuit ring, flying data bits and glitchy flashes
+        const pulse = 1 + Math.sin(time * 5) * 0.1;
+        glow(x, y - 8, 80 * pulse, '0, 255, 213', 0.45);
+        glow(x, y - 8, 40, '0, 255, 102', 0.4);
+        ctx.save();
+        ctx.translate(x, y - 8);
+        ctx.scale(1, 0.42);
+        ctx.strokeStyle = 'rgba(0, 255, 213, 0.85)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([12, 6, 3, 6]);
+        ctx.lineDashOffset = -time * 60;
+        ctx.beginPath(); ctx.arc(0, 0, 62, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        if (chance(18)) petSpark(x + rnd() * 80, y + rnd() * 30, { shape: 'bit', color: Math.random() < 0.5 ? '#00ff66' : '#7df9ff', vy: -40, life: 1, size: 10, text: Math.random() < 0.5 ? '0' : '1' });
+        const beat = (time + seed) % 3;
+        if (beat < dt) petSpark(x, y - 8, { shape: 'ring', color: '#00ffd5', vy: 0, life: 0.9, size: 22, grow: 130 });
+        if (beat < 1) breathe(x, y, pp.facing, ['#00ffd5', '#00ff66', '#ffffff', '#7df9ff'], rnd);
+        break;
+      }
       case 'infinity': {
         // ♾️ Infinity Dragon, the best pet: a rainbow galaxy around it, rainbow fire and color waves
         const hue = (time * 90) % 360;
@@ -3925,6 +4364,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.rotate(tilt * pp.facing);
     ctx.scale(-pp.turn * big * sx, big * sy); // pet emojis face left; turn smoothly to face where they go
     if (pet.fx === 'infinity') ctx.filter = `hue-rotate(${(time * 90) % 360}deg) saturate(1.6)`;
+    if (pet.fx === 'hydra') ctx.filter = 'hue-rotate(50deg) saturate(1.8) brightness(1.1)'; // neon cyber green
+    if (pet.fx === 'hydra' && Math.random() < 0.04) ctx.translate((Math.random() - 0.5) * 6, 0); // a little glitch
     ctx.font = `30px ${EMOJI_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
@@ -3937,6 +4378,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.shadowColor = '#ffd43b'; ctx.shadowBlur = 10;
       ctx.beginPath(); ctx.ellipse(x, y - 30 * big - 4, 11, 4, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.shadowBlur = 0;
+    }
+    if (pet.fx === 'hydra') {
+      // two more heads: it's a hydra!
+      ctx.save();
+      ctx.filter = 'hue-rotate(50deg) saturate(1.8) brightness(1.1)';
+      ctx.font = `${22 * big}px ${EMOJI_FONT}`;
+      ctx.textAlign = 'center';
+      for (const [dx, dy, ph] of [[-18, -26, 0], [18, -24, 1.7]]) {
+        ctx.save();
+        ctx.translate(x + dx * big, y + dy * big + Math.sin(time * 3 + ph) * 3);
+        ctx.scale(-pp.turn, 1);
+        ctx.fillText('🐲', 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
     }
     if (pet.fx === 'king') {
       // a golden crown on the Dragon King
@@ -3985,6 +4441,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           break;
         case 'flame':
           ctx.beginPath(); ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2); ctx.fill();
+          break;
+        case 'bit': // a flying 0 or 1
+          ctx.font = `bold ${p.size}px monospace`; ctx.textAlign = 'center';
+          ctx.fillText(p.text, p.x, p.y);
           break;
         case 'print': // a burning footprint
           ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size * 0.5, 0, 0, Math.PI * 2); ctx.fill();
@@ -4140,7 +4600,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const cost = !s.tubs.includes(null) ? spaceCost(s.spaces) : null;
       if (cost !== null) {
         // stand is full: show the Extra Space button on top of it
-        const text = `Extra Space +3 (${fmt(cost)})`;
+        const text = `Extra Space +${spacesPerBuy(s.spaces)} (${fmt(cost)})`;
         ctx.font = 'bold 16px Trebuchet MS';
         const bw = ctx.measureText(text).width + 24, bh = 30;
         const pulse = s.money >= cost ? 1 + Math.sin(time * 6) * 0.04 : 1;
@@ -4192,6 +4652,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       stripes.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(x - r, y - r + i * band, 2 * r, band + 0.5); });
       ctx.fillStyle = 'rgba(255,255,255,0.35)'; // shine
       ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.4, r * 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      return;
+    }
+    if (f.effect === 'robo') {
+      // ⚡ Robo Ice Cream: shiny metal with panel lines and bolts
+      const g = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
+      g.addColorStop(0, '#f1f5f9'); g.addColorStop(0.45, '#9aa7b4'); g.addColorStop(0.55, '#c3ccd6'); g.addColorStop(1, '#5f6b78');
+      ctx.fillStyle = g;
+      outline(); ctx.fill();
+      ctx.save();
+      outline(); ctx.clip();
+      ctx.strokeStyle = 'rgba(40,50,60,0.55)'; ctx.lineWidth = Math.max(0.4, r * 0.07);
+      ctx.beginPath(); ctx.moveTo(x - r, y - r * 0.15); ctx.lineTo(x + r, y - r * 0.15); ctx.stroke();
+      ctx.fillStyle = '#4a5560';
+      for (const dx of [-0.55, 0.55]) { ctx.beginPath(); ctx.arc(x + dx * r, y - r * 0.4, r * 0.09, 0, Math.PI * 2); ctx.fill(); }
       ctx.restore();
       return;
     }
@@ -4497,6 +4972,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           }
         }
         break;
+      case 'robo': // ⚡ Robo Ice Cream: cyan glow, glowing robot eyes and an antenna with a blinking light
+        if (back) glow(x, y, r * 3, '0, 255, 213', 0.35 + 0.25 * pulse);
+        else {
+          ctx.fillStyle = '#00ffd5';
+          ctx.shadowColor = '#00ffd5'; ctx.shadowBlur = r * 0.8;
+          for (const dx of [-0.32, 0.32]) ctx.fillRect(x + dx * r - r * 0.14, y - r * 0.05, r * 0.28, r * 0.18);
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = '#6c7a89'; ctx.lineWidth = Math.max(0.5, r * 0.1);
+          ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x, y - r * 1.55); ctx.stroke();
+          ctx.fillStyle = Math.sin(t * 6) > 0 ? '#ff3b3b' : '#8a1010';
+          ctx.beginPath(); ctx.arc(x, y - r * 1.62, r * 0.16, 0, Math.PI * 2); ctx.fill();
+        }
+        break;
       case 'infinity': // ♾️ Infinity Swirl, the best ice cream: color-changing glow and stars flying in an infinity loop
         if (back) {
           const hue = (t * 80) % 360;
@@ -4653,8 +5141,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // a player's character: bigger than customers, dressed the way they picked in the Avatar Shop
   function drawPlayer(p, time) {
     const av = p.avatar || {};
-    const shirt = !av.shirt || av.shirt === 'stand' ? p.color : av.shirt;
-    const skin = av.skin || '#f8d5b8';
+    const ROBO = { shirt: '#9aa5b1', pants: '#4a5560', skin: '#c3ccd6' }; // ⚡ robo parts are shiny metal
+    const shirt = !av.shirt || av.shirt === 'stand' ? p.color : av.shirt === 'robo' ? ROBO.shirt : av.shirt;
+    const skin = av.skin === 'robo' ? ROBO.skin : av.skin || '#f8d5b8';
     const bounce = p.moving ? Math.abs(Math.sin(time * 12)) * 3 : 0;
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -4663,16 +5152,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.scale(1.7 * (p.facing || 1), 1.7);
     const y = -bounce / 1.7;
     // legs
-    ctx.fillStyle = av.pants || '#3b3b58';
+    ctx.fillStyle = av.pants === 'robo' ? ROBO.pants : av.pants || '#3b3b58';
     ctx.fillRect(-6, y + 6, 5, 6);
     ctx.fillRect(1, y + 6, 5, 6);
+    if (av.pants === 'robo') { ctx.fillStyle = '#7df9ff'; ctx.fillRect(-5, y + 8, 3, 1); ctx.fillRect(2, y + 8, 3, 1); }
     // body
     ctx.fillStyle = shirt;
     roundRect(-9, y - 7, 18, 15, 5); ctx.fill();
     if (shirt === '#ffffff') { ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.8; ctx.stroke(); }
+    if (av.shirt === 'robo') {
+      // metal chest plate with a glowing core
+      ctx.strokeStyle = 'rgba(40,50,60,0.6)'; ctx.lineWidth = 0.6;
+      ctx.strokeRect(-6, y - 4, 12, 8);
+      ctx.fillStyle = `rgba(0, 255, 213, ${0.6 + 0.4 * Math.sin(time * 4)})`;
+      ctx.beginPath(); ctx.arc(0, y, 2, 0, Math.PI * 2); ctx.fill();
+    }
     // head
     ctx.fillStyle = skin;
     ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
+    if (av.skin === 'robo') {
+      // a shiny metal head with bolts on the sides
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath(); ctx.arc(-3, y - 17, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#6c7a89';
+      ctx.fillRect(-9.5, y - 15.5, 2, 3); ctx.fillRect(7.5, y - 15.5, 2, 3);
+    }
     drawFace(av.face || 'happy', y, time);
     // admins wear their crown unless they picked a special hat in the Avatar Shop
     const hat = av.hat || 'cap';
@@ -4708,6 +5212,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   }
 
   function drawFace(face, y, time) {
+    if (face === 'robo') {
+      // a glowing visor instead of eyes
+      ctx.fillStyle = '#1b2430';
+      roundRect(-1, y - 17.5, 10, 5, 2); ctx.fill();
+      ctx.fillStyle = '#00ffd5';
+      ctx.shadowColor = '#00ffd5'; ctx.shadowBlur = 4;
+      const scan = (Math.sin(time * 3) + 1) / 2 * 6;
+      ctx.fillRect(0 + scan, y - 16.3, 2.5, 2.6);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#5c6b7a';
+      ctx.fillRect(2, y - 10.5, 6, 1.2);
+      return;
+    }
     ctx.fillStyle = '#222';
     if (face === 'cool') {
       // sunglasses
@@ -4735,6 +5252,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   function drawHat(hat, y, shirt) {
     switch (hat) {
+      case 'robo': // a robot antenna with a blinking light
+        ctx.fillStyle = '#6c7a89';
+        ctx.fillRect(-0.6, y - 28, 1.2, 7);
+        ctx.fillRect(-3, y - 22.5, 6, 1.5);
+        ctx.fillStyle = Math.sin(nowSec * 6) > 0 ? '#ff3b3b' : '#7a1010';
+        ctx.shadowColor = '#ff3b3b'; ctx.shadowBlur = Math.sin(nowSec * 6) > 0 ? 6 : 0;
+        ctx.beginPath(); ctx.arc(0, y - 29, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        break;
       case 'cap':
         ctx.fillStyle = shirt;
         ctx.beginPath(); ctx.arc(0, y - 16, 8, Math.PI, 0); ctx.fill();
@@ -4903,11 +5429,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (m.id === 'rainbow') {
       drawSunShower(dt);
     } else if (m) {
-      const tint = ({ impossible: 0.1, sakura: 0.08, meteor: 0.12 }[m.id] ?? 0.13) *
+      const tint = ({ impossible: 0.1, sakura: 0.08, meteor: 0.12, cyber: 0.3 }[m.id] ?? 0.13) *
         Math.max(share, 0.5);
       if (tint) {
         ctx.globalAlpha = tint;
-        ctx.fillStyle = m.id === 'impossible' ? `hsl(${(time * 120) % 360}, 100%, 50%)` : m.colors[0];
+        ctx.fillStyle = m.id === 'impossible' ? `hsl(${(time * 120) % 360}, 100%, 50%)` : m.id === 'cyber' ? '#04121c' : m.colors[0];
         ctx.fillRect(0, 0, world.width, world.height);
         ctx.globalAlpha = 1;
       }
@@ -4917,6 +5443,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const p = { x: Math.random() * world.width, y: -10, vy: 40 + Math.random() * 60,
           vx: (Math.random() - 0.5) * 30, r: 2 + Math.random() * 3, color: pickColor(m), shape: 'dot' };
         if (m.id === 'sakura') { p.shape = 'petal'; p.r += 2; p.vy *= 0.6; p.vx += 25; }      // drifting cherry blossoms
+        if (m.id === 'cyber') {                                                             // falling computer code
+          Object.assign(p, { shape: 'code', text: Math.random() < 0.5 ? '0' : '1', r: 9 + Math.random() * 6, vy: 90 + Math.random() * 80, vx: 0,
+            color: Math.random() < 0.7 ? '#00ff66' : '#7df9ff' });
+        }
         if (m.id === 'meteor') {                                                            // big flaming meteors
           Object.assign(p, { x: world.width * 0.2 + Math.random() * world.width, y: -20, vx: -220 - Math.random() * 80, vy: 340 + Math.random() * 80,
             shape: 'meteor', r: 6 + Math.random() * 6, life: 4 });
@@ -4930,6 +5460,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         ambient.push(p);
       }
       if (m.id === 'impossible') drawGlitch(time);
+      if (m.id === 'cyber') drawCyberGrid(time, share);
     }
   }
 
@@ -4941,7 +5472,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       if (p.y > world.height + 20 || p.y < -20 || p.life <= 0) { ambient.splice(i, 1); continue; }
       ctx.fillStyle = p.color;
       ctx.globalAlpha = p.life !== undefined ? Math.min(0.9, p.life) : 0.8;
-      if (p.shape === 'petal') {
+      if (p.shape === 'code') {
+        ctx.font = `bold ${p.r * 1.6}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(p.text, p.x, p.y);
+      } else if (p.shape === 'petal') {
         // a pink petal tumbling in the wind
         ctx.save();
         ctx.translate(p.x + Math.sin(time * 1.5 + i) * 14, p.y);
@@ -4969,6 +5504,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       }
     }
     ctx.globalAlpha = 1;
+  }
+
+  // ⚡ Cyber mutation: a glowing neon grid slowly scrolling over the park
+  function drawCyberGrid(time, share) {
+    ctx.strokeStyle = `rgba(0, 255, 213, ${0.13 * Math.max(share, 0.5)})`;
+    ctx.lineWidth = 2;
+    const off = (time * 30) % 80;
+    ctx.beginPath();
+    for (let x = -80 + off; x < world.width; x += 80) { ctx.moveTo(x, 0); ctx.lineTo(x, world.height); }
+    for (let y = -80 + off; y < world.height; y += 80) { ctx.moveTo(0, y); ctx.lineTo(world.width, y); }
+    ctx.stroke();
   }
 
   // Impossible mutation: the world glitches with soft colored bars (changes a few times a second, not flashing)
@@ -5079,7 +5625,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       if (s.id === myId) {
         if (!player.placed) continue;
         const p = { x: player.x, y: player.y, facing: player.facing, moving: player.moving,
-          color: s.color, name: s.name, item: heldItem(), isMe: true, admin: s.admin };
+          color: s.color, name: s.name, item: heldItem(), isMe: true, admin: s.admin, avatar: s.avatar };
         entities.push({ y: p.y, draw: () => drawPlayer(p, time) });
         continue;
       }
@@ -5089,7 +5635,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       o.moving = Math.abs(nx - o.x) + Math.abs(s.y - o.y) > 0.5;
       if (Math.abs(nx - o.x) > 0.3) o.facing = nx > o.x ? 1 : -1;
       o.x = nx; o.y += (s.y - o.y) * k;
-      const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null, admin: s.admin };
+      const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null, admin: s.admin, avatar: s.avatar };
       entities.push({ y: o.y, draw: () => drawPlayer(p, time) });
     }
     // your pets follow you in a little line
@@ -5188,7 +5734,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  window.__icecream = { view, player, home: () => myStandPos() }; // for automated tests
+  window.__icecream = { view, player, home: () => myStandPos(), send }; // for automated tests // for automated tests
 })();
 </script>
 </body>

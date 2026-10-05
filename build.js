@@ -8,7 +8,9 @@ let html = pub('index.html');
 
 html = html.replace('<link rel="stylesheet" href="style.css">', () => `<style>\n${pub('style.css')}</style>`);
 html = html.replace(/<script src="([\w.]+)"><\/script>/g, (_, file) => {
-  const pre = file === 'client.js' ? '<script>window.SOLO = true;</script>\n  ' : '';
+  // the test file is single-player, and has the ⚡ Cyber Event switched on (the online game doesn't yet)
+  const pre = file === 'gamedata.js' ? '<script>window.CYBER_TEST = true;</script>\n  '
+    : file === 'client.js' ? '<script>window.SOLO = true;</script>\n  ' : '';
   return `${pre}<script>\n${pub(file)}</script>`;
 });
 

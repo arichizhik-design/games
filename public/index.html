@@ -50,6 +50,37 @@
         </div>
       </div>
 
+      <!-- ⚡ Cyber Event buttons (test file only for now) -->
+      <div id="cyberBtns" class="hidden">
+        <button id="passBtn" type="button">⚡ Pass</button>
+        <button id="storeBtn" type="button">💎 Game Passes</button>
+      </div>
+
+      <div id="passModal" class="modal hidden">
+        <div class="modalHead">
+          <div>
+            <div class="modalTitle">⚡ Cyber Pass</div>
+            <div id="passTimer" class="sub"></div>
+          </div>
+          <button id="passClose" class="closeBtn">✕</button>
+        </div>
+        <p id="passXP" class="sub"></p>
+        <div class="passLabel">FREE PRIZES</div>
+        <div id="passFree" class="passRow"></div>
+        <div class="passLabel premium">⚡ PREMIUM PRIZES <span id="passPremiumNote"></span></div>
+        <div id="passPremium" class="passRow"></div>
+      </div>
+
+      <div id="storeModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">💎 Game Passes</div>
+          <button id="storeClose" class="closeBtn">✕</button>
+        </div>
+        <p class="testNote">🧪 TEST VERSION: nothing here costs real money, so you can try everything for free.
+          Real payments aren't built yet (they need a parent and a payment company).</p>
+        <div id="storeList"></div>
+      </div>
+
       <div id="handLabel"></div>
       <div id="hotbar"></div>
 

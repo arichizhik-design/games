@@ -95,6 +95,29 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.
 
+## ⚡ Cyber Event (test file only for now)
+
+The Cyber Event is switched on only in the single-file test version (`ice-cream-tycoon.html`). The online game
+doesn't have it yet. To put it online later, set `CYBER=1` on the server (an environment variable on Render).
+
+- **Cyber Block** in the Pet Shop ($2B), only during the event week (Oct 5 to Oct 12, 2026). It's the only way to get
+  the **🐉 Cyber Hydra** (Cyber rarity, +5000% money, the best pet): a three-headed neon hydra with a circuit ring,
+  flying 0s and 1s and neon breath. When the event ends the Cyber Block (and the Hydra) is gone, but anyone who
+  got a Hydra keeps it.
+- **🤖 Cyber mutation** (x50, the second best). It never starts by itself; only admins can turn it on. It stays for good.
+- **Robo Ice Cream** (Cyber rarity): $25,000 a scoop, $50M a tub, a 0.5% chance to be in the shop. Shiny metal with
+  glowing robot eyes and a blinking antenna.
+- **Robo avatar:** a Robo choice for shirt, pants, skin, hat (antenna) and face (glowing visor).
+- **⚡ Cyber Pass** (button at the bottom left): sell scoops during the event to unlock 10 prizes in a row, each better
+  than the last. The second row has better prizes and needs the Premium Cyber Pass.
+- **💎 Game Passes** (bottom left): Starter Bundle ($20,000 + 2 Strawberry + 2 Mint Chip), Premium Cyber Pass,
+  Fill All (every empty stand space gets a grown ice cream), Buy an Ice Cream, and Restock the Shop for everyone.
+  These are meant for real money, which isn't built (it needs a parent and a payment company), so in the test file
+  they're free and marked TEST.
+- **Up to 30 stand spaces:** the Extra Space button keeps going until 30 and then disappears. With lots of spaces the
+  tubs get smaller so they all fit.
+- Admins can test the event with `/cyber off`, `/cyber on` and `/cyber auto` (back to the calendar).
+
 ## Admin mode
 
 There are two admins: **coolkid** and **James** (any capitals). Each has their own secret code. The first
