@@ -67,6 +67,27 @@
   const petById = Object.fromEntries(PETS.map(p => [p.id, p]));
   const blockById = Object.fromEntries(LUCKY_BLOCKS.map(b => [b.id, b]));
 
+  // ---------- wearing pets: up to MAX_WORN follow you, and their money boosts add up ----------
+  const MAX_WORN = 3;
+  const petBoost = list => list.reduce((sum, id) => sum + (petById[id] ? petById[id].boost : 0), 0);
+  const countOf = (list, id) => list.filter(x => x === id).length;
+  // the pets you own, best first
+  const bestPets = pets => [...pets].sort((a, b) => petById[b].boost - petById[a].boost);
+  // keep only worn pets you still own (after gifts and trades)
+  function fixWorn(who) {
+    const out = [];
+    for (const id of who.worn || []) if (petById[id] && out.length < MAX_WORN && countOf(out, id) < countOf(who.pets, id)) out.push(id);
+    who.worn = out;
+  }
+  // a new pet goes on if there's room, or swaps out your weakest pet if it's better
+  function autoWear(who, id) {
+    if (who.worn.length < MAX_WORN) { who.worn.push(id); return true; }
+    const weakest = who.worn.reduce((w, x) => petById[x].boost < petById[w].boost ? x : w);
+    if (petById[weakest].boost >= petById[id].boost) return false;
+    who.worn.splice(who.worn.indexOf(weakest), 1, id);
+    return true;
+  }
+
   // open a lucky block: roll a rarity with the block's odds, then a pet of that rarity
   function rollPet(block) {
     let r = Math.random() * 100;
@@ -215,8 +236,8 @@
     if (error) return error;
     for (const [real, c, got] of [[a, ca, fromB], [b, cb, fromA]]) {
       Object.assign(real, { money: c.money, pets: c.pets, hotbar: c.hotbar, storage: c.storage });
-      if (real.pet && !real.pets.includes(real.pet)) real.pet = null;
-      if (!real.pet && real.pets.length) real.pet = real.pets[0];
+      fixWorn(real);
+      for (const id of Object.keys(got.pets)) for (let k = 0; k < got.pets[id]; k++) autoWear(real, id);
       for (const id of Object.keys(got.items)) if (flavorById[id] && !real.seen.includes(id)) real.seen.push(id);
     }
     return null;
@@ -241,7 +262,7 @@
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
-        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, pet: s.pet,
+        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn,
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -283,7 +304,7 @@
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
         avatar: fixAvatar(saved.avatar),
         pets: (saved.pets || []).filter(id => petById[id]).slice(0, MAX_PETS),
-        pet: petById[saved.pet] ? saved.pet : null, // the pet following you
+        worn: saved.worn || (saved.pet ? [saved.pet] : []), // the pets following you (older saves had one)
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
         x: s.x + 60, y: s.y + 110,        // the player's character
@@ -293,6 +314,7 @@
         spawnTimer: 0,
         clicks: 0,
       };
+      fixWorn(stand);
       stands.set(stand.id, stand);
       return stand;
     }
@@ -304,7 +326,7 @@
         tubs: [{ flavor: 'vanilla', grow: 0 }, { flavor: 'chocolate', grow: 0 }, ...Array(START_SPACES - 2).fill(null)],
         hotbar: Array(HOTBAR_SIZE).fill(null), storage: Array(STORAGE_SIZE).fill(null),
         seen: ['vanilla', 'chocolate'], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
-        mutations: {}, avatar: fixAvatar(null), pets: [], pet: null, bought: {}, hand: -1, serveProgress: 0,
+        mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {}, hand: -1, serveProgress: 0,
       };
     }
 
@@ -361,7 +383,7 @@
       const flavor = flavorById[c.flavor];
       let amount = flavor.price * (1 + 0.1 * stand.upgrades.tips);
       if (toppingById[c.topping]) amount *= 1 + toppingById[c.topping].bonus;
-      if (petById[stand.pet]) amount *= 1 + petById[stand.pet].boost;
+      amount *= 1 + petBoost(stand.worn); // every pet you wear adds its boost
       if (c.golden) amount *= 3;
       // every mutation going on gets its own chance; several can stack on one scoop
       c.mutations = event.active.filter(() => Math.random() < MUTATION_CHANCE).map(e => e.id);
@@ -377,7 +399,7 @@
       c.served = true;
       sendOffCustomer(c);
       broadcast({ type: 'sale', standId: stand.id, customerId: c.id, flavor: c.flavor,
-        amount, golden: c.golden, mutation: c.mutation, mutations: c.mutations, topping: c.topping, pet: stand.pet });
+        amount, golden: c.golden, mutation: c.mutation, mutations: c.mutations, topping: c.topping });
     }
 
     // start a mutation; stack = keep the ones already going (admins only)
@@ -490,7 +512,7 @@
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
-          pets: s.pets, pet: s.pet,
+          pets: s.pets, worn: s.worn,
           serve: s.queue.length ? s.serveProgress / SERVE_TIME : 0,
         })),
         customers: [...customers.values()].map(c => ({
@@ -668,15 +690,26 @@
         stand.money -= b.cost;
         const pet = rollPet(b);
         stand.pets.push(pet.id);
-        if (!stand.pet || petById[stand.pet].boost < pet.boost) stand.pet = pet.id; // wear your best new pet
-        conn.send({ type: 'petGot', pet: pet.id, block: b.id, equipped: stand.pet === pet.id });
+        const wearing = autoWear(stand, pet.id);
+        conn.send({ type: 'petGot', pet: pet.id, block: b.id, equipped: wearing });
         if (RARITIES[pet.rarity].order >= 5) {
           broadcast({ type: 'chat', id: 0, from: '🐾 Pet Shop', admin: false,
             text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` });
         }
       } else if (msg.type === 'equipPet') {
-        if (msg.pet === null) stand.pet = null;
-        else if (stand.pets.includes(msg.pet)) stand.pet = msg.pet;
+        // wear one more of this pet, or take one off
+        const id = msg.pet;
+        if (!petById[id]) return;
+        if (msg.on === false) {
+          const i = stand.worn.indexOf(id);
+          if (i !== -1) stand.worn.splice(i, 1);
+        } else {
+          if (stand.worn.length >= MAX_WORN) return err(`You can wear ${MAX_WORN} pets at once. Take one off first.`);
+          if (countOf(stand.worn, id) >= countOf(stand.pets, id)) return;
+          stand.worn.push(id);
+        }
+      } else if (msg.type === 'equipBest') {
+        stand.worn = bestPets(stand.pets).slice(0, MAX_WORN);
       } else if (msg.type === 'gift' || msg.type === 'tradeOffer') {
         // 🎁 give stuff to another player, or 🤝 offer them a trade
         const target = stands.get(Number(msg.to));
@@ -767,7 +800,7 @@
         const n = Math.min(MAX_PETS - stand.pets.length, Math.max(1, Math.floor(Number(msg.count) || 1)));
         if (n <= 0) return err(`You have too many pets (the most is ${MAX_PETS}).`);
         for (let k = 0; k < n; k++) stand.pets.push(pet.id);
-        if (!stand.pet) stand.pet = pet.id;
+        for (let k = 0; k < n; k++) autoWear(stand, pet.id);
         conn.send({ type: 'admin', text: `Spawned ${n} ${pet.emoji} ${pet.name} in your pets` });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();
@@ -814,7 +847,7 @@
     return { handle, leave, tick, snapshotSaves, sendBackups };
   }
 
-  const Engine = { createGame, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos };
+  const Engine = { createGame, MAX_WORN, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos };
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   else root.Engine = Engine;
 })(this);

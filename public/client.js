@@ -1,7 +1,7 @@
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR } = window.GameData;
-  const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos } = window.Engine;
+  const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
   const toppingById = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
@@ -744,7 +744,7 @@
       const r = RARITIES[p.rarity];
       addRow(`<div class="petEmoji">${p.emoji}</div><div class="info"><div class="name">${p.name}</div>
         <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
-        Pet · Has ${pets[id]}${owner.pet === id ? ' · wearing it' : ''}</div></div>`, pets[id], n => ['pets', id, n]);
+        Pet · Has ${pets[id]}${(owner.worn || []).includes(id) ? ' · wearing it' : ''}</div></div>`, pets[id], n => ['pets', id, n]);
     }
     if (!ids.length && !petIds.length) parent.insertAdjacentHTML('beforeend', `<div class="sub">${emptyText}</div>`);
 
@@ -945,31 +945,39 @@
   function updatePets() {
     const s = me();
     if (!s) return;
-    const key = s.pets.join() + '|' + s.pet;
+    const worn = s.worn || [];
+    const key = s.pets.join() + '|' + worn.join();
     if (key === petsKey) return;
     petsKey = key;
-    const pet = petById[s.pet];
-    $('petsSub').textContent = `You have ${s.pets.length}/${MAX_PETS} pets. ` +
-      (pet ? `${pet.emoji} ${pet.name} is following you: ${pct(pet.boost)} money from every scoop!`
-        : 'Get pets from lucky blocks at the 🐾 Pet Shop.');
+    const boost = worn.reduce((sum, id) => sum + petById[id].boost, 0);
+    $('petsSub').textContent = `You have ${s.pets.length}/${MAX_PETS} pets. Wearing ${worn.length}/${MAX_WORN}` +
+      (worn.length ? `: they give you ${pct(boost)} money from every scoop!` : '. Tap Wear on a pet, or press Equip Best.') +
+      (s.pets.length ? '' : ' Get pets from lucky blocks at the 🐾 Pet Shop.');
+    $('equipBestBtn').disabled = !s.pets.length;
     const list = $('petsList');
     list.innerHTML = '';
-    const counts = stuffOf(s).pets;
-    for (const p of [...PETS].reverse()) {
-      if (!counts[p.id]) continue;
-      const r = RARITIES[p.rarity];
-      const on = s.pet === p.id;
-      const row = document.createElement('div');
-      row.className = 'row petRow' + (on ? ' equipped' : '');
-      row.innerHTML = `<div class="petEmoji">${p.emoji}</div>
-        <div class="info"><div class="name">${p.name}${counts[p.id] > 1 ? ` x${counts[p.id]}` : ''}</div>
-          <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
-            <span class="boost">${pct(p.boost)} money</span></div></div>
+    // every pet gets its own card, best first; the ones you wear are marked
+    const wornLeft = {};
+    for (const id of worn) wornLeft[id] = (wornLeft[id] || 0) + 1;
+    const sorted = [...s.pets].sort((a, b) => petById[b].boost - petById[a].boost);
+    for (const id of sorted) {
+      const p = petById[id], r = RARITIES[p.rarity];
+      const on = wornLeft[id] > 0;
+      if (on) wornLeft[id]--;
+      const card = document.createElement('div');
+      card.className = 'petCard' + (on ? ' equipped' : '');
+      card.innerHTML = `<div class="petEmoji">${p.emoji}</div><div class="name">${p.name}</div>
+        <span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
+        <div class="boost">${pct(p.boost)} money</div>
         <button type="button">${on ? 'Take off' : 'Wear'}</button>`;
-      row.querySelector('button').addEventListener('click', () => send({ type: 'equipPet', pet: on ? null : p.id }));
-      list.appendChild(row);
+      const btn = card.querySelector('button');
+      btn.disabled = !on && worn.length >= MAX_WORN;
+      btn.title = btn.disabled ? `You can wear ${MAX_WORN} pets at once. Take one off first.` : '';
+      btn.addEventListener('click', () => send({ type: 'equipPet', pet: id, on: !on }));
+      list.appendChild(card);
     }
   }
+  $('equipBestBtn').addEventListener('click', () => { send({ type: 'equipBest' }); toast(`⭐ Wearing your ${MAX_WORN} best pets!`); });
   $('petsBtn').addEventListener('click', openPets);
   $('petsClose').addEventListener('click', closeWindows);
 
@@ -3132,40 +3140,50 @@
       const p = { ...o, color: s.color, name: s.name, item: s.hand >= 0 ? s.hotbar[s.hand] : null, admin: s.admin };
       entities.push({ y: o.y, draw: () => drawPlayer(p, time) });
     }
-    // pets follow a little behind their owner
+    // your pets follow you in a little line
+    const shown = new Set();
     for (const s of stands) {
-      const pet = petById[s.pet];
-      if (!pet) { petPos.delete(s.id); continue; }
       const owner = s.id === myId ? (player.placed ? player : null) : others.get(s.id);
       if (!owner) continue;
-      let pp = petPos.get(s.id);
-      const tx = owner.x - (owner.facing || 1) * (24 + 16 * (PET_SIZE[pet.id] || 1)), ty = owner.y + 8; // big pets stay farther back
-      if (!pp) { pp = { x: tx, y: ty, facing: 1, turn: 1, speed: 0, step: 0, still: 0, chasing: false }; petPos.set(s.id, pp); }
-      const dx = tx - pp.x, dy = ty - pp.y, d = Math.hypot(dx, dy);
-      // like a real pet: it waits when it's close, then trots to catch up (faster when far behind)
-      if (d > 45) pp.chasing = true;
-      else if (d < 8) pp.chasing = false;
-      const want = pp.chasing ? Math.min(420, Math.max(70, d * 3.5)) : 0;
-      pp.speed += (want - pp.speed) * Math.min(1, dt * 6);
-      if (d > 0.5 && pp.speed > 1) {
-        const stepLen = Math.min(d, pp.speed * dt);
-        pp.x += dx / d * stepLen; pp.y += dy / d * stepLen;
-      }
-      if (d > 600) { pp.x = tx; pp.y = ty; } // teleported (new round, far away): jump along
-      pp.moving = pp.speed > 25;
-      pp.step += dt * Math.min(pp.speed, 300) / 45;
-      if (pp.moving) {
-        pp.still = 0;
-        if (Math.abs(dx) > 4) pp.facing = dx > 0 ? 1 : -1;
-      } else {
-        pp.still += dt;
-        // waiting: look at its owner, and look around now and then
-        if (Math.abs(owner.x - pp.x) > 6) pp.facing = owner.x > pp.x ? 1 : -1;
-        if (pp.still > 2 && (time + s.id * 1.7) % 6 < 0.9) pp.facing = -pp.facing;
-      }
-      pp.turn += (pp.facing - pp.turn) * Math.min(1, dt * 9);
-      entities.push({ y: pp.y - 1, draw: () => drawPet(pet, pp, time, dt, s.id) });
+      let lead = owner;
+      (s.worn || []).forEach((id, k) => {
+        const pet = petById[id];
+        if (!pet) return;
+        const key = s.id + ':' + k;
+        let pp = petPos.get(key);
+        // the first pet follows you, the next one follows that pet, and so on (big pets keep more space)
+        const gap = (k ? 30 : 24) + 16 * (PET_SIZE[pet.id] || 1);
+        const tx = lead.x - (owner.facing || 1) * gap, ty = lead.y + (k ? 2 : 8);
+        if (!pp) { pp = { x: tx, y: ty, facing: 1, turn: 1, speed: 0, step: 0, still: 0, chasing: false }; petPos.set(key, pp); }
+        const dx = tx - pp.x, dy = ty - pp.y, d = Math.hypot(dx, dy);
+        // like a real pet: it waits when it's close, then trots to catch up (faster when far behind)
+        if (d > 45) pp.chasing = true;
+        else if (d < 8) pp.chasing = false;
+        const want = pp.chasing ? Math.min(420, Math.max(70, d * 3.5)) : 0;
+        pp.speed += (want - pp.speed) * Math.min(1, dt * 6);
+        if (d > 0.5 && pp.speed > 1) {
+          const stepLen = Math.min(d, pp.speed * dt);
+          pp.x += dx / d * stepLen; pp.y += dy / d * stepLen;
+        }
+        if (d > 600) { pp.x = tx; pp.y = ty; } // teleported (new round, far away): jump along
+        pp.moving = pp.speed > 25;
+        pp.step += dt * Math.min(pp.speed, 300) / 45;
+        if (pp.moving) {
+          pp.still = 0;
+          if (Math.abs(dx) > 4) pp.facing = dx > 0 ? 1 : -1;
+        } else {
+          pp.still += dt;
+          // waiting: look at its owner, and look around now and then
+          if (Math.abs(owner.x - pp.x) > 6) pp.facing = owner.x > pp.x ? 1 : -1;
+          if (pp.still > 2 && (time + s.id * 1.7 + k * 2.3) % 6 < 0.9) pp.facing = -pp.facing;
+        }
+        pp.turn += (pp.facing - pp.turn) * Math.min(1, dt * 9);
+        shown.add(key);
+        entities.push({ y: pp.y - 1, draw: () => drawPet(pet, pp, time, dt, s.id + k * 7) });
+        lead = pp;
+      });
     }
+    for (const key of petPos.keys()) if (!shown.has(key)) petPos.delete(key);
     entities.sort((a, b) => a.y - b.y);
     for (const e of entities) e.draw();
 

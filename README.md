@@ -76,7 +76,9 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   - The 🐉 Dragon (+500%) is Secret. Even better are the new pet rarities: **Celestial** (🦖 Lava Rex +700%,
     🦈 Thunder Shark +800%), **Divine** (🕊️ Angel Dove +1,200%, 🐲 Dragon King +1,500%) and **Infinity**
     (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
-  - Press **🐾 My Pets** to pick which one follows you.
+  - Press **🐾 My Pets** to see every pet you have (each one gets its own card) and pick which ones follow you.
+    You can wear up to **3 pets at once**: they follow you in a little line and their money boosts add up.
+    **⭐ Equip Best** puts on your 3 best pets. New pets go on by themselves if you're wearing fewer than 3.
 - **🎁 Gift & Trade:** pick someone who is playing right now. **Gift** sends them any amount of money
   (type 500, 25k, 3m, 1b or 1t), ice cream, toppings or pets. **Trade** lets you pick what you give and what you
   want back; they get a pop-up and can Accept or say No thanks.
