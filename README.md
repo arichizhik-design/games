@@ -28,8 +28,8 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 | Legendary | Golden Caramel, Lava Swirl, Dragon Fruit | $90–$110        |
 | Mythic    | Unicorn Dream, Frozen Aurora, Phoenix Fire | $300–$350       |
 | Secret    | ??? (buy it to find out!)        | $1,200          |
-| Celestial | ♾️ Infinity Swirl, the best ice cream (super rare in the shop) | $3,000 |
 | 👑 Admin | Crown Jewel, Storm Cloud, Supernova, Prism Swirl (admins only) | $5,000–$15,000 |
+| ♾️ Celestial | Infinity Swirl (admins only, not in the shop; grows in 15 min) | $3,000 |
 
 - **Stand spaces:** your stand starts with 5 spaces for tubs. When they're all full, an **Extra Space** button appears on top of your stand. Buy it to get 3 more spaces ($300, then $6,000, then $75,000).
 - **Avatar Shop:** walk to the blue Avatar Shop at the bottom of the middle plaza and tap it to change your
