@@ -4,7 +4,7 @@
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
     CYBER, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
@@ -632,12 +632,13 @@
         }
       } else if (msg.type === 'buy') {
         const f = flavorById[msg.flavor];
-        if (!f || f.adminOnly) return;
-        if (!near(SHOP)) return err('Walk to the Ice Cream Shop to buy.');
+        if (!f) return;
+        if (!near(SHOP)) return err('Walk to the Supplies Shop to buy.');
         if ((shop.stock[f.id] || 0) - (stand.bought[f.id] || 0) <= 0) return err('Sold out! New stock soon.');
-        if (stand.money < f.cost) return err('Not enough money!');
+        const cost = shopCost(f);
+        if (stand.money < cost) return err('Not enough money!');
         if (!fits(stand.hotbar, f.id) && !fits(stand.storage, f.id)) return err('Your inventory is full!');
-        stand.money -= f.cost;
+        stand.money -= cost;
         stand.bought[f.id] = (stand.bought[f.id] || 0) + 1;
         if (addItem(stand.hotbar, f.id, 1) > 0) addItem(stand.storage, f.id, 1);
         if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
@@ -901,6 +902,15 @@
         conn.send({ type: 'admin', text: target === stand ? '🚫 You banned yourself and started over.'
           : `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
         conn.send({ type: 'players', players: playerList() });
+      } else if (stand.admin && msg.type === 'adminShopSpawn') {
+        // 🏪 put any ice cream in the Supplies Shop for everyone (until the next restock)
+        const f = flavorById[msg.flavor];
+        if (!f) return err(toppingById[msg.flavor] ? 'Toppings are always in the shop. Pick an ice cream.' : 'No ice cream with that name.');
+        const n = Math.min(99, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        shop.stock[f.id] = (shop.stock[f.id] || 0) + n;
+        broadcast({ type: 'chat', id: 0, from: '🛒 Supplies Shop', admin: false,
+          text: `${stand.name} put ${n} ${f.name} in the shop! Go get it before the next restock.` });
+        conn.send({ type: 'admin', text: `🏪 Put ${n} ${f.name} in the Supplies Shop` });
       } else if (stand.admin && msg.type === 'adminSpawnPet') {
         // 🐾 admins can put any pet in their own pet inventory
         const pet = petById[msg.pet];

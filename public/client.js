@@ -1,7 +1,7 @@
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
-    CYBER, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES } = window.GameData;
+    CYBER, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -39,7 +39,7 @@
   let iAmAdmin = false;   // admins also see the admin-only ice creams in the Flavor guide
   // flavors shown in the Flavor guide, and flavors sold in the shop
   const guideFlavors = () => FLAVORS.filter(f => !f.adminOnly || iAmAdmin);
-  const shopFlavors = FLAVORS.filter(f => !f.adminOnly);
+  const shopFlavors = FLAVORS; // admin ice creams only show up when an admin puts them in the shop
 
   // ---------- helpers ----------
   function fmt(n) {
@@ -467,7 +467,7 @@
             ${fmt(f.price)} / scoop · grows in ${growText(r.growSec)} · <b class="speedTag">⏱️ -${scoopSpeedup(f)}s</b></div>
           <div class="stock"></div>
         </div>
-        <button>${fmt(f.cost)}</button>`;
+        <button>${fmt(shopCost(f))}</button>`;
       row.querySelector('button').addEventListener('click', () => send({ type: 'buy', flavor: f.id }));
       list.appendChild(row);
       f.shopRow = row;
@@ -1551,7 +1551,8 @@
       stock.textContent = left > 0 ? `x${left} in stock` : 'Out of stock';
       stock.className = 'stock ' + (left > 0 ? 'in' : 'out');
       row.classList.toggle('soldout', left <= 0);
-      row.querySelector('button').disabled = left <= 0 || s.money < f.cost;
+      row.querySelector('button').disabled = left <= 0 || s.money < shopCost(f);
+      if (f.adminOnly) row.classList.toggle('hidden', !(shop.stock[f.id] > 0));
     }
   }
 
@@ -1607,6 +1608,8 @@
   $('adminGiveBtn').addEventListener('click', () =>
     send({ type: 'adminGive', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
+  $('adminShopBtn').addEventListener('click', () =>
+    send({ type: 'adminShopSpawn', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('talkBtn').addEventListener('click', () => {
     $('talkRow').classList.toggle('hidden');
     if (!$('talkRow').classList.contains('hidden')) $('talkInput').focus();
@@ -1665,6 +1668,13 @@
         const f = findFlavor(args.join(' ')) || findTopping(args.join(' '));
         if (!f) return toast('Try: /give rainbow 5 (any flavor or topping name)');
         return send({ type: 'adminGive', flavor: f.id, count });
+      }
+      case 'shop': { // put any ice cream in the Supplies Shop: /shop void 3
+        let count = 1;
+        if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) count = Number(args.pop());
+        const f = findFlavor(args.join(' '));
+        if (!f) return toast('Try: /shop void 3 (any ice cream name)');
+        return send({ type: 'adminShopSpawn', flavor: f.id, count });
       }
       case 'pet': case 'pets': {
         // put any pet in your pets: /pet dragon 2

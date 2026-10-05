@@ -186,6 +186,8 @@
     return Math.max(SCOOP_FASTEST, Math.min(SCOOP_SLOWEST, SCOOP_SLOWEST + 1 - off));
   }
   const START_MONEY = 20; // enough for a first tub of ice cream
+  // what a tub costs in the Supplies Shop (admin ice creams are only there when an admin puts them in)
+  const shopCost = f => f.adminOnly ? f.price * 1000 : f.cost;
 
   // Flavor spaces on the stand: start with 5, each Extra Space adds 3
   const START_SPACES = 5;
@@ -240,7 +242,7 @@
   if (CYBER) for (const part of Object.keys(AVATAR)) AVATAR[part].push('robo');
 
   const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
-    SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY,
+    SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
     CYBER, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES,
