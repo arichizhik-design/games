@@ -263,7 +263,8 @@
       case 'banned':
         closeWindows();
         hand = -1;
-        $('bannedText').textContent = `${msg.by} (admin) banned you. You lost everything and have to start over from the beginning.`;
+        $('bannedText').textContent = (msg.self ? 'You banned yourself.' : `${msg.by} (admin) banned you.`) +
+          ' You lost everything and have to start over from the beginning.';
         $('bannedModal').classList.remove('hidden');
         break;
       case 'state':
@@ -625,11 +626,11 @@
       const who = document.createElement('div');
       who.className = 'who';
       who.innerHTML = `<div class="name"></div><div class="status">${pl.online ? '🟢 Playing now' : '⚪ Away'} · ${fmt(pl.money)}</div>`;
-      who.querySelector('.name').textContent = pl.name;
+      const mine = me();
+      who.querySelector('.name').textContent = pl.name + (mine && mine.name.toLowerCase() === pl.key ? ' (you)' : '');
       row.appendChild(who);
-      if (pl.admin) {
-        row.insertAdjacentHTML('beforeend', '<span class="adminTag">👑 Admin</span>');
-      } else {
+      if (pl.admin) row.insertAdjacentHTML('beforeend', '<span class="adminTag">👑 Admin</span>');
+      {
         const b = document.createElement('button');
         b.type = 'button';
         b.textContent = banSure === pl.key ? 'Sure? Ban!' : 'Ban';

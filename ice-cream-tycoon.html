@@ -627,7 +627,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <button id="banClose" class="closeBtn">✕</button>
         </div>
         <p class="sub">Banning a player wipes everything they have (money, ice creams, upgrades) and they have to
-          start over. Admins can't be banned.</p>
+          start over. Admins can ban other admins too, or even themselves.</p>
         <div id="banList"></div>
       </div>
 
@@ -1681,20 +1681,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       } else if (stand.admin && msg.type === 'adminPlayers') {
         conn.send({ type: 'players', players: playerList() });
       } else if (stand.admin && msg.type === 'adminBan') {
-        // Ban: the player loses everything and starts over
+        // Ban: the player loses everything and starts over (admins can ban other admins, or themselves)
         const key = String(msg.key || '').toLowerCase();
-        if (ADMIN_NAMES.includes(key)) return err("You can't ban an admin.");
         const target = [...stands.values()].find(s => s.key === key);
         if (target) {
           for (const id of target.queue) { const c = customers.get(id); if (c) sendOffCustomer(c); }
           target.queue = [];
           Object.assign(target, freshProgress());
-          target.conn.send({ type: 'banned', by: stand.name });
+          if (target.admin) target.money = ADMIN_MONEY; // a banned admin starts over like a new admin
+          target.conn.send({ type: 'banned', by: stand.name, self: target === stand });
         } else if (saves[key]) {
           const { adminDevice, name } = saves[key];
           saves[key] = { name, ...(adminDevice ? { adminDevice } : {}), ...freshProgress() };
         } else return err('No player with that name.');
-        conn.send({ type: 'admin', text: `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
+        conn.send({ type: 'admin', text: target === stand ? '🚫 You banned yourself and started over.'
+          : `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
         conn.send({ type: 'players', players: playerList() });
       } else if (stand.admin && msg.type === 'adminSpawnPet') {
         // 🐾 admins can put any pet in their own pet inventory
@@ -2022,7 +2023,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'banned':
         closeWindows();
         hand = -1;
-        $('bannedText').textContent = `${msg.by} (admin) banned you. You lost everything and have to start over from the beginning.`;
+        $('bannedText').textContent = (msg.self ? 'You banned yourself.' : `${msg.by} (admin) banned you.`) +
+          ' You lost everything and have to start over from the beginning.';
         $('bannedModal').classList.remove('hidden');
         break;
       case 'state':
@@ -2384,11 +2386,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const who = document.createElement('div');
       who.className = 'who';
       who.innerHTML = `<div class="name"></div><div class="status">${pl.online ? '🟢 Playing now' : '⚪ Away'} · ${fmt(pl.money)}</div>`;
-      who.querySelector('.name').textContent = pl.name;
+      const mine = me();
+      who.querySelector('.name').textContent = pl.name + (mine && mine.name.toLowerCase() === pl.key ? ' (you)' : '');
       row.appendChild(who);
-      if (pl.admin) {
-        row.insertAdjacentHTML('beforeend', '<span class="adminTag">👑 Admin</span>');
-      } else {
+      if (pl.admin) row.insertAdjacentHTML('beforeend', '<span class="adminTag">👑 Admin</span>');
+      {
         const b = document.createElement('button');
         b.type = 'button';
         b.textContent = banSure === pl.key ? 'Sure? Ban!' : 'Ban';

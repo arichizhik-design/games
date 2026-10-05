@@ -778,20 +778,21 @@
       } else if (stand.admin && msg.type === 'adminPlayers') {
         conn.send({ type: 'players', players: playerList() });
       } else if (stand.admin && msg.type === 'adminBan') {
-        // Ban: the player loses everything and starts over
+        // Ban: the player loses everything and starts over (admins can ban other admins, or themselves)
         const key = String(msg.key || '').toLowerCase();
-        if (ADMIN_NAMES.includes(key)) return err("You can't ban an admin.");
         const target = [...stands.values()].find(s => s.key === key);
         if (target) {
           for (const id of target.queue) { const c = customers.get(id); if (c) sendOffCustomer(c); }
           target.queue = [];
           Object.assign(target, freshProgress());
-          target.conn.send({ type: 'banned', by: stand.name });
+          if (target.admin) target.money = ADMIN_MONEY; // a banned admin starts over like a new admin
+          target.conn.send({ type: 'banned', by: stand.name, self: target === stand });
         } else if (saves[key]) {
           const { adminDevice, name } = saves[key];
           saves[key] = { name, ...(adminDevice ? { adminDevice } : {}), ...freshProgress() };
         } else return err('No player with that name.');
-        conn.send({ type: 'admin', text: `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
+        conn.send({ type: 'admin', text: target === stand ? '🚫 You banned yourself and started over.'
+          : `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
         conn.send({ type: 'players', players: playerList() });
       } else if (stand.admin && msg.type === 'adminSpawnPet') {
         // 🐾 admins can put any pet in their own pet inventory

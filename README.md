@@ -96,7 +96,7 @@ gold crown with an [ADMIN] tag, and get an **Admin commands** panel. You can use
 | Command | What it does |
 |---|---|
 | 🐾 **Pets** button | Shows every pet from most common to rarest. Tap one, press **Spawn**, and it goes in your pets. `/pet dragon 2` works too. Only admins can do this. |
-| 🚫 **Ban Players** button | Lists every player (playing now or away). Tap **Ban** twice on someone and they lose everything and start over. Admins can't be banned. |
+| 🚫 **Ban Players** button | Lists every player (playing now or away). Tap **Ban** twice on someone and they lose everything and start over. Admins can ban other admins too, or themselves (a banned admin starts over with $1T). |
 | `/say Hello!` | **All Server Talk**: your message pops up on everyone's screen (also the 📢 button) |
 | `/money 5t` | Adds money (use k, m, b or t, like `500k`, `2b`, `5t`) |
 | `/give rainbow sherbet 10` | Puts any ice cream in your hotbar, even if the shop is sold out |
