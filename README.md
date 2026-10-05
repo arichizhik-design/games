@@ -42,26 +42,19 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - **Mutations:** every 30, 45 or 50 minutes a mutation event hits the whole park for 5 minutes.
   While it's on, each scoop has a 35% chance to mutate and sell for more:
 
-  | Mutation | Money | Mutation | Money |
-  |---|---|---|---|
-  | 🪙 Gold | x2 | 💖 Love | x14 |
-  | 🍬 Candy | x3 | 🪐 Galaxy | x15 |
-  | ❄️ Frozen | x3 | 🌠 Starfall | x18 |
-  | 🌸 Sakura | x4 | ☯️ Yin Yang | x20 |
-  | 🍀 Lucky | x4 | 🔮 Mystic | x22 |
-  | 💎 Diamond | x5 | 🌕 Blood Moon | x25 |
-  | ⚡ Thunder | x6 | 🌈 Rainbow | x30 |
-  | 🌊 Ocean | x7 | ☄️ Meteor Shower | x40 |
-  | 🌋 Molten | x8 | ⚜️ **Godly** | **x50** |
-  | ☢️ Toxic | x9 | 😇 **Heavenly** | **x75** |
-  | 🌌 Aurora | x10 | ♾️ **Impossible** | **x100** |
-  | 🌑 Shadow | x12 |  |  |
+  | Mutation | Money |
+  |---|---|
+  | 🪙 Gold | x2 |
+  | 🌸 Sakura | x4 |
+  | 💎 Diamond | x5 |
+  | 🪐 Galaxy | x15 |
+  | 🌈 Rainbow | x30 |
+  | ☄️ Meteor Shower | x40 |
+  | ♾️ **Impossible** | **x100** |
 
-  Rarer mutations (bigger money) come up less often. Rainbow brings a real rainbow over the park,
-  Godly fills the sky with golden light rays, Heavenly brings clouds, light beams and falling feathers,
-  and Impossible (the rarest of all) makes the whole park glitch with color. Sakura drops cherry blossoms,
-  Lucky drops clovers, Ocean and Toxic fill the air with bubbles, Love rains hearts, Starfall turns the park
-  into a night sky with shooting stars, Mystic swirls magic sparkles, and Meteor Shower sends flaming meteors.
+  Rarer mutations (bigger money) come up less often. Sakura drops cherry blossoms, Rainbow brings a real
+  rainbow over the park, Meteor Shower sends flaming meteors across the sky, and Impossible (the rarest of all)
+  makes the whole park glitch with color.
 - **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
   Infinity Swirl spins with every color and has stars flying in an infinity loop around it,
   Bubblegum blows a bubble that pops, Mango Tango shines like the sun, Lava Swirl drips lava, Frozen Aurora
