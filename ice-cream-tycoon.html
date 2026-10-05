@@ -552,6 +552,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .petImg { width: 1.3em; height: 1.3em; vertical-align: middle; }
 .revealEmoji .petImg { width: 110px; height: 110px; }
 @media (max-width: 760px) { #cyberBtns { bottom: calc(50px + env(safe-area-inset-bottom, 0px)); } #passBtn { font-size: 15px; padding: 7px 12px; } }
+/* 💰 Buy someone's ice cream */
+.buyRow { flex-wrap: wrap; }
+.buyRow .info { min-width: 140px; }
+.buyInputs { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #8a7480; }
+.buyInputs input { width: 80px; padding: 3px 6px; font-size: 13px; }
+.buyRow > button { background: #f59f00; }
 </style>
 </head>
 <body>
@@ -716,7 +722,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       </div>
 
       <div id="tradeModal" class="modal hidden">
-        <div class="modalTitle">🤝 Trade offer!</div>
+        <div id="tradeTitle" class="modalTitle">🤝 Trade offer!</div>
         <p id="tradeFrom"></p>
         <div class="tradeCols">
           <div><h3>You get</h3><div id="tradeGet"></div></div>
@@ -1942,9 +1948,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (error) return err(error.replace("You doesn't", "You don't"));
         stand.lastGift = now;
         for (const [id, t] of trades) if (t.from === stand.id) trades.delete(id); // one offer at a time
-        const trade = { id: nextId++, from: stand.id, to: target.id, give, get, left: 60 };
+        // 'buy' = an offer of money for someone's ice cream (it works just like a trade)
+        const kind = msg.kind === 'buy' ? 'buy' : 'trade';
+        const trade = { id: nextId++, from: stand.id, to: target.id, give, get, left: 60, kind };
         trades.set(trade.id, trade);
-        target.conn.send({ type: 'tradeOffer', id: trade.id, from: stand.name, give, get });
+        target.conn.send({ type: 'tradeOffer', id: trade.id, from: stand.name, give, get, kind });
         conn.send({ type: 'tradeSent', to: target.name });
       } else if (msg.type === 'tradeReply') {
         const trade = trades.get(Number(msg.id));
@@ -1953,7 +1961,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const from = stands.get(trade.from);
         if (!from) return err('That player left the park.');
         if (!msg.accept) {
-          from.conn.send({ type: 'tradeDone', ok: false, text: `${stand.name} said no to your trade.` });
+          from.conn.send({ type: 'tradeDone', ok: false, text: `${stand.name} said no to your ${trade.kind === 'buy' ? 'offer' : 'trade'}.` });
           return;
         }
         const error = exchange(from, stand, trade.give, trade.get);
@@ -1961,8 +1969,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           from.conn.send({ type: 'tradeDone', ok: false, text: `Trade didn't work: ${error}` });
           return err(`Trade didn't work: ${error}`);
         }
-        from.conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${stand.name} done!` });
-        conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${from.name} done!` });
+        if (trade.kind === 'buy') {
+          from.conn.send({ type: 'tradeDone', ok: true, text: `💰 ${stand.name} sold it to you! It's in your hotbar or Inventory.` });
+          conn.send({ type: 'tradeDone', ok: true, text: `💰 You sold it to ${from.name} for $${trade.give.money.toLocaleString()}!` });
+        } else {
+          from.conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${stand.name} done!` });
+          conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${from.name} done!` });
+        }
       } else if (stand.admin && msg.type === 'adminMoney') {
         const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
         stand.money += amount;
@@ -2313,7 +2326,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         showTradeOffer(msg);
         break;
       case 'tradeSent':
-        toast(`🤝 Trade offer sent to ${msg.to}! Waiting for them to answer…`);
+        toast(`📨 Offer sent to ${msg.to}! Waiting for them to answer…`);
         break;
       case 'tradeDone':
         toast(msg.text);
@@ -2870,7 +2883,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
     const tabs = document.createElement('div');
     tabs.className = 'giftTabs';
-    tabs.innerHTML = `<button type="button" data-mode="gift">🎁 Gift</button><button type="button" data-mode="trade">🤝 Trade</button>`;
+    tabs.innerHTML = `<button type="button" data-mode="gift">🎁 Gift</button><button type="button" data-mode="buy">💰 Buy</button>` +
+      `<button type="button" data-mode="trade">🤝 Trade</button>`;
     tabs.querySelectorAll('button').forEach(b => {
       b.classList.toggle('on', b.dataset.mode === giftMode);
       b.addEventListener('click', () => { giftMode = b.dataset.mode; showGiftItems(); });
@@ -2891,6 +2905,35 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         send({ type: 'gift', to: giftTo, give });
       });
       body.appendChild(sendBtn);
+    } else if (giftMode === 'buy') {
+      // 💰 buy their ice cream: pick how many and type your price; they say yes or no
+      $('giftSub').textContent = `Buy ${target.name}'s ice cream! Pick how many, type how much money you'll pay, and they decide.`;
+      body.insertAdjacentHTML('beforeend', `<h3>🍦 ${target.name.replace(/</g, '')}'s ice cream <span class="sub">(you have ${fmt(mine.money)})</span></h3>`);
+      const { items } = stuffOf(target);
+      const ids = FLAVORS.map(f => f.id).filter(id => items[id]);
+      if (!ids.length) body.insertAdjacentHTML('beforeend', `<div class="sub">${target.name.replace(/</g, '')} doesn't have any ice cream in their hotbar or Inventory right now.</div>`);
+      for (const id of ids) {
+        const f = flavorById[id], r = RARITIES[f.rarity];
+        const row = document.createElement('div');
+        row.className = 'row buyRow';
+        row.innerHTML = `<div class="iconWrap">${iconHtml(id)}</div>
+          <div class="info"><div class="name"></div>
+            <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span> They have ${items[id]}
+              ${f.cost ? ` · shop price ${fmt(f.cost)}` : ''}</div></div>
+          <div class="buyInputs"><label>How many <input class="buyCount" type="number" min="1" max="${items[id]}" value="1"></label>
+            <label>Your price $ <input class="buyPrice" type="text" inputmode="decimal" placeholder="500, 25k, 1m"></label></div>
+          <button type="button">💰 Offer</button>`;
+        row.querySelector('.name').textContent = f.name;
+        row.querySelector('button').addEventListener('click', () => {
+          const count = Math.min(items[id], Math.max(1, Math.floor(Number(row.querySelector('.buyCount').value) || 1)));
+          const price = parseMoney(row.querySelector('.buyPrice').value);
+          if (price <= 0) return toast('Type how much money you want to pay.');
+          if (price > mine.money) return toast("You don't have that much money!");
+          send({ type: 'tradeOffer', kind: 'buy', to: giftTo, give: { money: price, items: {}, pets: {} },
+            get: { money: 0, items: { [id]: count }, pets: {} } });
+        });
+        body.appendChild(row);
+      }
     } else {
       $('giftSub').textContent = `Pick what you give and what you want back. ${target.name} has to say yes!`;
       body.insertAdjacentHTML('beforeend', '<h3>📤 You give</h3>');
@@ -2918,7 +2961,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // someone offered you a trade
   function showTradeOffer(msg) {
     tradeOffer = msg;
-    $('tradeFrom').textContent = `${msg.from} wants to trade with you:`;
+    const buying = msg.kind === 'buy';
+    $('tradeTitle').textContent = buying ? '💰 Someone wants to buy your ice cream!' : '🤝 Trade offer!';
+    $('tradeFrom').textContent = buying ? `${msg.from} wants to buy your ice cream. Do you want to sell?` : `${msg.from} wants to trade with you:`;
+    $('tradeYes').textContent = buying ? '✅ Sell' : '✅ Accept';
     const lines = b => {
       const parts = describe(b).split(', ');
       return parts.map(p => `<div class="line">• ${p.replace(/</g, '&lt;')}</div>`).join('');

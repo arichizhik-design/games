@@ -249,7 +249,7 @@
         showTradeOffer(msg);
         break;
       case 'tradeSent':
-        toast(`🤝 Trade offer sent to ${msg.to}! Waiting for them to answer…`);
+        toast(`📨 Offer sent to ${msg.to}! Waiting for them to answer…`);
         break;
       case 'tradeDone':
         toast(msg.text);
@@ -806,7 +806,8 @@
 
     const tabs = document.createElement('div');
     tabs.className = 'giftTabs';
-    tabs.innerHTML = `<button type="button" data-mode="gift">🎁 Gift</button><button type="button" data-mode="trade">🤝 Trade</button>`;
+    tabs.innerHTML = `<button type="button" data-mode="gift">🎁 Gift</button><button type="button" data-mode="buy">💰 Buy</button>` +
+      `<button type="button" data-mode="trade">🤝 Trade</button>`;
     tabs.querySelectorAll('button').forEach(b => {
       b.classList.toggle('on', b.dataset.mode === giftMode);
       b.addEventListener('click', () => { giftMode = b.dataset.mode; showGiftItems(); });
@@ -827,6 +828,35 @@
         send({ type: 'gift', to: giftTo, give });
       });
       body.appendChild(sendBtn);
+    } else if (giftMode === 'buy') {
+      // 💰 buy their ice cream: pick how many and type your price; they say yes or no
+      $('giftSub').textContent = `Buy ${target.name}'s ice cream! Pick how many, type how much money you'll pay, and they decide.`;
+      body.insertAdjacentHTML('beforeend', `<h3>🍦 ${target.name.replace(/</g, '')}'s ice cream <span class="sub">(you have ${fmt(mine.money)})</span></h3>`);
+      const { items } = stuffOf(target);
+      const ids = FLAVORS.map(f => f.id).filter(id => items[id]);
+      if (!ids.length) body.insertAdjacentHTML('beforeend', `<div class="sub">${target.name.replace(/</g, '')} doesn't have any ice cream in their hotbar or Inventory right now.</div>`);
+      for (const id of ids) {
+        const f = flavorById[id], r = RARITIES[f.rarity];
+        const row = document.createElement('div');
+        row.className = 'row buyRow';
+        row.innerHTML = `<div class="iconWrap">${iconHtml(id)}</div>
+          <div class="info"><div class="name"></div>
+            <div class="meta"><span class="badge ${f.rarity}" style="background-color:${r.color}">${r.name}</span> They have ${items[id]}
+              ${f.cost ? ` · shop price ${fmt(f.cost)}` : ''}</div></div>
+          <div class="buyInputs"><label>How many <input class="buyCount" type="number" min="1" max="${items[id]}" value="1"></label>
+            <label>Your price $ <input class="buyPrice" type="text" inputmode="decimal" placeholder="500, 25k, 1m"></label></div>
+          <button type="button">💰 Offer</button>`;
+        row.querySelector('.name').textContent = f.name;
+        row.querySelector('button').addEventListener('click', () => {
+          const count = Math.min(items[id], Math.max(1, Math.floor(Number(row.querySelector('.buyCount').value) || 1)));
+          const price = parseMoney(row.querySelector('.buyPrice').value);
+          if (price <= 0) return toast('Type how much money you want to pay.');
+          if (price > mine.money) return toast("You don't have that much money!");
+          send({ type: 'tradeOffer', kind: 'buy', to: giftTo, give: { money: price, items: {}, pets: {} },
+            get: { money: 0, items: { [id]: count }, pets: {} } });
+        });
+        body.appendChild(row);
+      }
     } else {
       $('giftSub').textContent = `Pick what you give and what you want back. ${target.name} has to say yes!`;
       body.insertAdjacentHTML('beforeend', '<h3>📤 You give</h3>');
@@ -854,7 +884,10 @@
   // someone offered you a trade
   function showTradeOffer(msg) {
     tradeOffer = msg;
-    $('tradeFrom').textContent = `${msg.from} wants to trade with you:`;
+    const buying = msg.kind === 'buy';
+    $('tradeTitle').textContent = buying ? '💰 Someone wants to buy your ice cream!' : '🤝 Trade offer!';
+    $('tradeFrom').textContent = buying ? `${msg.from} wants to buy your ice cream. Do you want to sell?` : `${msg.from} wants to trade with you:`;
+    $('tradeYes').textContent = buying ? '✅ Sell' : '✅ Accept';
     const lines = b => {
       const parts = describe(b).split(', ');
       return parts.map(p => `<div class="line">• ${p.replace(/</g, '&lt;')}</div>`).join('');

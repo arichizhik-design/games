@@ -92,6 +92,8 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - **🎁 Gift & Trade:** pick someone who is playing right now. **Gift** sends them any amount of money
   (type 500, 25k, 3m, 1b or 1t), ice cream, toppings or pets. **Trade** lets you pick what you give and what you
   want back; they get a pop-up and can Accept or say No thanks.
+  **Buy** shows the other player's ice cream: pick how many, type the price you'll pay (500, 25k, 1m...), and press
+  Offer. They get a pop-up and can Sell or say No thanks; the money only moves if they say yes.
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.
 

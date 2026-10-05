@@ -835,9 +835,11 @@
         if (error) return err(error.replace("You doesn't", "You don't"));
         stand.lastGift = now;
         for (const [id, t] of trades) if (t.from === stand.id) trades.delete(id); // one offer at a time
-        const trade = { id: nextId++, from: stand.id, to: target.id, give, get, left: 60 };
+        // 'buy' = an offer of money for someone's ice cream (it works just like a trade)
+        const kind = msg.kind === 'buy' ? 'buy' : 'trade';
+        const trade = { id: nextId++, from: stand.id, to: target.id, give, get, left: 60, kind };
         trades.set(trade.id, trade);
-        target.conn.send({ type: 'tradeOffer', id: trade.id, from: stand.name, give, get });
+        target.conn.send({ type: 'tradeOffer', id: trade.id, from: stand.name, give, get, kind });
         conn.send({ type: 'tradeSent', to: target.name });
       } else if (msg.type === 'tradeReply') {
         const trade = trades.get(Number(msg.id));
@@ -846,7 +848,7 @@
         const from = stands.get(trade.from);
         if (!from) return err('That player left the park.');
         if (!msg.accept) {
-          from.conn.send({ type: 'tradeDone', ok: false, text: `${stand.name} said no to your trade.` });
+          from.conn.send({ type: 'tradeDone', ok: false, text: `${stand.name} said no to your ${trade.kind === 'buy' ? 'offer' : 'trade'}.` });
           return;
         }
         const error = exchange(from, stand, trade.give, trade.get);
@@ -854,8 +856,13 @@
           from.conn.send({ type: 'tradeDone', ok: false, text: `Trade didn't work: ${error}` });
           return err(`Trade didn't work: ${error}`);
         }
-        from.conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${stand.name} done!` });
-        conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${from.name} done!` });
+        if (trade.kind === 'buy') {
+          from.conn.send({ type: 'tradeDone', ok: true, text: `💰 ${stand.name} sold it to you! It's in your hotbar or Inventory.` });
+          conn.send({ type: 'tradeDone', ok: true, text: `💰 You sold it to ${from.name} for $${trade.give.money.toLocaleString()}!` });
+        } else {
+          from.conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${stand.name} done!` });
+          conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${from.name} done!` });
+        }
       } else if (stand.admin && msg.type === 'adminMoney') {
         const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
         stand.money += amount;
