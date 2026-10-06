@@ -599,6 +599,40 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #growList .row { gap: 10px; }
 #growList .who { flex: 1; }
 #growList button { background: #2f9e44; }
+
+/* ⚡ EPIC cyber effects */
+/* a light sweep running across the armor, faster bolts while it shakes */
+.luckyBlock.cyber::before { content: ''; position: absolute; inset: 0; border-radius: 12%; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(115deg, transparent 35%, rgba(190, 252, 255, 0.75) 50%, transparent 65%) 0 0 / 300% 100%;
+  animation: cyberSweep 2.2s linear infinite; }
+@keyframes cyberSweep { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.luckyBlock.shake.cyber::after { animation-duration: 0.35s; inset: -40%; }
+/* the Cyber Block bursting open: a soft flash and three shockwave rings */
+#revealBurst { position: absolute; left: 50%; top: 40%; width: 0; height: 0; pointer-events: none; }
+#revealBurst i { position: absolute; left: -40px; top: -40px; width: 80px; height: 80px; border-radius: 50%;
+  border: 4px solid #2ee8ff; box-shadow: 0 0 18px #2ee8ff, inset 0 0 18px #2ee8ff; opacity: 0; }
+#revealModal.cyberBoom #revealBurst i { animation: cyberRingOut 1.1s ease-out forwards; }
+#revealModal.cyberBoom #revealBurst i:nth-child(2) { animation-delay: 0.15s; }
+#revealModal.cyberBoom #revealBurst i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes cyberRingOut { 0% { transform: scale(0.3); opacity: 1; } 100% { transform: scale(5); opacity: 0; } }
+#revealModal.cyberBoom { animation: cyberBoomGlow 1.4s ease-out; overflow: visible; }
+@keyframes cyberBoomGlow { 0% { box-shadow: 0 0 0 9999px rgba(160, 245, 255, 0.35), 0 0 60px #2ee8ff; background: #e6fdff; }
+  100% { box-shadow: 0 10px 40px rgba(0,0,0,0.3); } }
+#revealModal.cyberBoom .petImg { filter: drop-shadow(0 0 10px #2ee8ff) drop-shadow(0 0 20px #2ee8ff); }
+/* the Pass and Game Passes buttons: a light sweep and a glowing electric edge */
+#passBtn, #storeBtn { position: relative; overflow: hidden; }
+#passBtn::before, #storeBtn::before { content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(115deg, transparent 35%, rgba(190, 252, 255, 0.7) 50%, transparent 65%) 0 0 / 300% 100%;
+  animation: cyberSweep 2.6s linear infinite; }
+#passBtn { animation: passGlow 1.2s ease-in-out infinite alternate, cyberEdge 0.9s steps(2) infinite; }
+@keyframes cyberEdge { 50% { border-color: #d9fdff; } }
+/* the Pass window: a scanning line moving down it, and ready prizes pulse */
+#passModal { position: absolute; overflow-x: hidden; }
+#passModal::after { content: ''; position: absolute; left: 0; right: 0; height: 60px; top: 0; pointer-events: none;
+  background: linear-gradient(transparent, rgba(46, 232, 255, 0.14), transparent); animation: cyberScan 3s linear infinite; }
+@keyframes cyberScan { from { transform: translateY(-60px); } to { transform: translateY(700px); } }
+.passTile.ready { animation: tileReady 0.9s ease-in-out infinite alternate; }
+@keyframes tileReady { to { box-shadow: 0 0 22px rgba(46, 232, 255, 1), inset 0 0 12px rgba(46, 232, 255, 0.5) !important; transform: translateY(-2px); } }
 </style>
 </head>
 <body>
@@ -752,6 +786,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       </div>
 
       <div id="revealModal" class="modal hidden">
+        <div id="revealBurst"><i></i><i></i><i></i></div>
         <div id="revealBlock" class="luckyBlock"></div>
         <div id="revealPet" class="hidden">
           <div class="revealEmoji"></div>
@@ -3315,6 +3350,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     revealTimer = setTimeout(() => {
       el.classList.add('hidden');
       const box = $('revealPet');
+      if (block && block.color === 'cyber') { // ⚡ the Cyber Block bursts open with a flash and shockwaves
+        const m = $('revealModal');
+        m.classList.remove('cyberBoom'); void m.offsetWidth; m.classList.add('cyberBoom');
+      }
       box.querySelector('.revealEmoji').innerHTML = show.icon;
       const badge = box.querySelector('.revealRarity');
       badge.textContent = r.name.toUpperCase();
@@ -4422,6 +4461,34 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
+  // a glowing hexagon outline (for shields, rings and sparks)
+  function hexagon(x, y, r, rot = 0, w = 1, alpha = 1, plain = false) {
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.translate(x, y); ctx.rotate(rot);
+    const pts = [];
+    for (let k = 0; k <= 6; k++) pts.push([Math.cos(k * Math.PI / 3) * r, Math.sin(k * Math.PI / 3) * r]);
+    if (plain) { // no blur: fast enough to draw lots of them
+      ctx.strokeStyle = CYAN; ctx.lineWidth = 1.6 * w;
+      ctx.beginPath(); pts.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.stroke();
+    } else seam(pts, w);
+    ctx.restore();
+  }
+  // a thick plasma beam that fades out at the end
+  function plasmaBeam(x1, y1, x2, y2, w) {
+    ctx.save();
+    ctx.lineCap = 'round';
+    const g = ctx.createLinearGradient(x1, y1, x2, y2);
+    g.addColorStop(0, 'rgba(46, 232, 255, 0.95)'); g.addColorStop(0.7, 'rgba(46, 232, 255, 0.55)'); g.addColorStop(1, 'rgba(46, 232, 255, 0)');
+    ctx.strokeStyle = g; ctx.lineWidth = w; ctx.shadowColor = CYAN; ctx.shadowBlur = w * 2;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    const core = ctx.createLinearGradient(x1, y1, x2, y2);
+    core.addColorStop(0, 'rgba(255,255,255,0.95)'); core.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = core; ctx.lineWidth = w * 0.35; ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.restore();
+  }
+
   // a jagged lightning bolt (it's different every frame, so it crackles)
   function zap(x1, y1, x2, y2, jit = 4, w = 1) {
     const pts = [[x1, y1]], n = 6;
@@ -4432,9 +4499,6 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // 🐉 the low-poly dragon (Dragon, Dragon King, Infinity Dragon and the three-headed Cyber Hydra)
   const DRAGON_LOOKS = {
-    dragon:     { body: '#d7262b', belly: '#eadbc0', horn: '#2b2b2b', wing: '#b51d22', claw: '#2b2b2b', eye: '#ffd43b' },
-    dragonking: { body: '#e8b21c', belly: '#fff3c4', horn: '#ffffff', wing: '#c98f00', claw: '#7a5200', eye: '#e03131' },
-    infinity:   { body: 'rainbow', belly: '#ffffff', horn: '#3b1f6b', wing: 'rainbow', claw: '#3b1f6b', eye: '#ffffff' },
     hydra:      { body: '#2c343c', belly: '#3a444e', horn: '#0b0f13', wing: '#222a31', claw: '#0b0f13', eye: CYAN, heads: 3, cyber: true },
   };
 
@@ -4558,311 +4622,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.restore();
   }
 
-  // colors that change every frame (the rainbow Infinity Dragon)
-  function liveLook(look, time) {
-    if (look.body !== 'rainbow') return look;
-    const h = (time * 60) % 360;
-    return { ...look, body: `rgb(${hueRgb(h)})`, wing: `rgb(${hueRgb((h + 40) % 360)})` };
-  }
-
-  const LOW_POLY = {}; // pet id -> function that draws its low-poly model
-  for (const id of Object.keys(DRAGON_LOOKS)) LOW_POLY[id] = (time, seed, flying) => drawDragonModel(liveLook(DRAGON_LOOKS[id], time), time, seed, flying);
-
-  // 🐾 four-legged animals: one body plan, with each pet's own colors, ears, tail, snout and extras
-  const BEAST_LOOKS = {
-    puppy:   { body: '#c8915a', belly: '#f3e2c7', dark: '#7a4f2a', ears: 'flop', tail: 'wag', snout: 4, nose: '#2b2b2b', tongue: true },
-    kitty:   { body: '#f08c3a', belly: '#ffe8cc', dark: '#b85c12', ears: 'pointy', tail: 'curl', snout: 1, nose: '#ff8fab', stripes: true, whiskers: true },
-    bunny:   { body: '#f1f3f5', belly: '#ffffff', dark: '#ced4da', ears: 'long', tail: 'puff', snout: 1, nose: '#ff8fab', inner: '#ffc9de', small: true },
-    fox:     { body: '#e8590c', belly: '#ffffff', dark: '#3b2314', ears: 'pointy', tail: 'bushy', tip: '#ffffff', snout: 5, nose: '#1a1a1a', inner: '#3b2314' },
-    panda:   { body: '#f8f9fa', belly: '#ffffff', dark: '#1f1f1f', ears: 'round', tail: 'stub', snout: 2, nose: '#1f1f1f', panda: true, chunky: true },
-    unicorn: { body: '#fbf3ff', belly: '#ffffff', dark: '#d9c4f0', ears: 'pointy', tail: 'hair', snout: 6, nose: '#d9a9e8', horn: '#ffd43b', mane: 'rainbow', tall: true, hooves: '#c9a227' },
-    wolf:    { body: '#4a3f6b', belly: '#9d93c4', dark: '#2a2340', ears: 'pointy', tail: 'bushy', tip: '#2a2340', snout: 6, nose: '#111', eye: '#d0a3ff', tall: true },
-    lion:    { body: '#e0a536', belly: '#f6d98b', dark: '#9c6a12', ears: 'round', tail: 'tuft', snout: 3, nose: '#5a3a1a', mane: '#4b2a8a', stars: true },
-  };
-
-  function drawBeast(L, time, seed, moving) {
-    const B = L.body, D = L.dark;
-    const s = L.small ? 0.82 : L.chunky ? 1.08 : 1;
-    const legH = L.tall ? 9 : L.small ? 5 : 7;
-    const swing = moving ? Math.sin(time * 9 + seed) * 2.2 : 0;
-    ctx.save();
-    ctx.translate(0, 10);
-    ctx.scale(s, s);
-    ctx.translate(0, -10);
-    const top = 10 - legH; // where the legs meet the body
-    // far legs (darker)
-    const leg = (x, k, sw, color) => {
-      facet([[x - 2.2, top - 3], [x + 2.2, top - 3], [x + 1.8 + sw * 0.5, 10], [x - 2 + sw * 0.5, 10]], shade(color, k));
-      if (L.hooves) facet([[x - 2 + sw * 0.5, 8.6], [x + 1.8 + sw * 0.5, 8.6], [x + 1.8 + sw * 0.5, 10], [x - 2 + sw * 0.5, 10]], L.hooves);
-    };
-    const legColor = L.panda ? '#1f1f1f' : B;
-    leg(9, -0.3, -swing, legColor); leg(-5, -0.3, swing, legColor);
-
-    // tail
-    const wag = Math.sin(time * (L.tail === 'wag' ? 14 : 3) + seed);
-    const tx = 15, ty = top - 9;
-    if (L.tail === 'bushy') {
-      facet([[tx, ty + 1], [tx + 9, ty - 6 + wag * 2], [tx + 13, ty - 1 + wag * 2], [tx + 4, ty + 5]], shade(B, 0.05));
-      facet([[tx + 9, ty - 6 + wag * 2], [tx + 16, ty - 6 + wag * 3], [tx + 13, ty - 1 + wag * 2]], shade(L.tip || B, 0.1));
-      facet([[tx, ty + 1], [tx + 4, ty + 5], [tx + 13, ty - 1 + wag * 2]], shade(B, -0.18));
-    } else if (L.tail === 'wag' || L.tail === 'curl') {
-      const up = L.tail === 'curl' ? -11 : -6;
-      facet([[tx, ty], [tx + 7, ty + up + wag * 3], [tx + 9, ty + up + 2 + wag * 3], [tx + 1, ty + 3]], shade(B, -0.05));
-    } else if (L.tail === 'puff') {
-      gem([[tx, ty - 1], [tx + 4, ty - 3], [tx + 6, ty + 1], [tx + 3, ty + 4], [tx - 1, ty + 3]], '#ffffff', [0.1, 0, -0.08, -0.15, 0.05]);
-    } else if (L.tail === 'tuft') {
-      facet([[tx, ty], [tx + 9, ty + 4 + wag], [tx + 9, ty + 6 + wag], [tx, ty + 2]], shade(B, -0.08));
-      gem([[tx + 8, ty + 3 + wag], [tx + 12, ty + 2 + wag], [tx + 12, ty + 7 + wag], [tx + 8, ty + 8 + wag]], L.mane, [0.15, 0, -0.15, -0.05]);
-    } else if (L.tail === 'hair') {
-      ['#ff8fab', '#ffd43b', '#8ce99a', '#74c0fc', '#b197fc'].forEach((c, i) =>
-        facet([[tx, ty - 1 + i], [tx + 10, ty + 2 + i * 2 + wag * 2], [tx + 9, ty + 4 + i * 2 + wag * 2], [tx, ty + 1 + i]], shade(c, 0)));
-    } else { // stub
-      gem([[tx - 1, ty], [tx + 3, ty - 1], [tx + 4, ty + 2], [tx, ty + 3]], L.panda ? '#1f1f1f' : B, [0.1, -0.1, -0.2, 0]);
-    }
-
-    // body
-    const by = top - 1;
-    gem([[-9, by - 9], [2, by - 12], [12, by - 11], [17, by - 6], [15, by], [4, by + 2], [-6, by + 1], [-11, by - 4]], B,
-      [0.25, 0.2, 0.05, -0.12, -0.22, -0.2, -0.05, 0.12]);
-    facet([[-9, by - 3], [-5, by + 1], [6, by + 2], [3, by - 3]], shade(L.belly, -0.05));
-    if (L.stripes) for (const x of [2, 7, 12]) facet([[x - 1, by - 11], [x + 1.5, by - 11], [x + 0.5, by - 5]], shade(D, 0));
-    if (L.panda) facet([[-9, by - 9], [2, by - 12], [3, by - 6], [-10, by - 3]], shade('#1f1f1f', 0.1)); // black shoulders
-
-    // near legs
-    leg(12, -0.08, swing, legColor); leg(-3, -0.05, -swing, legColor);
-
-    // head
-    const hx = -13, hy = by - 11 + Math.sin(time * 2 + seed) * 0.6;
-    ctx.save();
-    ctx.translate(hx, hy);
-    // mane behind the head
-    if (L.mane === 'rainbow') {
-      ['#ff8fab', '#ffd43b', '#8ce99a', '#74c0fc', '#b197fc'].forEach((c, i) =>
-        facet([[2 + i * 2, -7 + i], [7 + i * 2, -5 + i * 1.5], [6 + i * 2, 4 + i], [1 + i * 2, 1 + i]], shade(c, 0)));
-    } else if (L.mane) {
-      gem([[-3, -9], [5, -10], [11, -4], [10, 6], [3, 9], [-4, 6], [-7, -2]], L.mane, [0.25, 0.1, -0.1, -0.25, -0.15, 0, 0.15]);
-      if (L.stars) {
-        for (const [x, y, k] of [[6, -6, 0], [8, 3, 1], [0, 6, 2]]) {
-          ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 4 + k + seed)})`;
-          ctx.beginPath(); ctx.arc(x, y, 0.9, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-    }
-    // ears
-    const ear = (x, k) => {
-      if (L.ears === 'pointy') {
-        facet([[x - 2, -5], [x + 0.5, -11], [x + 3, -5]], shade(B, k));
-        facet([[x - 0.8, -5.5], [x + 0.5, -9], [x + 1.8, -5.5]], shade(L.inner || '#ffc9de', k * 0.5));
-      } else if (L.ears === 'long') {
-        facet([[x - 1.5, -5], [x - 1, -16], [x + 2, -16], [x + 2.5, -5]], shade(B, k));
-        facet([[x - 0.4, -6], [x - 0.2, -14.5], [x + 1.2, -14.5], [x + 1.4, -6]], shade(L.inner, k * 0.5));
-      } else if (L.ears === 'round') {
-        gem([[x - 2.5, -5], [x - 2, -8.5], [x + 1.5, -9], [x + 2.8, -5.5]], L.panda ? '#1f1f1f' : B, [0.15, 0.05, -0.1, 0]);
-      } else if (L.ears === 'flop') {
-        facet([[x - 1, -6], [x + 3, -6], [x + 3.5, 1], [x + 0.5, 2]], shade(D, k));
-      }
-    };
-    ear(2.5, -0.15);
-    // skull
-    gem([[-6, -5], [2, -7], [5, -2], [3, 4], [-4, 5], [-7, 1]], B, [0.25, 0.15, -0.05, -0.2, -0.1, 0.12]);
-    // snout
-    const sn = L.snout;
-    facet([[-6, -3], [-7 - sn, -1], [-7 - sn, 2.5], [-4, 4]], shade(B, 0.08));
-    facet([[-7 - sn, 2.5], [-4, 4], [-2, 5], [-6 - sn, 4]], shade(L.belly, -0.12));
-    facet([[-8.2 - sn, -1.2], [-6.8 - sn, -1.6], [-6.6 - sn, 0.6], [-8.4 - sn, 0.6]], L.nose);
-    if (L.tongue && Math.sin(time * 5 + seed) > 0) facet([[-5 - sn, 4], [-3 - sn, 4], [-3.5 - sn, 6.5]], '#ff6b8a');
-    if (L.whiskers) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 0.4;
-      ctx.beginPath(); ctx.moveTo(-6, 1); ctx.lineTo(-12, 0); ctx.moveTo(-6, 2); ctx.lineTo(-12, 3); ctx.stroke();
-    }
-    if (L.panda) facet([[-5, -3.6], [-1.5, -4], [-1, -0.5], [-4.5, 0]], '#1f1f1f');
-    // eye
-    const blink = Math.sin(time * 1.3 + seed * 3) > 0.97;
-    ctx.fillStyle = L.eye || (L.panda ? '#ffffff' : '#1a1a1a');
-    if (blink) ctx.fillRect(-4, -2, 2.4, 0.6);
-    else { ctx.beginPath(); ctx.arc(-2.8, -2, 1.1, 0, Math.PI * 2); ctx.fill(); }
-    if (!blink && !L.eye) { ctx.fillStyle = '#fff'; ctx.fillRect(-3.2, -2.6, 0.6, 0.6); }
-    ear(-0.5, 0.1);
-    if (L.horn) {
-      facet([[-3, -6], [0, -6.5], [-4, -17]], shade(L.horn, 0.15));
-      facet([[-1.5, -6.3], [0, -6.5], [-4, -17]], shade(L.horn, -0.15));
-    }
-    ctx.restore();
-    ctx.restore();
-  }
-  for (const id of Object.keys(BEAST_LOOKS)) LOW_POLY[id] = (time, seed, flying, moving) => drawBeast(BEAST_LOOKS[id], time, seed, moving);
-
-  // 🦖 Lava Rex: a big two-legged dinosaur with glowing lava cracks
-  function drawRex(time, seed, flying, moving) {
-    const B = '#4a1a0e', J = '#7a2a12';
-    const swing = moving ? Math.sin(time * 8 + seed) * 2.5 : 0;
-    const glowA = 0.6 + 0.4 * Math.sin(time * 3 + seed);
-    ctx.save();
-    ctx.translate(0, 10); ctx.scale(0.72, 0.72); ctx.translate(0, -10);
-    // far leg
-    facet([[4, -8], [10, -8], [9 + swing * 0.4, 10], [4 + swing * 0.4, 10]], shade(B, -0.35));
-    // tail
-    const wag = Math.sin(time * 2.5 + seed) * 2;
-    facet([[10, -14], [30, -10 + wag], [12, -5]], shade(B, 0.05));
-    facet([[12, -5], [30, -10 + wag], [33, -8 + wag]], shade(B, -0.2));
-    // body
-    gem([[-7, -19], [4, -18], [12, -14], [12, -5], [3, -1], [-6, -6]], B, [0.25, 0.12, -0.08, -0.25, -0.18, 0.08]);
-    facet([[-6, -6], [-7, -14], [-2, -9], [3, -1]], shade(J, 0));
-    // near leg (big thigh)
-    gem([[2, -12], [10, -12], [12, -4], [7, 0], [1, -4]], B, [0.15, 0, -0.2, -0.25, 0.05]);
-    facet([[3, -1], [8, -1], [8 - swing * 0.4, 10], [2 - swing * 0.4, 10]], shade(B, -0.12));
-    facet([[0 - swing * 0.4, 9], [9 - swing * 0.4, 9], [9 - swing * 0.4, 10.5], [-1 - swing * 0.4, 10.5]], shade(B, -0.25));
-    // tiny arms
-    facet([[-6, -11], [-3, -10], [-8, -6]], shade(B, -0.1));
-    // head with big jaws
-    ctx.save();
-    ctx.translate(-12, -21 + Math.sin(time * 2 + seed) * 0.6);
-    const open = 1.5 + Math.max(0, Math.sin(time * 1.4 + seed)) * 2.5;
-    facet([[-10, 2], [4, 3], [5, 5 + open], [-9, 3 + open]], shade(J, -0.15));   // lower jaw
-    facet([[-10, 2], [3, 2.5], [3, 4 + open * 0.6], [-9, 3 + open]], '#3a0a05'); // mouth
-    ctx.fillStyle = '#fff4d6';
-    for (const tx of [-9, -6.5, -4, -1.5]) {
-      ctx.beginPath(); ctx.moveTo(tx, 2); ctx.lineTo(tx + 1.4, 2); ctx.lineTo(tx + 0.7, 3.8); ctx.fill();
-    }
-    gem([[-11, -2], [-3, -6], [6, -5], [8, 0], [4, 3], [-10, 2]], B, [0.28, 0.2, 0.02, -0.18, -0.1, 0.1]);
-    ctx.fillStyle = '#ffb000';
-    ctx.beginPath(); ctx.arc(0, -2.5, 1.1, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    // glowing lava cracks
-    ctx.strokeStyle = `rgba(255, 120, 0, ${glowA})`; ctx.lineWidth = 0.9;
-    ctx.shadowColor = '#ff6a00'; ctx.shadowBlur = 4;
-    ctx.beginPath();
-    ctx.moveTo(-4, -16); ctx.lineTo(0, -12); ctx.lineTo(-1, -8);
-    ctx.moveTo(6, -15); ctx.lineTo(8, -10); ctx.lineTo(5, -7);
-    ctx.moveTo(15, -11); ctx.lineTo(20, -9);
-    ctx.moveTo(-17, -24); ctx.lineTo(-13, -23); ctx.lineTo(-11, -25);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.restore();
-  }
-  LOW_POLY.rex = drawRex;
-
-  // 🐦 birds: owl, phoenix and dove share a body plan; the penguin stands up straight
-  const BIRD_LOOKS = {
-    owl:     { body: '#7a5230', belly: '#e9d5b5', wing: '#5c3b1e', beak: '#f2a516', eye: '#ffd43b', tufts: true, bigEye: true, tail: 'short' },
-    phoenix: { body: '#e8590c', belly: '#ffd43b', wing: '#c92a2a', beak: '#ffd43b', eye: '#fff3bf', crest: true, tail: 'plume' },
-    dove:    { body: '#f8f9fa', belly: '#ffffff', wing: '#dee2e6', beak: '#ff922b', eye: '#1a1a1a', tail: 'fan' },
-  };
-  function drawBird(L, time, seed, flying) {
-    const B = L.body;
-    const flap = flying ? Math.sin(time * 12 + seed) * 0.7 : 0;
-    // tail
-    if (L.tail === 'plume') {
-      ['#ffd43b', '#ff922b', '#e03131'].forEach((c, i) => {
-        const w = Math.sin(time * 3 + i + seed) * 2;
-        facet([[8, -6 + i], [24, -10 + i * 4 + w], [22, -6 + i * 4 + w], [8, -3 + i]], shade(c, 0.05 - i * 0.05));
-      });
-    } else if (L.tail === 'fan') {
-      facet([[8, -7], [17, -11], [18, -5], [8, -3]], shade(L.wing, 0));
-    } else facet([[8, -6], [14, -7], [13, -3], [8, -3]], shade(L.wing, -0.1));
-    // body
-    gem([[-6, -12], [3, -15], [10, -11], [12, -5], [7, 0], [-2, 1], [-7, -4]], B, [0.25, 0.15, 0, -0.18, -0.22, -0.12, 0.08]);
-    facet([[-7, -4], [-2, 1], [4, 0], [0, -7]], shade(L.belly, -0.02));
-    // legs
-    ctx.strokeStyle = '#e8a33a'; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-1, 9.5); ctx.moveTo(4, 0); ctx.lineTo(4, 9.5); ctx.stroke();
-    // head
-    ctx.save();
-    ctx.translate(-6, -14 + Math.sin(time * 2.4 + seed) * 0.5);
-    if (L.crest) {
-      for (let i = 0; i < 3; i++) {
-        const f = Math.sin(time * 9 + i * 2 + seed) * 1.2;
-        facet([[i * 2 - 1, -4], [i * 2.5 + 2 + f, -12 + i], [i * 2 + 2, -4]], shade(['#ffd43b', '#ff922b', '#e03131'][i], 0.1));
-      }
-    }
-    if (L.tufts) {
-      facet([[-3, -4], [-4, -9], [0, -5]], shade(B, -0.1));
-      facet([[2, -5], [4, -9], [4, -3]], shade(B, -0.2));
-    }
-    gem([[-5, -4], [1, -6], [4, -1], [2, 3], [-4, 3], [-6, 0]], B, [0.25, 0.12, -0.12, -0.2, -0.05, 0.15]);
-    facet([[-6, -1], [-10, 0.5], [-5.5, 1.8]], shade(L.beak, 0.05));
-    if (L.bigEye) {
-      gem([[-5, -3], [-1, -4], [0, 0], [-4, 1]], '#f8f0e0', [0.1, 0, -0.1, 0]);
-      ctx.fillStyle = L.eye; ctx.beginPath(); ctx.arc(-2.6, -1.6, 1.4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-2.6, -1.6, 0.7, 0, Math.PI * 2); ctx.fill();
-    } else {
-      ctx.fillStyle = L.eye; ctx.beginPath(); ctx.arc(-2.5, -1.5, 0.9, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
-    // wing (flaps when flying)
-    ctx.save();
-    ctx.translate(2, -10);
-    ctx.rotate(-0.15 - flap);
-    facet([[0, 0], [8, -3], [14, 1], [6, 4]], shade(L.wing, 0.05));
-    facet([[8, -3], [16, -2], [14, 1]], shade(L.wing, -0.1));
-    facet([[0, 0], [6, 4], [-1, 3]], shade(L.wing, -0.2));
-    ctx.restore();
-  }
-  for (const id of Object.keys(BIRD_LOOKS)) LOW_POLY[id] = (time, seed, flying) => drawBird(BIRD_LOOKS[id], time, seed, flying);
-
-  LOW_POLY.penguin = (time, seed, flying, moving) => {
-    const flip = moving ? Math.sin(time * 10 + seed) * 0.5 : Math.sin(time * 2 + seed) * 0.1;
-    facet([[-4, 9], [1, 9], [0, 10.5], [-6, 10.5]], '#ff922b'); facet([[2, 9], [7, 9], [6, 10.5], [0, 10.5]], '#e8590c');
-    gem([[-6, -14], [2, -16], [7, -10], [7, 2], [3, 9], [-4, 9], [-7, 1], [-8, -7]], '#1f2933', [0.25, 0.15, -0.05, -0.2, -0.25, -0.15, 0, 0.15]);
-    facet([[-6, -8], [-1, -10], [1, 2], [-3, 8.5], [-6, 2]], shade('#ffffff', -0.02));
-    facet([[-6, -8], [-1, -10], [-2, -12]], shade('#ffffff', 0.05));
-    facet([[-7, -11], [-12, -10], [-7, -9]], '#ff922b');
-    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-4, -12, 0.9, 0, Math.PI * 2); ctx.fill();
-    ctx.save(); ctx.translate(3, -7); ctx.rotate(0.2 + flip);
-    facet([[0, 0], [4, 1], [3, 10], [0, 7]], shade('#1f2933', 0.1));
-    ctx.restore();
-  };
-
-  // 🐙 Kraken: a purple dome with waving tentacles
-  LOW_POLY.kraken = (time, seed) => {
-    const C = '#7048e8';
-    for (let i = 0; i < 6; i++) {
-      const x = -8 + i * 3.4, w = Math.sin(time * 3 + i + seed) * 3;
-      facet([[x, -4], [x + 2.6, -4], [x + 1.5 + w, 6], [x + 2.5 + w * 1.4, 10], [x + w * 1.2, 7]], shade(C, i % 2 ? -0.25 : -0.12));
-    }
-    gem([[-11, -6], [-8, -16], [0, -21], [8, -16], [11, -6], [5, -2], [-5, -2]], C, [0.12, 0.3, 0.22, 0.02, -0.18, -0.25, -0.05]);
-    for (const x of [-4, 3]) {
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, -8, 2, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(x - 0.5, -8, 1, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = shade(C, 0.45);
-    for (const [x, y] of [[-4, -15], [3, -17], [6, -11]]) { ctx.beginPath(); ctx.arc(x, y, 0.9, 0, Math.PI * 2); ctx.fill(); }
-  };
-
-  // 🐋 Cosmic Whale: a big blue whale with stars on its back
-  LOW_POLY.whale = (time, seed) => {
-    const C = '#1c4fb8', tail = Math.sin(time * 2.5 + seed) * 3;
-    facet([[16, -8], [26, -14 + tail], [24, -8 + tail * 0.5], [27, -2 + tail]], shade(C, -0.1));
-    gem([[-18, -8], [-8, -16], [6, -15], [17, -10], [18, -6], [8, 1], [-8, 2], [-19, -2]], C, [0.18, 0.28, 0.16, 0, -0.15, -0.25, -0.18, -0.02]);
-    facet([[-19, -2], [-8, 2], [8, 1], [4, -3], [-16, -4]], shade('#e7f5ff', -0.05));
-    facet([[0, -2], [6, -1], [3, 5]], shade(C, -0.3));
-    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-12, -6, 1, 0, Math.PI * 2); ctx.fill();
-    for (const [x, y, k] of [[-6, -13, 0], [2, -14, 1], [9, -11, 2], [-1, -10, 3]]) {
-      ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 4 + k + seed)})`;
-      ctx.beginPath(); ctx.arc(x, y, 0.8, 0, Math.PI * 2); ctx.fill();
-    }
-    const spout = (time + seed) % 4;
-    if (spout < 1) {
-      ctx.fillStyle = 'rgba(165, 216, 255, 0.8)';
-      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(-9 + (i - 1) * 2, -18 - spout * 6 - i, 1.2, 0, Math.PI * 2); ctx.fill(); }
-    }
-  };
-
-  // 🦈 Thunder Shark: a blue-grey shark with a big grin
-  LOW_POLY.shark = (time, seed) => {
-    const C = '#4d7ea8', tail = Math.sin(time * 4 + seed) * 2.5;
-    facet([[16, -7], [25, -15 + tail], [22, -6 + tail * 0.5]], shade(C, 0.05));
-    facet([[16, -5], [22, -6 + tail * 0.5], [24, 1 + tail]], shade(C, -0.2));
-    facet([[0, -11], [6, -20], [9, -11]], shade(C, 0.1));
-    gem([[-19, -5], [-8, -11], [8, -11], [17, -7], [17, -4], [6, 0], [-10, 0]], C, [0.25, 0.18, 0.05, -0.12, -0.22, -0.15, 0.05]);
-    facet([[-19, -5], [-10, 0], [6, 0], [0, -3], [-14, -3]], shade('#f1f3f5', -0.05));
-    facet([[-2, -2], [5, -1], [1, 5]], shade(C, -0.25));
-    facet([[-17, -3.2], [-10, -2.6], [-11, -1], [-16, -1.8]], '#2b0a0a');
-    ctx.fillStyle = '#fff';
-    for (const tx of [-16, -14, -12]) { ctx.beginPath(); ctx.moveTo(tx, -3); ctx.lineTo(tx + 1.2, -3); ctx.lineTo(tx + 0.6, -1.6); ctx.fill(); }
-    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-12, -7, 0.9, 0, Math.PI * 2); ctx.fill();
-    for (const x of [-7, -5.5, -4]) { ctx.strokeStyle = shade(C, -0.35); ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(x, -8); ctx.lineTo(x - 0.6, -4.5); ctx.stroke(); }
-  };
+  // only the ⚡ Cyber Hydra is drawn as a model; every other pet is its emoji
+  const LOW_POLY = {}; // pet id -> function that draws its model
+  for (const id of Object.keys(DRAGON_LOOKS)) LOW_POLY[id] = (time, seed, flying) => drawDragonModel(DRAGON_LOOKS[id], time, seed, flying);
 
   // pictures of the low-poly pets for the pet lists (made once each)
   const petIcons = {};
@@ -5033,19 +4795,60 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         break;
       }
       case 'hydra': {
-        // ⚡ Cyber Hydra, the best pet: a cyan glow and blue lightning crackling all around it
+        // ⚡ Cyber Hydra, the best pet: EPIC cyber power all around it
         const pulse = 1 + Math.sin(time * 5) * 0.1;
-        glow(x, y - 10, 85 * pulse, '46, 232, 255', 0.45);
-        glow(x, y - 10, 40, '160, 250, 255', 0.35);
-        if (Math.random() < 0.7) {
+        const gx = pp.x, gy = pp.y + 9;
+        // a glowing circuit platform on the ground with spinning hexagon rings
+        glow(gx, gy, 85, '46, 232, 255', 0.3);
+        ctx.save();
+        ctx.translate(gx, gy); ctx.scale(1, 0.32);
+        hexagon(0, 0, 62, time * 0.7, 1.4, 0.9);
+        hexagon(0, 0, 44, -time * 1.2, 1, 0.75);
+        for (let k = 0; k < 12; k++) {
+          const a = k * Math.PI / 6 + time * 0.7;
+          seam([[Math.cos(a) * 64, Math.sin(a) * 64], [Math.cos(a) * 74, Math.sin(a) * 74]], 0.8);
+        }
+        ctx.restore();
+        // the big energy aura
+        glow(x, y - 12, 100 * pulse, '46, 232, 255', 0.42);
+        glow(x, y - 12, 48, '217, 253, 255', 0.38);
+        // three energy orbs flying around it, linked to it by lightning
+        for (let k = 0; k < 3; k++) {
+          const a = time * 1.8 + k * 2.094 + seed;
+          const ox = x + Math.cos(a) * 58, oy = y - 16 + Math.sin(a) * 20;
+          glow(ox, oy, 16, '46, 232, 255', 0.7);
+          cyberRing(ox, oy, 3.2);
+          if (Math.random() < 0.45) zap(ox, oy, x + rnd() * 16, y - 14 + rnd() * 10, 5, 0.9);
+        }
+        // crackling lightning close around its body
+        if (Math.random() < 0.8) {
           for (let k = 0; k < 2; k++) {
-            const a = Math.random() * Math.PI * 2, r1 = 22 + Math.random() * 8, r2 = 40 + Math.random() * 18;
+            const a = Math.random() * Math.PI * 2, r1 = 22 + Math.random() * 8, r2 = 42 + Math.random() * 20;
             zap(x + Math.cos(a) * r1, y - 12 + Math.sin(a) * r1 * 0.7, x + Math.cos(a + 0.4) * r2, y - 12 + Math.sin(a + 0.4) * r2 * 0.6, 4);
           }
         }
-        const beat = (time + seed) % 3;
-        if (beat < dt) petSpark(x, y - 8, { shape: 'ring', color: CYAN, vy: 0, life: 0.9, size: 22, grow: 130 });
-        if (beat < 1) breathe(x, y, pp.facing, [CYAN, '#d9fdff', '#7ff6ff', '#ffffff'], rnd);
+        // glowing hexagon sparks rising up
+        if (chance(14)) petSpark(x + rnd() * 90, y + 6, { shape: 'hex', color: CYAN, vy: -45, vx: rnd() * 10, life: 1.4, size: 2 + Math.random() * 3 });
+        // every few seconds: a giant lightning bolt strikes it from the sky
+        const strike = (time + seed * 0.7) % 4.5;
+        if (strike < 0.22) {
+          zap(x + rnd() * 60, y - 230, x, y - 20, 22, 3);
+          zap(x + rnd() * 80, y - 200, x + rnd() * 10, y - 30, 16, 1.8);
+          glow(x, y - 20, 140, '217, 253, 255', 0.55 * (1 - strike / 0.22));
+          if (strike < dt) {
+            petSpark(gx, gy, { shape: 'ring', color: CYAN, vy: 0, life: 1, size: 18, grow: 220 });
+            for (let k = 0; k < 14; k++) petSpark(x, y - 16, { shape: 'hex', color: k % 2 ? '#d9fdff' : CYAN, vx: rnd() * 260, vy: rnd() * 200 - 60, life: 0.8, size: 3 });
+          }
+        }
+        // triple plasma beams from all three heads
+        const beam = (time + seed) % 3.4;
+        if (beam < 1.1) {
+          const len = Math.min(1, beam * 4) * 150, f = pp.facing, wv = 7 + Math.sin(time * 40) * 1.5;
+          for (const [dy, hx] of [[-14, 18], [-30, 8], [-27, 26]]) {
+            plasmaBeam(x + f * hx, y + dy, x + f * (hx + len), y + dy + 10, wv);
+            if (Math.random() < 0.5) petSpark(x + f * (hx + len), y + dy + 10, { shape: 'hex', color: '#d9fdff', vx: f * 60 + rnd() * 80, vy: rnd() * 80, life: 0.5, size: 2.5 });
+          }
+        }
         break;
       }
       case 'infinity': {
@@ -5079,6 +4882,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.textBaseline = 'bottom';
     // emoji pets get a soft glow in their rarity color (low-poly pets are drawn from many pieces, so they skip it)
     if (r.order >= 2 && !LOW_POLY[pet.id]) { ctx.shadowColor = r.color === '#111111' ? '#ff5a00' : r.color; ctx.shadowBlur = 14; }
+    if (pet.fx === 'hydra' && pp.moving) {
+      // glowing ghost copies trailing behind it when it moves
+      for (const [off, a] of [[16, 0.22], [30, 0.1]]) {
+        ctx.save(); ctx.globalAlpha = a; ctx.translate(off, 0);
+        LOW_POLY[pet.id](time - off * 0.01, seed, true, true);
+        ctx.restore();
+      }
+    }
     if (LOW_POLY[pet.id]) LOW_POLY[pet.id](time, seed, pet.kind === 'fly' || pet.kind === 'swim', pp.moving);
     else ctx.fillText(pet.emoji, 0, 10); // drawn from its feet, so squishing and sitting look right
     ctx.restore();
@@ -5143,6 +4954,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           break;
         case 'print': // a burning footprint
           ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+          break;
+        case 'hex': // a little glowing hexagon spark
+          hexagon(p.x, p.y, p.size, p.t * 3, 0.6, a);
           break;
         case 'ring': // a shockwave
           ctx.strokeStyle = p.color; ctx.lineWidth = 4 * a;
@@ -5669,11 +5483,28 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           }
         }
         break;
-      case 'robo': // ⚡ Robo Ice Cream: a cyan glow and little lightning bolts crackling around it
-        if (back) glow(x, y, r * 3.2, '46, 232, 255', 0.35 + 0.25 * pulse);
-        else if (Math.random() < 0.35) {
-          const a = Math.random() * Math.PI * 2;
-          zap(x + Math.cos(a) * r * 0.9, y + Math.sin(a) * r * 0.9, x + Math.cos(a + 0.5) * r * 2, y + Math.sin(a + 0.5) * r * 2, r * 0.25, Math.max(0.35, r * 0.08));
+      case 'robo': // ⚡ Robo Ice Cream: a big cyan glow, two spinning energy rings with sparks on them, and lightning
+        if (back) {
+          glow(x, y, r * 3.8, '46, 232, 255', 0.4 + 0.25 * pulse);
+          glow(x, y, r * 1.8, '217, 253, 255', 0.25 + 0.2 * pulse);
+        } else {
+          const w = Math.max(0.35, r * 0.07);
+          for (const [tilt, speed] of [[0.5, 3], [-0.6, -2.4]]) {
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(tilt); ctx.scale(1, 0.32);
+            ctx.globalAlpha = 0.75;
+            ctx.strokeStyle = CYAN; ctx.lineWidth = w * 1.4; ctx.shadowColor = CYAN; ctx.shadowBlur = r * 0.6;
+            ctx.beginPath(); ctx.arc(0, 0, r * 1.7, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = 1;
+            const a = t * speed;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(Math.cos(a) * r * 1.7, Math.sin(a) * r * 1.7, r * 0.2, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          }
+          if (Math.random() < 0.6) {
+            const a = Math.random() * Math.PI * 2;
+            zap(x + Math.cos(a) * r * 0.9, y + Math.sin(a) * r * 0.9, x + Math.cos(a + 0.5) * r * 2.4, y + Math.sin(a + 0.5) * r * 2.4, r * 0.3, w * 1.2);
+          }
         }
         break;
       case 'infinity': // ♾️ Infinity Swirl, the best ice cream: color-changing glow and stars flying in an infinity loop
@@ -5840,6 +5671,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.translate(p.x, p.y);
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath(); ctx.ellipse(0, 18, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+    const roboParts = ['shirt', 'pants', 'skin', 'hat', 'face'].filter(k => av[k] === 'robo').length;
+    if (roboParts) {
+      // ⚡ robo parts glow, and a full robot crackles with lightning
+      glow(0, -18, 26 + roboParts * 4, '46, 232, 255', 0.08 * roboParts);
+      if (roboParts >= 4 && Math.random() < 0.3) {
+        const a = Math.random() * Math.PI * 2;
+        zap(Math.cos(a) * 14, -18 + Math.sin(a) * 18, Math.cos(a + 0.6) * 28, -18 + Math.sin(a + 0.6) * 30, 4, 0.8);
+      }
+      if (p.moving && Math.random() < 0.2) petSpark(p.x + (Math.random() - 0.5) * 12, p.y + 16, { shape: 'hex', color: CYAN, vy: -30, life: 0.6, size: 2 });
+    }
     ctx.scale(1.7 * (p.facing || 1), 1.7);
     const y = -bounce / 1.7;
     // legs
@@ -6193,19 +6034,48 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // ⚡ Cyber mutation: blue lightning striking all over the park
   const cyberBolts = [];
+  let cyberFlash = 0;
   function drawCyberGrid(time, share) {
-    if (Math.random() < 0.06 * Math.max(share, 0.5)) {
-      const x = Math.random() * world.width, y = Math.random() * world.height * 0.6;
-      cyberBolts.push({ x, y, x2: x + (Math.random() - 0.5) * 160, y2: y + 160 + Math.random() * 220, life: 0.35 });
+    const k = Math.max(share, 0.5);
+    // a glowing hexagon wave slowly sweeping across the whole park
+    const sweep = ((time * 160) % (world.width + 600)) - 300;
+    for (let y = 30; y < world.height; y += 70) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const hx = sweep + dx * 60 + ((y / 70) % 2) * 30;
+        hexagon(hx, y, 26, 0, 1, (1 - Math.abs(dx) / 2.5) * 0.35 * k, true);
+      }
+    }
+    // lightning strikes: big bolts from the sky with branches, a shockwave and sparks where they land
+    if (Math.random() < 0.07 * k) {
+      const x2 = Math.random() * world.width, y2 = 200 + Math.random() * (world.height - 220);
+      cyberBolts.push({ x: x2 + (Math.random() - 0.5) * 200, y: -20, x2, y2, life: 0.4, big: Math.random() < 0.2 });
+      if (cyberBolts[cyberBolts.length - 1].big) {
+        cyberFlash = Math.max(cyberFlash, 0.12); // a soft flash (gentle and not too often, so it never strobes)
+        petSpark(x2, y2, { shape: 'ring', color: CYAN, vy: 0, life: 1, size: 20, grow: 260 });
+        for (let i = 0; i < 16; i++) petSpark(x2, y2, { shape: 'hex', color: i % 2 ? '#d9fdff' : CYAN, vx: (Math.random() - 0.5) * 320, vy: -Math.random() * 260, life: 0.9, size: 3 });
+      }
     }
     for (let i = cyberBolts.length - 1; i >= 0; i--) {
       const bolt = cyberBolts[i];
       bolt.life -= 1 / 60;
       if (bolt.life <= 0) { cyberBolts.splice(i, 1); continue; }
-      glow(bolt.x2, bolt.y2, 60, '46, 232, 255', 0.25);
-      zap(bolt.x, bolt.y, bolt.x2, bolt.y2, 18, 2.4);
-      const mx = (bolt.x + bolt.x2) / 2, my = (bolt.y + bolt.y2) / 2;
-      zap(mx, my, mx + (Math.random() - 0.5) * 90, my + 40 + Math.random() * 60, 10, 1.4); // a branch
+      const w = bolt.big ? 3.2 : 2;
+      glow(bolt.x2, bolt.y2, bolt.big ? 120 : 60, '46, 232, 255', 0.35);
+      zap(bolt.x, bolt.y, bolt.x2, bolt.y2, 26, w);
+      for (let b = 0; b < (bolt.big ? 3 : 1); b++) {
+        const f = 0.3 + Math.random() * 0.5, mx = bolt.x + (bolt.x2 - bolt.x) * f, my = bolt.y + (bolt.y2 - bolt.y) * f;
+        zap(mx, my, mx + (Math.random() - 0.5) * 140, my + 50 + Math.random() * 90, 12, w * 0.55); // branches
+      }
+    }
+    // sparks crackling on the ground here and there
+    if (Math.random() < 0.25 * k) {
+      const sx = Math.random() * world.width, sy = Math.random() * world.height;
+      zap(sx, sy, sx + (Math.random() - 0.5) * 50, sy + (Math.random() - 0.5) * 30, 6, 0.9);
+    }
+    if (cyberFlash > 0) {
+      ctx.fillStyle = `rgba(160, 245, 255, ${cyberFlash})`;
+      ctx.fillRect(0, 0, world.width, world.height);
+      cyberFlash = Math.max(0, cyberFlash - 0.012);
     }
   }
 

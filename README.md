@@ -86,8 +86,6 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   - The 🐉 Dragon (+500%) is Secret. Even better are the new pet rarities: **Celestial** (🦖 Lava Rex +700%,
     🦈 Thunder Shark +800%), **Divine** (🕊️ Angel Dove +1,200%, 🐲 Dragon King +1,500%) and **Infinity**
     (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
-  - Every pet is drawn in a **low-poly 3D style** (flat-shaded triangles, like Roblox pets): dragons with big
-    wings, horns and toothy open jaws, four-legged animals, birds, and sea creatures. They walk, flap and swish.
   - Press **🐾 My Pets** to see every pet you have (each one gets its own card) and pick which ones follow you.
     You can wear up to **3 pets at once**: they follow you in a little line and their money boosts add up.
     **⭐ Equip Best** puts on your 3 best pets. New pets go on by themselves if you're wearing fewer than 3.
