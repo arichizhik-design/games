@@ -128,7 +128,7 @@
       { id: 'cyberwhale',    name: 'Cyber Whale',    emoji: '🐋', rarity: 'cyber',     boost: 50,  fx: 'cyberwhale', kind: 'swim', event: 'cyber', block: 'cyber' },
     );
     LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 2e9, color: 'cyber', event: 'cyber', ownPets: true,
-      odds: { legendary: 30.5, mythic: 15, secret: 50, celestial: 4, cyber: 0.5 } }); // Mammoth and Dolphin 2% each
+      odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, cyber: 0.5 } }); // Mammoth and Dolphin 2% each
   }
 
   // ⚡ Cyber Pass: sell scoops during the event to unlock prizes. The bottom row needs the Premium Pass.

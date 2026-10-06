@@ -105,7 +105,7 @@ Cyber mutation or the Passes (not even on an admin), keeps the old 14 stand spac
 Cyber stuff. To show it to everyone online, set `CYBER=1` on the server (an environment variable on Render).
 
 - **Cyber Block** in the Pet Shop ($2B), only during the event week (Oct 5 to Oct 12, 2026). It has these odds:
-  Legendary 30.5%, Mythic 15%, Secret (the Tiger) 50%, Mammoth 2%, Dolphin 2%, Cyber Whale 0.5%. It has its own all-cyber pets that no other
+  Legendary 72.5%, Mythic 15%, Secret (the Tiger) 8%, Mammoth 2%, Dolphin 2%, Cyber Whale 0.5%. It has its own all-cyber pets that no other
   block gives: 🦂 Cyber Scorpion and 🦇 Cyber Bat (Legendary), 🦍 Cyber Gorilla and 🦕 Cyber Dino (Mythic),
   🐅 Cyber Tiger (Secret), 🦣 Cyber Mammoth and 🐬 Cyber Dolphin (Celestial). Each is made of dark armor with glowing
   cyan cracks, with cyber effects that get bigger the rarer it is. It's the only way to get
