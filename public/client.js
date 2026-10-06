@@ -529,7 +529,7 @@
     const ev = evs[0];
     box.classList.toggle('active', !!ev);
     // light-colored mutations get dark text so it stays readable
-    const light = evs.length === 1 && ['diamond', 'gold', 'sakura'].includes(ev.id);
+    const light = evs.length === 1 && ['diamond', 'gold', 'sakura', 'cyber'].includes(ev.id);
     box.style.color = light ? '#5a4300' : '';
     box.style.textShadow = light ? '0 1px 2px rgba(255,255,255,0.8)' : '';
     if (evs.length > 1) {
@@ -1497,10 +1497,9 @@
         const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
         b.className = 'avOpt' + (isColor ? ' swatch' : '') + (avatarDraft[part] === value ? ' on' : '');
         if (isColor) {
-          b.style.background = value === 'stand' ? s.color
-            : value === 'robo' ? 'linear-gradient(135deg, #e9eef3, #8996a3 50%, #c3ccd6)' : value;
+          if (value === 'robo') b.classList.add('robo'); // the cyber ring look
+          else b.style.background = value === 'stand' ? s.color : value;
           b.title = value === 'stand' ? 'Your stand color' : value === 'robo' ? 'Robo' : '';
-          if (value === 'robo') b.textContent = '🤖';
         } else b.textContent = AVATAR_LABELS[part][value];
         b.addEventListener('click', () => {
           avatarDraft[part] = value; // try it on in the preview; Save makes it your look
@@ -2180,12 +2179,42 @@
     pts.forEach((p, i) => facet([[cx, cy], p, pts[(i + 1) % pts.length]], shade(base, shades[i % shades.length])));
   }
 
+  // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
+  const CYAN = '#2ee8ff';
+  function seam(pts, w = 1) {
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.shadowColor = CYAN; ctx.shadowBlur = 6 * w;
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 1.3 * w;
+    ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.strokeStyle = '#d9fdff'; ctx.lineWidth = 0.45 * w; ctx.stroke();
+    ctx.restore();
+  }
+  function cyberRing(x, y, r) {
+    ctx.save();
+    ctx.fillStyle = '#0b1116';
+    ctx.beginPath(); ctx.arc(x, y, r * 1.25, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = CYAN; ctx.shadowBlur = r * 3;
+    ctx.strokeStyle = CYAN; ctx.lineWidth = r * 0.45;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.strokeStyle = '#d9fdff'; ctx.lineWidth = r * 0.16;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  // a jagged lightning bolt (it's different every frame, so it crackles)
+  function zap(x1, y1, x2, y2, jit = 4, w = 1) {
+    const pts = [[x1, y1]], n = 6;
+    for (let i = 1; i < n; i++) pts.push([x1 + (x2 - x1) * i / n + (Math.random() - 0.5) * jit * 2, y1 + (y2 - y1) * i / n + (Math.random() - 0.5) * jit * 2]);
+    pts.push([x2, y2]);
+    seam(pts, w);
+  }
+
   // 🐉 the low-poly dragon (Dragon, Dragon King, Infinity Dragon and the three-headed Cyber Hydra)
   const DRAGON_LOOKS = {
     dragon:     { body: '#d7262b', belly: '#eadbc0', horn: '#2b2b2b', wing: '#b51d22', claw: '#2b2b2b', eye: '#ffd43b' },
     dragonking: { body: '#e8b21c', belly: '#fff3c4', horn: '#ffffff', wing: '#c98f00', claw: '#7a5200', eye: '#e03131' },
     infinity:   { body: 'rainbow', belly: '#ffffff', horn: '#3b1f6b', wing: 'rainbow', claw: '#3b1f6b', eye: '#ffffff' },
-    hydra:      { body: '#16808a', belly: '#7dfff0', horn: '#04121c', wing: '#0e5a62', claw: '#04121c', eye: '#00ffd5', heads: 3 },
+    hydra:      { body: '#2c343c', belly: '#3a444e', horn: '#0b0f13', wing: '#222a31', claw: '#0b0f13', eye: CYAN, heads: 3, cyber: true },
   };
 
   function drawDragonHead(look, hx, hy, tilt, k, time, ph) {
@@ -2217,7 +2246,10 @@
     // nostril and eye
     ctx.fillStyle = shade(B, -0.5);
     ctx.fillRect(-13.5, -2, 1.4, 0.9);
+    if (look.cyber) { ctx.shadowColor = CYAN; ctx.shadowBlur = 6; }
     facet([[-5, -3.6], [-1.5, -4.4], [-1, -2.6], [-4.5, -2.2]], look.eye);
+    ctx.shadowBlur = 0;
+    if (look.cyber) seam([[3, -3], [-2, -1], [-8, -2]], 0.7);
     ctx.fillStyle = '#111';
     ctx.fillRect(-3.2, -4, 0.9, 1.7);
     ctx.restore();
@@ -2240,9 +2272,13 @@
       facet([[8, -6], [17, -26], [30, -14]], shade(look.wing, 0.12 + k));
       facet([[8, -6], [30, -14], [26, -2]], shade(look.wing, k));
       facet([[0, 0], [8, -6], [6, 2]], shade(look.wing, -0.22 + k));
-      ctx.strokeStyle = shade(look.claw, 0.1); ctx.lineWidth = 1.4; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(8, -6); ctx.lineTo(17, -26);
-      ctx.moveTo(8, -6); ctx.lineTo(30, -14); ctx.moveTo(8, -6); ctx.lineTo(26, -2); ctx.stroke();
+      if (look.cyber) { // glowing cyan bones
+        seam([[0, 0], [8, -6], [17, -26]], 1.2); seam([[8, -6], [30, -14]], 1.2); seam([[8, -6], [26, -2]], 1.2);
+      } else {
+        ctx.strokeStyle = shade(look.claw, 0.1); ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(8, -6); ctx.lineTo(17, -26);
+        ctx.moveTo(8, -6); ctx.lineTo(30, -14); ctx.moveTo(8, -6); ctx.lineTo(26, -2); ctx.stroke();
+      }
       ctx.fillStyle = look.claw;
       ctx.beginPath(); ctx.moveTo(17, -26); ctx.lineTo(16, -30); ctx.lineTo(19, -26.5); ctx.fill();
       ctx.restore();
@@ -2286,7 +2322,16 @@
       facet([[-6, -16], [mx + 2, my - 3], [mx - 3, my + 3], [-10, -9]], shade(B, 0.16 + k));
       facet([[mx + 2, my - 3], [hx + 4, hy - 3], [hx - 1, hy + 3], [mx - 3, my + 3]], shade(B, 0.06 + k));
       facet([[-10, -9], [mx - 3, my + 3], [mx - 1, my + 5]], shade(J, -0.05 + k));
+      if (look.cyber) seam([[-7, -13], [mx, my], [hx + 2, hy + 1]], 1);
       drawDragonHead(look, hx, hy, tilt, k, time, ph + seed);
+    }
+    if (look.cyber) {
+      // glowing cracks between the armor plates, and the ring core on its chest
+      seam([[-6, -16], [-1, -12], [5, -13], [10, -9], [18, -10], [22, -7]], 1.1);
+      seam([[6, -20], [5, -13]], 1); seam([[12, -9], [14, 1]], 1);
+      seam([[-8, -2], [0, -4], [8, -2], [14, -3]], 0.9);
+      seam([[22, -6], [32, -8], [44, -5]], 0.9);
+      cyberRing(1, -8, 3.4 + Math.sin(time * 4 + seed) * 0.3);
     }
     wing(1, -16, -0.5 - flap * 1.1, 0.08); // front wing
     ctx.restore();
@@ -2767,24 +2812,19 @@
         break;
       }
       case 'hydra': {
-        // ⚡ Cyber Hydra, the best pet: a neon circuit ring, flying data bits and glitchy flashes
+        // ⚡ Cyber Hydra, the best pet: a cyan glow and blue lightning crackling all around it
         const pulse = 1 + Math.sin(time * 5) * 0.1;
-        glow(x, y - 8, 80 * pulse, '0, 255, 213', 0.45);
-        glow(x, y - 8, 40, '0, 255, 102', 0.4);
-        ctx.save();
-        ctx.translate(x, y - 8);
-        ctx.scale(1, 0.42);
-        ctx.strokeStyle = 'rgba(0, 255, 213, 0.85)';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([12, 6, 3, 6]);
-        ctx.lineDashOffset = -time * 60;
-        ctx.beginPath(); ctx.arc(0, 0, 62, 0, Math.PI * 2); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.restore();
-        if (chance(18)) petSpark(x + rnd() * 80, y + rnd() * 30, { shape: 'bit', color: Math.random() < 0.5 ? '#00ff66' : '#7df9ff', vy: -40, life: 1, size: 10, text: Math.random() < 0.5 ? '0' : '1' });
+        glow(x, y - 10, 85 * pulse, '46, 232, 255', 0.45);
+        glow(x, y - 10, 40, '160, 250, 255', 0.35);
+        if (Math.random() < 0.7) {
+          for (let k = 0; k < 2; k++) {
+            const a = Math.random() * Math.PI * 2, r1 = 22 + Math.random() * 8, r2 = 40 + Math.random() * 18;
+            zap(x + Math.cos(a) * r1, y - 12 + Math.sin(a) * r1 * 0.7, x + Math.cos(a + 0.4) * r2, y - 12 + Math.sin(a + 0.4) * r2 * 0.6, 4);
+          }
+        }
         const beat = (time + seed) % 3;
-        if (beat < dt) petSpark(x, y - 8, { shape: 'ring', color: '#00ffd5', vy: 0, life: 0.9, size: 22, grow: 130 });
-        if (beat < 1) breathe(x, y, pp.facing, ['#00ffd5', '#00ff66', '#ffffff', '#7df9ff'], rnd);
+        if (beat < dt) petSpark(x, y - 8, { shape: 'ring', color: CYAN, vy: 0, life: 0.9, size: 22, grow: 130 });
+        if (beat < 1) breathe(x, y, pp.facing, [CYAN, '#d9fdff', '#7ff6ff', '#ffffff'], rnd);
         break;
       }
       case 'infinity': {
@@ -3090,18 +3130,20 @@
       return;
     }
     if (f.effect === 'robo') {
-      // ⚡ Robo Ice Cream: shiny metal with panel lines and bolts
+      // ⚡ Robo Ice Cream: dark armor plates with glowing cyan cracks and a glowing ring core
       const g = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
-      g.addColorStop(0, '#f1f5f9'); g.addColorStop(0.45, '#9aa7b4'); g.addColorStop(0.55, '#c3ccd6'); g.addColorStop(1, '#5f6b78');
+      g.addColorStop(0, '#4a545e'); g.addColorStop(0.5, '#262d34'); g.addColorStop(1, '#11161a');
       ctx.fillStyle = g;
       outline(); ctx.fill();
       ctx.save();
       outline(); ctx.clip();
-      ctx.strokeStyle = 'rgba(40,50,60,0.55)'; ctx.lineWidth = Math.max(0.4, r * 0.07);
-      ctx.beginPath(); ctx.moveTo(x - r, y - r * 0.15); ctx.lineTo(x + r, y - r * 0.15); ctx.stroke();
-      ctx.fillStyle = '#4a5560';
-      for (const dx of [-0.55, 0.55]) { ctx.beginPath(); ctx.arc(x + dx * r, y - r * 0.4, r * 0.09, 0, Math.PI * 2); ctx.fill(); }
+      const w = Math.max(0.35, r * 0.09);
+      seam([[x - r, y - r * 0.35], [x - r * 0.4, y - r * 0.3], [x - r * 0.1, y - r * 0.55], [x + r * 0.5, y - r * 0.4], [x + r, y - r * 0.5]], w);
+      seam([[x - r * 0.1, y - r * 0.55], [x, y - r]], w);
+      seam([[x - r * 0.75, y - r * 0.3], [x - r * 0.8, y + r]], w);
+      seam([[x + r * 0.7, y - r * 0.45], [x + r * 0.75, y + r]], w);
       ctx.restore();
+      cyberRing(x, y - r * 0.05, r * 0.32);
       return;
     }
     if (f.effect === 'infinity') {
@@ -3406,17 +3448,11 @@
           }
         }
         break;
-      case 'robo': // ⚡ Robo Ice Cream: cyan glow, glowing robot eyes and an antenna with a blinking light
-        if (back) glow(x, y, r * 3, '0, 255, 213', 0.35 + 0.25 * pulse);
-        else {
-          ctx.fillStyle = '#00ffd5';
-          ctx.shadowColor = '#00ffd5'; ctx.shadowBlur = r * 0.8;
-          for (const dx of [-0.32, 0.32]) ctx.fillRect(x + dx * r - r * 0.14, y - r * 0.05, r * 0.28, r * 0.18);
-          ctx.shadowBlur = 0;
-          ctx.strokeStyle = '#6c7a89'; ctx.lineWidth = Math.max(0.5, r * 0.1);
-          ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x, y - r * 1.55); ctx.stroke();
-          ctx.fillStyle = Math.sin(t * 6) > 0 ? '#ff3b3b' : '#8a1010';
-          ctx.beginPath(); ctx.arc(x, y - r * 1.62, r * 0.16, 0, Math.PI * 2); ctx.fill();
+      case 'robo': // ⚡ Robo Ice Cream: a cyan glow and little lightning bolts crackling around it
+        if (back) glow(x, y, r * 3.2, '46, 232, 255', 0.35 + 0.25 * pulse);
+        else if (Math.random() < 0.35) {
+          const a = Math.random() * Math.PI * 2;
+          zap(x + Math.cos(a) * r * 0.9, y + Math.sin(a) * r * 0.9, x + Math.cos(a + 0.5) * r * 2, y + Math.sin(a + 0.5) * r * 2, r * 0.25, Math.max(0.35, r * 0.08));
         }
         break;
       case 'infinity': // ♾️ Infinity Swirl, the best ice cream: color-changing glow and stars flying in an infinity loop
@@ -3575,7 +3611,7 @@
   // a player's character: bigger than customers, dressed the way they picked in the Avatar Shop
   function drawPlayer(p, time) {
     const av = p.avatar || {};
-    const ROBO = { shirt: '#9aa5b1', pants: '#4a5560', skin: '#c3ccd6' }; // ⚡ robo parts are shiny metal
+    const ROBO = { shirt: '#2c343c', pants: '#1f262e', skin: '#3a444e' }; // ⚡ robo parts are dark armor with glowing cyan cracks
     const shirt = !av.shirt || av.shirt === 'stand' ? p.color : av.shirt === 'robo' ? ROBO.shirt : av.shirt;
     const skin = av.skin === 'robo' ? ROBO.skin : av.skin || '#f8d5b8';
     const bounce = p.moving ? Math.abs(Math.sin(time * 12)) * 3 : 0;
@@ -3589,27 +3625,25 @@
     ctx.fillStyle = av.pants === 'robo' ? ROBO.pants : av.pants || '#3b3b58';
     ctx.fillRect(-6, y + 6, 5, 6);
     ctx.fillRect(1, y + 6, 5, 6);
-    if (av.pants === 'robo') { ctx.fillStyle = '#7df9ff'; ctx.fillRect(-5, y + 8, 3, 1); ctx.fillRect(2, y + 8, 3, 1); }
+    if (av.pants === 'robo') { seam([[-5, y + 7], [-3.5, y + 9], [-4, y + 11.5]], 0.45); seam([[2, y + 7], [3.5, y + 9], [3, y + 11.5]], 0.45); }
     // body
     ctx.fillStyle = shirt;
     roundRect(-9, y - 7, 18, 15, 5); ctx.fill();
     if (shirt === '#ffffff') { ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.8; ctx.stroke(); }
     if (av.shirt === 'robo') {
-      // metal chest plate with a glowing core
-      ctx.strokeStyle = 'rgba(40,50,60,0.6)'; ctx.lineWidth = 0.6;
-      ctx.strokeRect(-6, y - 4, 12, 8);
-      ctx.fillStyle = `rgba(0, 255, 213, ${0.6 + 0.4 * Math.sin(time * 4)})`;
-      ctx.beginPath(); ctx.arc(0, y, 2, 0, Math.PI * 2); ctx.fill();
+      // armor plates with glowing cyan cracks and a glowing ring core
+      seam([[-9, y - 3], [-4, y - 2.5], [-2.5, y - 6]], 0.5);
+      seam([[9, y - 2], [4, y - 3], [3, y - 6.5]], 0.5);
+      seam([[-6, y + 7.5], [-3, y + 3], [3, y + 3.5], [6, y + 7.5]], 0.5);
+      cyberRing(0, y, 2.1 + Math.sin(time * 4) * 0.15);
     }
     // head
     ctx.fillStyle = skin;
     ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
     if (av.skin === 'robo') {
-      // a shiny metal head with bolts on the sides
-      ctx.fillStyle = 'rgba(255,255,255,0.45)';
-      ctx.beginPath(); ctx.arc(-3, y - 17, 2.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#6c7a89';
-      ctx.fillRect(-9.5, y - 15.5, 2, 3); ctx.fillRect(7.5, y - 15.5, 2, 3);
+      // a dark armor head with glowing cyan cracks
+      seam([[-7.5, y - 18], [-3, y - 19.5], [0, y - 22]], 0.45);
+      seam([[-7, y - 10], [-4, y - 12], [-7.8, y - 14]], 0.45);
     }
     drawFace(av.face || 'happy', y, time);
     // admins wear their crown unless they picked a special hat in the Avatar Shop
@@ -3650,8 +3684,8 @@
       // a glowing visor instead of eyes
       ctx.fillStyle = '#1b2430';
       roundRect(-1, y - 17.5, 10, 5, 2); ctx.fill();
-      ctx.fillStyle = '#00ffd5';
-      ctx.shadowColor = '#00ffd5'; ctx.shadowBlur = 4;
+      ctx.fillStyle = CYAN;
+      ctx.shadowColor = CYAN; ctx.shadowBlur = 5;
       const scan = (Math.sin(time * 3) + 1) / 2 * 6;
       ctx.fillRect(0 + scan, y - 16.3, 2.5, 2.6);
       ctx.shadowBlur = 0;
@@ -3687,13 +3721,10 @@
   function drawHat(hat, y, shirt) {
     switch (hat) {
       case 'robo': // a robot antenna with a blinking light
-        ctx.fillStyle = '#6c7a89';
+        ctx.fillStyle = '#2c343c';
         ctx.fillRect(-0.6, y - 28, 1.2, 7);
         ctx.fillRect(-3, y - 22.5, 6, 1.5);
-        ctx.fillStyle = Math.sin(nowSec * 6) > 0 ? '#ff3b3b' : '#7a1010';
-        ctx.shadowColor = '#ff3b3b'; ctx.shadowBlur = Math.sin(nowSec * 6) > 0 ? 6 : 0;
-        ctx.beginPath(); ctx.arc(0, y - 29, 2, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
+        cyberRing(0, y - 29.5, 1.5 + Math.sin(nowSec * 6) * 0.2); // a glowing cyan ring on top
         break;
       case 'cap':
         ctx.fillStyle = shirt;
@@ -3877,9 +3908,8 @@
         const p = { x: Math.random() * world.width, y: -10, vy: 40 + Math.random() * 60,
           vx: (Math.random() - 0.5) * 30, r: 2 + Math.random() * 3, color: pickColor(m), shape: 'dot' };
         if (m.id === 'sakura') { p.shape = 'petal'; p.r += 2; p.vy *= 0.6; p.vx += 25; }      // drifting cherry blossoms
-        if (m.id === 'cyber') {                                                             // falling computer code
-          Object.assign(p, { shape: 'code', text: Math.random() < 0.5 ? '0' : '1', r: 9 + Math.random() * 6, vy: 90 + Math.random() * 80, vx: 0,
-            color: Math.random() < 0.7 ? '#00ff66' : '#7df9ff' });
+        if (m.id === 'cyber') {                                                             // glowing cyan sparks floating up
+          Object.assign(p, { y: world.height + 10, vy: -(30 + Math.random() * 50), color: Math.random() < 0.7 ? CYAN : '#d9fdff', r: 1.5 + Math.random() * 2.5 });
         }
         if (m.id === 'meteor') {                                                            // big flaming meteors
           Object.assign(p, { x: world.width * 0.2 + Math.random() * world.width, y: -20, vx: -220 - Math.random() * 80, vy: 340 + Math.random() * 80,
@@ -3940,15 +3970,22 @@
     ctx.globalAlpha = 1;
   }
 
-  // ⚡ Cyber mutation: a glowing neon grid slowly scrolling over the park
+  // ⚡ Cyber mutation: blue lightning striking all over the park
+  const cyberBolts = [];
   function drawCyberGrid(time, share) {
-    ctx.strokeStyle = `rgba(0, 255, 213, ${0.13 * Math.max(share, 0.5)})`;
-    ctx.lineWidth = 2;
-    const off = (time * 30) % 80;
-    ctx.beginPath();
-    for (let x = -80 + off; x < world.width; x += 80) { ctx.moveTo(x, 0); ctx.lineTo(x, world.height); }
-    for (let y = -80 + off; y < world.height; y += 80) { ctx.moveTo(0, y); ctx.lineTo(world.width, y); }
-    ctx.stroke();
+    if (Math.random() < 0.06 * Math.max(share, 0.5)) {
+      const x = Math.random() * world.width, y = Math.random() * world.height * 0.6;
+      cyberBolts.push({ x, y, x2: x + (Math.random() - 0.5) * 160, y2: y + 160 + Math.random() * 220, life: 0.35 });
+    }
+    for (let i = cyberBolts.length - 1; i >= 0; i--) {
+      const bolt = cyberBolts[i];
+      bolt.life -= 1 / 60;
+      if (bolt.life <= 0) { cyberBolts.splice(i, 1); continue; }
+      glow(bolt.x2, bolt.y2, 60, '46, 232, 255', 0.25);
+      zap(bolt.x, bolt.y, bolt.x2, bolt.y2, 18, 2.4);
+      const mx = (bolt.x + bolt.x2) / 2, my = (bolt.y + bolt.y2) / 2;
+      zap(mx, my, mx + (Math.random() - 0.5) * 90, my + 40 + Math.random() * 60, 10, 1.4); // a branch
+    }
   }
 
   // Impossible mutation: the world glitches with soft colored bars (changes a few times a second, not flashing)

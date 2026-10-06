@@ -218,7 +218,7 @@
   ];
   // ⚡ Cyber: the second best mutation. It never starts by itself (weight 0); only admins can turn it on.
   MUTATIONS.push({ id: 'cyber', name: 'Cyber', emoji: '🤖', mult: 50, weight: 0, adminOnly: true,
-    colors: ['#00ffd5', '#00ff66', '#7df9ff'] });
+    colors: ['#2ee8ff', '#d9fdff', '#7ff6ff'] });
   if (!CYBER) MUTATIONS.pop(); // test file only for now
   MUTATIONS.sort((a, b) => a.mult - b.mult); // lowest to highest money, for the Mutations list
   const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
