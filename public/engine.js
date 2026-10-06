@@ -100,7 +100,8 @@
       r -= chance;
       if (r <= 0) { rarity = k; break; }
     }
-    return pick(PETS.filter(p => p.rarity === rarity));
+    // a block with its own pets (the Cyber Block) only gives those; the others never give them
+    return pick(PETS.filter(p => p.rarity === rarity && (block.ownPets ? p.block === block.id : !p.block)));
   }
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
 
@@ -109,7 +110,7 @@
   // gets the Cyber Block, the Cyber Whale, Robo Ice Cream, the Robo look, the Cyber mutation or the Passes,
   // and the messages they get from the server have all of it taken out.
   const seesCyber = s => !CYBER_ADMINS_ONLY || !!s.admin;
-  const isCyber = id => id === 'cyber' || (flavorById[id] || petById[id] || {}).rarity === 'cyber';
+  const isCyber = id => id === 'cyber' || (flavorById[id] || petById[id] || {}).rarity === 'cyber' || petById[id]?.event === 'cyber';
   const noCyber = list => (list || []).filter(id => !isCyber(id));
   const bundleHasCyber = b => Object.keys(b.items).some(isCyber) || Object.keys(b.pets).some(isCyber);
   function hideRobo(avatar) {
@@ -959,7 +960,8 @@
         const pet = petById[msg.pet], item = itemById[msg.item];
         const rarity = pet ? pet.rarity : item && item.rarity;
         // show the fanciest block that could have it (toppings and admin things come in the best block)
-        const block = [...LUCKY_BLOCKS].reverse().find(b => b.odds[rarity] && (!b.event || cyberOn())) || LUCKY_BLOCKS[LUCKY_BLOCKS.length - 1];
+        const block = pet && pet.block ? blockById[pet.block]
+          : [...LUCKY_BLOCKS].reverse().find(b => b.odds[rarity] && !b.ownPets) || LUCKY_BLOCKS[LUCKY_BLOCKS.length - 1];
         if (pet) {
           if (stand.pets.length >= MAX_PETS) return err(`You have too many pets (the most is ${MAX_PETS}).`);
           stand.pets.push(pet.id);

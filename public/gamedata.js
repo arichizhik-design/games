@@ -115,8 +115,19 @@
   const CYBER_EVENT = { start: Date.UTC(2026, 9, 5), end: Date.UTC(2026, 9, 12) }; // Oct 5 to Oct 12, 2026
   if (CYBER) {
     FLAVORS.push({ id: 'robo', name: 'Robo Ice Cream', rarity: 'cyber', price: 25000, cost: 50e6, color: '#c3ccd6', effect: 'robo' });
-    PETS.push({ id: 'cyberwhale', name: 'Cyber Whale', emoji: '🐋', rarity: 'cyber', boost: 50, fx: 'cyberwhale', kind: 'swim', event: 'cyber' });
-    LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 2e9, color: 'cyber', event: 'cyber',
+    // the Cyber Block has its own pets (block: 'cyber'): cyber versions of new animals, made of dark armor
+    // with glowing cyan cracks. They only come from the Cyber Block, and the other blocks never give them.
+    PETS.push(
+      { id: 'cyberscorpion', name: 'Cyber Scorpion', emoji: '🦂', rarity: 'legendary', boost: 1.3, fx: 'cyber', kind: 'walk', event: 'cyber', block: 'cyber' },
+      { id: 'cyberbat',      name: 'Cyber Bat',      emoji: '🦇', rarity: 'legendary', boost: 1.4, fx: 'cyber', kind: 'fly',  event: 'cyber', block: 'cyber' },
+      { id: 'cybergorilla',  name: 'Cyber Gorilla',  emoji: '🦍', rarity: 'mythic',    boost: 2.7, fx: 'cyber', kind: 'walk', event: 'cyber', block: 'cyber' },
+      { id: 'cyberdino',     name: 'Cyber Dino',     emoji: '🦕', rarity: 'mythic',    boost: 2.8, fx: 'cyber', kind: 'walk', event: 'cyber', block: 'cyber' },
+      { id: 'cybertiger',    name: 'Cyber Tiger',    emoji: '🐅', rarity: 'secret',    boost: 5.5, fx: 'cyber', kind: 'walk', event: 'cyber', block: 'cyber' },
+      { id: 'cybermammoth',  name: 'Cyber Mammoth',  emoji: '🦣', rarity: 'celestial', boost: 8.5, fx: 'cyber', kind: 'walk', event: 'cyber', block: 'cyber' },
+      { id: 'cyberdolphin',  name: 'Cyber Dolphin',  emoji: '🐬', rarity: 'celestial', boost: 9,   fx: 'cyber', kind: 'swim', event: 'cyber', block: 'cyber' },
+      { id: 'cyberwhale',    name: 'Cyber Whale',    emoji: '🐋', rarity: 'cyber',     boost: 50,  fx: 'cyberwhale', kind: 'swim', event: 'cyber', block: 'cyber' },
+    );
+    LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 2e9, color: 'cyber', event: 'cyber', ownPets: true,
       odds: { legendary: 30, mythic: 35, secret: 22, celestial: 11, cyber: 2 } });
   }
 

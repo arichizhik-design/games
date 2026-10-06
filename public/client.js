@@ -40,7 +40,7 @@
   // flavors shown in the Flavor guide, and flavors sold in the shop
   // ⚡ in the online game only admins can see the Cyber stuff for now (the server says so when you join)
   let seeCyber = !CYBER_ADMINS_ONLY;
-  const canSee = x => seeCyber || (x.rarity !== 'cyber' && x.id !== 'cyber');
+  const canSee = x => seeCyber || (x.rarity !== 'cyber' && x.id !== 'cyber' && x.event !== 'cyber');
   const guideFlavors = () => FLAVORS.filter(f => (!f.adminOnly || iAmAdmin) && canSee(f));
   const shopFlavors = () => FLAVORS.filter(canSee); // admin ice creams only show up when an admin puts them in the shop
 
@@ -2266,6 +2266,44 @@
     seam(pts, w);
   }
 
+  // ⚡ the Cyber Block pets: the animal made of dark armor with glowing cyan cracks and a glowing ring core.
+  // Each one is drawn once into a picture, then reused.
+  const cyberSprites = {};
+  function makeCyberPet(emoji) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 160;
+    const saved = ctx;
+    ctx = c.getContext('2d');
+    ctx.font = `120px ${EMOJI_FONT}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.filter = 'grayscale(1) brightness(0.5) contrast(1.4)';
+    ctx.fillText(emoji, 80, 140);
+    ctx.filter = 'none';
+    // everything below only paints on the animal itself
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = 'rgba(10, 60, 80, 0.35)';
+    ctx.fillRect(0, 0, 160, 160);
+    seam([[0, 92], [30, 86], [50, 96], [80, 88], [108, 98], [160, 90]], 3);
+    seam([[50, 96], [44, 66], [54, 34]], 2.6);
+    seam([[108, 98], [114, 126], [104, 152]], 2.6);
+    seam([[80, 88], [86, 56], [80, 24]], 2.4);
+    seam([[14, 120], [40, 126], [66, 136]], 2.2);
+    seam([[118, 60], [136, 70], [150, 112]], 2.2);
+    cyberRing(80, 100, 10);
+    ctx = saved;
+    return c;
+  }
+  function cyberPetModel(id, emoji) {
+    return time => {
+      if (!cyberSprites[id]) cyberSprites[id] = makeCyberPet(emoji);
+      ctx.drawImage(cyberSprites[id], -20, -25, 40, 40);
+      ctx.save();
+      ctx.globalAlpha = 0.35 + 0.3 * Math.sin(time * 4);
+      glow(0, -5, 6, '46, 232, 255', 1);
+      ctx.restore();
+    };
+  }
+
   // ⚡ the Cyber Whale, the best pet: the whale (like the Cosmic Whale) made of dark armor
   // with glowing cyan cracks and a glowing ring core. It's drawn once into a picture, then reused.
   let cyberWhaleSprite = null;
@@ -2304,7 +2342,9 @@
     glow(0.5, -5, 7, '46, 232, 255', 1);
     ctx.restore();
   }
-  const PET_MODELS = { cyberwhale: drawCyberWhale }; // pets drawn as pictures instead of their emoji
+  // pets drawn as pictures instead of their emoji
+  const PET_MODELS = { cyberwhale: drawCyberWhale };
+  for (const p of PETS) if (p.fx === 'cyber') PET_MODELS[p.id] = cyberPetModel(p.id, p.emoji);
 
   // pictures of the low-poly pets for the pet lists (made once each)
   const petIcons = {};
@@ -2472,6 +2512,40 @@
         const roar = (time + seed) % 3.5;
         if (roar < dt) petSpark(x, y - 8, { shape: 'ring', color: '#ffd43b', vy: 0, life: 0.8, size: 20, grow: 110 });
         if (roar < 1) breathe(x, y, pp.facing, ['#fff3bf', '#ffd43b', '#ffa94d'], rnd);
+        break;
+      }
+      case 'cyber': {
+        // ⚡ the Cyber Block pets: cyan cyber power (the rarer the pet, the more of it)
+        const lvl = { legendary: 1, mythic: 2, secret: 3, celestial: 4 }[pet.rarity] || 1;
+        const gx = pp.x, gy = pp.y + 9;
+        glow(gx, gy, 30 + 12 * lvl, '46, 232, 255', 0.22);
+        ctx.save();
+        ctx.translate(gx, gy); ctx.scale(1, 0.32);
+        hexagon(0, 0, 22 + 6 * lvl, time * 0.9, 1, 0.8, true);
+        if (lvl >= 2) hexagon(0, 0, 12 + 4 * lvl, -time * 1.4, 0.8, 0.6, true);
+        ctx.restore();
+        glow(x, y - 12, (34 + 12 * lvl) * (1 + Math.sin(time * 5) * 0.08), '46, 232, 255', 0.22 + 0.04 * lvl);
+        // energy orbs flying around it (mythic and up)
+        for (let k = 0; k < lvl - 1; k++) {
+          const a = time * 2 + k * Math.PI * 2 / (lvl - 1) + seed;
+          const ox = x + Math.cos(a) * (30 + 4 * lvl), oy = y - 14 + Math.sin(a) * 12;
+          glow(ox, oy, 10, '46, 232, 255', 0.6);
+          cyberRing(ox, oy, 2.4);
+          if (lvl >= 3 && Math.random() < 0.25) zap(ox, oy, x + rnd() * 10, y - 12, 4, 0.7);
+        }
+        // little lightning crackles
+        if (Math.random() < 0.12 * lvl) {
+          const a = Math.random() * Math.PI * 2;
+          zap(x + Math.cos(a) * 16, y - 12 + Math.sin(a) * 10, x + Math.cos(a + 0.4) * (28 + 6 * lvl), y - 12 + Math.sin(a + 0.4) * (16 + 3 * lvl), 3);
+        }
+        if (chance(3 + 3 * lvl)) petSpark(x + rnd() * 40, y + 4, { shape: 'hex', color: CYAN, vy: -40, vx: rnd() * 10, life: 1.2, size: 1.5 + Math.random() * 2 });
+        // secret and up: an energy pulse every few seconds; celestial: a lightning strike from the sky too
+        const beat = (time + seed) % 4;
+        if (lvl >= 3 && beat < dt) petSpark(gx, gy, { shape: 'ring', color: CYAN, vy: 0, life: 0.8, size: 12, grow: 120 });
+        if (lvl >= 4 && beat < 0.18) {
+          zap(x + rnd() * 40, y - 180, x, y - 18, 14, 2);
+          glow(x, y - 18, 80, '217, 253, 255', 0.45 * (1 - beat / 0.18));
+        }
         break;
       }
       case 'cyberwhale': {
