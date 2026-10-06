@@ -859,6 +859,14 @@
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
         cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
+      } else if (msg.type === 'releasePet') {
+        // let go of one pet you don't want (makes room for more); one you're not wearing goes first
+        const id = msg.pet;
+        const i = stand.pets.indexOf(id);
+        if (i === -1) return;
+        stand.pets.splice(i, 1);
+        if (countOf(stand.worn, id) > countOf(stand.pets, id)) stand.worn.splice(stand.worn.indexOf(id), 1);
+        conn.send({ type: 'petReleased', pet: id });
       } else if (msg.type === 'equipBest') {
         stand.worn = bestPets(stand.pets).slice(0, MAX_WORN);
       } else if (msg.type === 'gift' || msg.type === 'tradeOffer') {

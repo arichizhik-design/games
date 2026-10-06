@@ -87,6 +87,8 @@ A multiplayer browser game where every player runs their own ice cream stand in 
     🦈 Thunder Shark +800%), **Divine** (🕊️ Angel Dove +1,200%, 🐲 Dragon King +1,500%) and **Infinity**
     (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
   - Press **🐾 My Pets** to see every pet you have (each one gets its own card) and pick which ones follow you.
+  - You can have up to 200 pets. When you're full, the lucky block buttons say **Pets full**; tap **Let go** on a
+    pet you don't want in My Pets to make room (it asks first, and the pet is gone for good).
     You can wear up to **3 pets at once**: they follow you in a little line and their money boosts add up.
     **⭐ Equip Best** puts on your 3 best pets. New pets go on by themselves if you're wearing fewer than 3.
 - **🎁 Gift & Trade:** pick someone who is playing right now. **Gift** sends them any amount of money

@@ -95,7 +95,7 @@
     { id: 'dragonking', name: 'Dragon King',  emoji: '🐲', rarity: 'divine',    boost: 15,   fx: 'king',    kind: 'fly' },
     { id: 'infinity', name: 'Infinity Dragon', emoji: '🐉', rarity: 'infinity', boost: 30,   fx: 'infinity', kind: 'fly' }, // the best pet of all!
   ];
-  const MAX_PETS = 60;
+  const MAX_PETS = 200; // when you're full, let go of pets you don't want in My Pets
 
   // Lucky blocks at the Pet Shop: `odds` = chance of each rarity (they add up to 100)
   const LUCKY_BLOCKS = [

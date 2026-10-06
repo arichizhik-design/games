@@ -274,6 +274,9 @@
       case 'petGot':
         revealPet(msg);
         break;
+      case 'petReleased':
+        toast(`👋 You let go of your ${petById[msg.pet].name}.`);
+        break;
       case 'blockGot':
         revealItem(msg);
         break;
@@ -1108,7 +1111,13 @@
     const s = me();
     if (!s) return;
     for (const b of LUCKY_BLOCKS) {
-      b.row.querySelector('button').disabled = s.money < b.cost || s.pets.length >= MAX_PETS;
+      // when you have the most pets you can, the button says so (let some go in My Pets to make room)
+      const full = s.pets.length >= MAX_PETS;
+      $('petsFullNote').classList.toggle('hidden', !full);
+      const btn = b.row.querySelector('button');
+      btn.disabled = s.money < b.cost || full;
+      btn.textContent = full ? 'Pets full' : fmt(b.cost);
+      btn.title = full ? `You have ${MAX_PETS} pets, the most you can have. Let some go in 🐾 My Pets to make room.` : '';
       // event blocks are only in the shop while their event is on
       if (b.event) {
         b.row.classList.toggle('hidden', !cyberIsOn());
@@ -1203,7 +1212,11 @@
       card.innerHTML = `<div class="petEmoji">${petIcon(p)}</div><div class="name">${p.name}</div>
         <span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
         <div class="boost">${pct(p.boost)} money</div>
-        <button type="button">${on ? 'Take off' : 'Wear'}</button>`;
+        <button type="button">${on ? 'Take off' : 'Wear'}</button>
+        <button type="button" class="letGo">Let go</button>`;
+      card.querySelector('.letGo').addEventListener('click', () => {
+        if (confirm(`Let go of your ${p.name}? It will be gone for good.`)) send({ type: 'releasePet', pet: id });
+      });
       const btn = card.querySelector('button');
       btn.disabled = !on && worn.length >= MAX_WORN;
       btn.title = btn.disabled ? `You can wear ${MAX_WORN} pets at once. Take one off first.` : '';

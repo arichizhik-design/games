@@ -470,6 +470,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .petCard button { width: 100%; font-size: 12px; padding: 5px 4px; margin-top: 2px; }
 .petCard.equipped { border-color: #f08c00; background: #fff4e0; box-shadow: 0 0 10px rgba(240,140,0,0.4); }
 .petCard.equipped button { background: #868e96; }
+.petCard button.letGo { background: none; color: #868e96; box-shadow: none; font-size: 11px; padding: 2px; text-decoration: underline; }
 /* ⏱️ how fast your stand sells */
 #scoopInfo { margin-top: 6px; padding: 6px 8px; border-radius: 10px; font-size: 13px; font-weight: bold; text-align: center; }
 #scoopInfo.ok { background: #ebfbee; color: #2b8a3e; }
