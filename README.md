@@ -105,7 +105,8 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 ## ⚡ Cyber Event (admins only online for now)
 
 In the single-file test version (`ice-cream-tycoon.html`) everyone sees the Cyber Event. In the online game only
-admins can see it: everyone else never sees the Cyber Block, the Cyber Whale, Robo Ice Cream, the Robo look, the
+admins can see it: everyone else never sees the Cyber Block, Cyber pets (except ones an admin is wearing, which
+follow them around for everyone to see), Robo Ice Cream, the Robo look, the
 Cyber mutation or the Passes (not even on an admin), keeps the old 14 stand spaces, and can't be gifted or traded
 Cyber stuff. To show it to everyone online, set `CYBER=1` on the server (an environment variable on Render).
 

@@ -107,7 +107,7 @@
 
   // ---------- ⚡ who can see the Cyber stuff ----------
   // In the online game only admins can see it for now (CYBER_ADMINS_ONLY). Everyone else never
-  // gets the Cyber Block, the Cyber Whale, Robo Ice Cream, the Robo look, the Cyber mutation or the Passes,
+  // gets the Cyber Block, Cyber pets (except ones someone is wearing, which follow them around for all to see), Robo Ice Cream, the Robo look, the Cyber mutation or the Passes,
   // and the messages they get from the server have all of it taken out.
   const seesCyber = s => !CYBER_ADMINS_ONLY || !!s.admin;
   const isCyber = id => id === 'cyber' || (flavorById[id] || petById[id] || {}).rarity === 'cyber' || petById[id]?.event === 'cyber';
@@ -139,7 +139,8 @@
         const mutations = { ...s.mutations };
         delete mutations.cyber;
         return { ...s, tubs: slots(s.tubs), hotbar: slots(s.hotbar), storage: slots(s.storage), seen: noCyber(s.seen),
-          pets: noCyber(s.pets), worn: noCyber(s.worn), mutations, avatar: hideRobo(s.avatar) };
+          // pets someone is wearing show to everyone; the rest of their Cyber pets stay hidden
+          pets: noCyber(s.pets), worn: s.worn, mutations, avatar: hideRobo(s.avatar) };
       }),
       customers: msg.customers.filter(c => !isCyber(c.flavor)).map(hideCyberMutations) };
   }
