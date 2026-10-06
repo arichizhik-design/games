@@ -1,7 +1,7 @@
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
-    CYBER, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
+    CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -38,8 +38,11 @@
   let openWindow = null; // 'shop' | 'inventory' | null
   let iAmAdmin = false;   // admins also see the admin-only ice creams in the Flavor guide
   // flavors shown in the Flavor guide, and flavors sold in the shop
-  const guideFlavors = () => FLAVORS.filter(f => !f.adminOnly || iAmAdmin);
-  const shopFlavors = FLAVORS; // admin ice creams only show up when an admin puts them in the shop
+  // ⚡ in the online game only admins can see the Cyber stuff for now (the server says so when you join)
+  let seeCyber = !CYBER_ADMINS_ONLY;
+  const canSee = x => seeCyber || (x.rarity !== 'cyber' && x.id !== 'cyber');
+  const guideFlavors = () => FLAVORS.filter(f => (!f.adminOnly || iAmAdmin) && canSee(f));
+  const shopFlavors = () => FLAVORS.filter(canSee); // admin ice creams only show up when an admin puts them in the shop
 
   // ---------- helpers ----------
   function fmt(n) {
@@ -193,6 +196,7 @@
         $('join').classList.add('hidden');
         $('game').classList.remove('hidden');
         iAmAdmin = !!msg.admin;
+        seeCyber = msg.cyber !== false;
         buildPanel();
         buildHotbar();
         $('testTools').classList.toggle('hidden', !msg.admin); // test buttons are for admins only
@@ -341,7 +345,7 @@
         break;
       case 'spaceAdded':
         toast(`+${msg.added || 3} flavor space${msg.added === 1 ? '' : 's'}! Your stand now holds ${msg.spaces} tubs.` +
-          (spaceCost(msg.spaces) === null && CYBER ? ' That\'s the most!' : ''));
+          (spaceCost(msg.spaces, seeCyber) === null ? ' That\'s the most!' : ''));
         if (s) confetti(slots[s.slot].x, slots[s.slot].y - 40, 40);
         break;
     }
@@ -425,7 +429,7 @@
 
     const mu = $('mutations');
     mu.innerHTML = '';
-    for (const m of MUTATIONS) {
+    for (const m of MUTATIONS.filter(canSee)) {
       const row = document.createElement('div');
       row.className = 'row';
       row.innerHTML = `
@@ -458,7 +462,7 @@
     // shop window rows
     const list = $('shopList');
     list.innerHTML = '';
-    for (const f of shopFlavors) {
+    for (const f of shopFlavors()) {
       const r = RARITIES[f.rarity];
       const row = document.createElement('div');
       row.className = 'row';
@@ -547,7 +551,7 @@
       box.style.background = '';
       box.textContent = `Next mutation in ${clock(gameEvent.next)}`;
     }
-    for (const m of MUTATIONS) {
+    for (const m of MUTATIONS.filter(canSee)) {
       const n = s.mutations[m.id] || 0;
       m.row.querySelector('.count').textContent = n ? `${n} sold` : 'not yet';
       m.row.classList.toggle('active-mut', (gameEvent.ids || []).includes(m.id));
@@ -940,7 +944,7 @@
     }
   }
 
-  // ---------- ⚡ Cyber Event: the Cyber Pass and Game Passes (test file only for now) ----------
+  // ---------- ⚡ Cyber Event: the Cyber Pass and Game Passes (online: admins only for now) ----------
   // lucky block colors (fancy ones get a CSS class instead)
   const fancyBlock = b => ['rainbow', 'infinity', 'cyber'].includes(b.color) ? b.color : '';
   const blockBg = b => fancyBlock(b) ? '' : `background:${b.color}`;
@@ -1064,7 +1068,7 @@
   }
 
   function updateCyber() {
-    $('cyberBtns').classList.remove('hidden');
+    $('cyberBtns').classList.toggle('hidden', !seeCyber);
     $('passBtn').classList.toggle('hidden', !cyberIsOn());
     if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
@@ -1511,7 +1515,7 @@
       row.innerHTML = `<div class="avLabel">${label}</div>`;
       const opts = document.createElement('div');
       opts.className = 'avOpts';
-      for (const value of AVATAR[part]) {
+      for (const value of AVATAR[part].filter(v => seeCyber || v !== 'robo')) {
         const b = document.createElement('button');
         b.type = 'button';
         const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
@@ -1558,7 +1562,7 @@
     const s = me();
     if (!s) return;
     $('shopTimer').textContent = `New stock in ${clock(shop.left)}`;
-    for (const f of shopFlavors) {
+    for (const f of shopFlavors()) {
       const row = f.shopRow;
       const left = (shop.stock[f.id] || 0) - (s.bought[f.id] || 0);
       const hidden = isSecretHidden(f, s);
@@ -2784,10 +2788,10 @@
 
     if (mine) {
       spaceBtn = null;
-      const cost = !s.tubs.includes(null) ? spaceCost(s.spaces) : null;
+      const cost = !s.tubs.includes(null) ? spaceCost(s.spaces, seeCyber) : null;
       if (cost !== null) {
         // stand is full: show the Extra Space button on top of it
-        const text = `Extra Space +${spacesPerBuy(s.spaces)} (${fmt(cost)})`;
+        const text = `Extra Space +${spacesPerBuy(s.spaces, seeCyber)} (${fmt(cost)})`;
         ctx.font = 'bold 16px Trebuchet MS';
         const bw = ctx.measureText(text).width + 24, bh = 30;
         const pulse = s.money >= cost ? 1 + Math.sin(time * 6) * 0.04 : 1;

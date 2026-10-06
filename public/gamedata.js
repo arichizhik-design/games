@@ -1,8 +1,10 @@
 // Shared game data, used by both the server (require) and the browser (window.GameData).
 (function (root) {
-  // ⚡ The Cyber Event is only switched on in the test file (build.js) for now, not in the online game.
-  // To put it in the online game later, start the server with CYBER=1.
-  const CYBER = !!(root && root.CYBER_TEST) || (typeof process !== 'undefined' && !!process.env && process.env.CYBER === '1');
+  // ⚡ The Cyber Event is in every game. In the online game only admins can see it for now;
+  // the test file (build.js) shows it to everyone. To show it to everyone online, start the server with CYBER=1.
+  const CYBER = true;
+  const CYBER_ADMINS_ONLY = !(root && root.CYBER_TEST) &&
+    !(typeof process !== 'undefined' && !!process.env && process.env.CYBER === '1');
 
   // growSec: how long a placed tub takes to grow before customers can buy it
   // stock: chance the shop has this rarity after a restock, and how many tubs
@@ -107,7 +109,7 @@
     { id: 'infinity', name: 'Infinity Block', cost: 500e9,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
   ];
 
-  // ---------- ⚡ Cyber Event (test file only for now) ----------
+  // ---------- ⚡ Cyber Event (online: admins only for now) ----------
   // The event lasts one week. The Cyber Block (and with it the Cyber Whale) is only in the Pet Shop
   // while it's on; pets you got from it stay yours. The Cyber mutation and Robo Ice Cream stay for good.
   const CYBER_EVENT = { start: Date.UTC(2026, 9, 5), end: Date.UTC(2026, 9, 12) }; // Oct 5 to Oct 12, 2026
@@ -192,15 +194,16 @@
   // Flavor spaces on the stand: start with 5, each Extra Space adds 3
   const START_SPACES = 5;
   const SPACES_PER_BUY = 3;
-  const SPACE_COSTS = CYBER ? [300, 6000, 75000, 500000, 2.5e6, 10e6, 40e6, 150e6, 500e6] : [300, 6000, 75000];
-  const MAX_SPACES = CYBER ? 30 : 14; // the Extra Space button disappears once you have this many
+  // cyber = the player can see the Cyber stuff, which brings more spaces (up to 30)
+  const SPACE_COSTS = [300, 6000, 75000, 500000, 2.5e6, 10e6, 40e6, 150e6, 500e6];
+  const maxSpaces = (cyber = !CYBER_ADMINS_ONLY) => cyber ? 30 : 14; // the Extra Space button disappears once you have this many
+  const MAX_SPACES = maxSpaces();
 
-  function spaceCost(spaces) {
-    if (spaces >= MAX_SPACES) return null;
-    if (!CYBER && spaces >= FLAVORS.filter(f => !f.adminOnly).length) return null; // already room for every shop flavor
+  function spaceCost(spaces, cyber = !CYBER_ADMINS_ONLY) {
+    if (spaces >= maxSpaces(cyber)) return null;
     return SPACE_COSTS[Math.round((spaces - START_SPACES) / SPACES_PER_BUY)] ?? null;
   }
-  const spacesPerBuy = spaces => Math.min(SPACES_PER_BUY, MAX_SPACES - spaces);
+  const spacesPerBuy = (spaces, cyber = !CYBER_ADMINS_ONLY) => Math.min(SPACES_PER_BUY, maxSpaces(cyber) - spaces);
 
   // Mutation events: every 30, 45 or 50 minutes one of these takes over the park for a few
   // minutes. While it's on, scoops can turn into that mutation and sell for `mult` times more.
@@ -219,7 +222,6 @@
   // ⚡ Cyber: the second best mutation. It never starts by itself (weight 0); only admins can turn it on.
   MUTATIONS.push({ id: 'cyber', name: 'Cyber', emoji: '🤖', mult: 50, weight: 0, adminOnly: true,
     colors: ['#2ee8ff', '#d9fdff', '#7ff6ff'] });
-  if (!CYBER) MUTATIONS.pop(); // test file only for now
   MUTATIONS.sort((a, b) => a.mult - b.mult); // lowest to highest money, for the Mutations list
   const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
@@ -239,13 +241,13 @@
     face:  ['happy', 'cool', 'wink', 'silly', 'wow'],
   };
   // ⚡ the Robo look: a robo choice for every part (shiny metal, an antenna, glowing visor eyes)
-  if (CYBER) for (const part of Object.keys(AVATAR)) AVATAR[part].push('robo');
+  for (const part of Object.keys(AVATAR)) AVATAR[part].push('robo');
 
   const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
-    CYBER, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;

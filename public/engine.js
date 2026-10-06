@@ -5,7 +5,7 @@
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
-    CYBER, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
@@ -103,6 +103,45 @@
     return pick(PETS.filter(p => p.rarity === rarity));
   }
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
+
+  // ---------- ⚡ who can see the Cyber stuff ----------
+  // In the online game only admins can see it for now (CYBER_ADMINS_ONLY). Everyone else never
+  // gets the Cyber Block, the Cyber Whale, Robo Ice Cream, the Robo look, the Cyber mutation or the Passes,
+  // and the messages they get from the server have all of it taken out.
+  const seesCyber = s => !CYBER_ADMINS_ONLY || !!s.admin;
+  const isCyber = id => id === 'cyber' || (flavorById[id] || petById[id] || {}).rarity === 'cyber';
+  const noCyber = list => (list || []).filter(id => !isCyber(id));
+  const bundleHasCyber = b => Object.keys(b.items).some(isCyber) || Object.keys(b.pets).some(isCyber);
+  function hideRobo(avatar) {
+    const out = { ...avatar };
+    for (const part of Object.keys(out)) if (out[part] === 'robo') out[part] = AVATAR[part][0];
+    return out;
+  }
+  function hideCyberMutations(c) {
+    if (!(c.mutations || []).some(isCyber)) return c;
+    const mutations = noCyber(c.mutations);
+    return { ...c, mutations, mutation: mutations[0] || null };
+  }
+  // a server message the way someone who can't see the Cyber stuff gets it (null = they don't get it)
+  function hideCyber(msg) {
+    if (msg.type === 'mutationStart' || msg.type === 'mutationEnd') return isCyber(msg.mutation) ? null : msg;
+    if (msg.type === 'sale') return isCyber(msg.flavor) ? null : hideCyberMutations(msg);
+    if (msg.type !== 'state') return msg;
+    const ids = noCyber(msg.event.ids);
+    const stock = { ...msg.shop.stock };
+    for (const id of Object.keys(stock)) if (isCyber(id)) delete stock[id];
+    const slots = list => list.map(x => x && isCyber(x.flavor) ? null : x);
+    return { ...msg, cyber: null,
+      event: { ...msg.event, id: ids[0] || null, ids },
+      shop: { ...msg.shop, stock },
+      stands: msg.stands.map(({ passXP, passClaimed, premiumPass, ...s }) => {
+        const mutations = { ...s.mutations };
+        delete mutations.cyber;
+        return { ...s, tubs: slots(s.tubs), hotbar: slots(s.hotbar), storage: slots(s.storage), seen: noCyber(s.seen),
+          pets: noCyber(s.pets), worn: noCyber(s.worn), mutations, avatar: hideRobo(s.avatar) };
+      }),
+      customers: msg.customers.filter(c => !isCyber(c.flavor)).map(hideCyberMutations) };
+  }
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -399,7 +438,7 @@
       amount *= 1 + petBoost(stand.worn); // every pet you wear adds its boost
       if (c.golden) amount *= 3;
       // every mutation going on gets its own chance; several can stack on one scoop
-      c.mutations = event.active.filter(() => Math.random() < MUTATION_CHANCE).map(e => e.id);
+      c.mutations = event.active.filter(e => (seesCyber(stand) || !isCyber(e.id)) && Math.random() < MUTATION_CHANCE).map(e => e.id);
       for (const id of c.mutations) {
         amount *= mutationById[id].mult;
         stand.mutations[id] = (stand.mutations[id] || 0) + 1;
@@ -556,7 +595,7 @@
           stand.conn.send({ type: 'petGot', pet: pet.id, block: prize.block, equipped: wearing });
           if (RARITIES[pet.rarity].order >= 5) {
             broadcast({ type: 'chat', id: 0, from: '⚡ Cyber Pass', admin: false,
-              text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` });
+              text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` }, true);
           }
         }
       }
@@ -568,8 +607,16 @@
       if (backup) s.conn.send({ type: 'backup', key: s.key, blob: backup.seal(s.key, toSave(s)) });
     }
 
-    function broadcast(msg) {
-      for (const s of stands.values()) s.conn.send(msg);
+    // cyberOnly = only for players who can see the Cyber stuff
+    function broadcast(msg, cyberOnly = false) {
+      let hidden; // the message without the Cyber stuff, worked out once if someone needs it
+      for (const s of stands.values()) {
+        if (seesCyber(s)) s.conn.send(msg);
+        else if (!cyberOnly) {
+          if (hidden === undefined) hidden = hideCyber(msg);
+          if (hidden) s.conn.send(hidden);
+        }
+      }
     }
 
     // ---------- player actions ----------
@@ -608,7 +655,7 @@
         if (s.admin && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS, key: s.key,
-          returning: !!saves[s.key], restored, admin: s.admin });
+          returning: !!saves[s.key], restored, admin: s.admin, cyber: seesCyber(s) });
         sendBackup(s);
         return;
       }
@@ -624,6 +671,7 @@
         stand.hand = Number.isInteger(i) && i >= 0 && i < HOTBAR_SIZE ? i : -1;
       } else if (msg.type === 'setAvatar') {
         stand.avatar = fixAvatar({ ...stand.avatar, ...(msg.avatar || {}) });
+        if (!seesCyber(stand)) stand.avatar = hideRobo(stand.avatar);
       } else if (msg.type === 'scoop') {
         // Scoop! helps a little: each press takes a quarter second off the wait (up to 4 presses a second)
         const now = Date.now();
@@ -633,7 +681,7 @@
         }
       } else if (msg.type === 'buy') {
         const f = flavorById[msg.flavor];
-        if (!f) return;
+        if (!f || (isCyber(f.id) && !seesCyber(stand))) return;
         if (!near(SHOP)) return err('Walk to the Supplies Shop to buy.');
         if ((shop.stock[f.id] || 0) - (stand.bought[f.id] || 0) <= 0) return err('Sold out! New stock soon.');
         const cost = shopCost(f);
@@ -691,11 +739,11 @@
         if (left === item.count) return err(to === stand.hotbar ? 'Your hotbar is full!' : 'Your inventory is full!');
         if (left > 0) item.count = left; else from[i] = null;
       } else if (msg.type === 'buySpace') {
-        const cost = spaceCost(stand.spaces);
+        const cost = spaceCost(stand.spaces, seesCyber(stand));
         if (cost === null || stand.tubs.includes(null)) return;
         if (stand.money < cost) return err('Not enough money!');
         stand.money -= cost;
-        const add = spacesPerBuy(stand.spaces);
+        const add = spacesPerBuy(stand.spaces, seesCyber(stand));
         stand.spaces += add;
         for (let i = 0; i < add; i++) stand.tubs.push(null);
         conn.send({ type: 'spaceAdded', spaces: stand.spaces, added: add });
@@ -731,7 +779,7 @@
       } else if (msg.type === 'buyBlock') {
         // 🐾 open a lucky block for a random pet
         const b = blockById[msg.block];
-        if (!b) return;
+        if (!b || (b.event && !seesCyber(stand))) return;
         if (!near(PET_SHOP)) return err('Walk to the Pet Shop to buy lucky blocks.');
         if (b.event && !cyberOn()) return err('The Cyber Event is over, so the Cyber Block is gone!');
         if (stand.money < b.cost) return err('Not enough money!');
@@ -743,7 +791,7 @@
         conn.send({ type: 'petGot', pet: pet.id, block: b.id, equipped: wearing });
         if (RARITIES[pet.rarity].order >= 5) {
           broadcast({ type: 'chat', id: 0, from: '🐾 Pet Shop', admin: false,
-            text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` });
+            text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` }, isCyber(pet.id) || !!b.event);
         }
       } else if (msg.type === 'equipPet') {
         // wear one more of this pet, or take one off
@@ -757,7 +805,7 @@
           if (countOf(stand.worn, id) >= countOf(stand.pets, id)) return;
           stand.worn.push(id);
         }
-      } else if (CYBER && msg.type === 'passClaim') {
+      } else if (CYBER && seesCyber(stand) && msg.type === 'passClaim') {
         // ⚡ claim a Cyber Pass prize you've unlocked
         if (!cyberOn()) return err('The Cyber Event is over.');
         const row = msg.row === 'premium' ? 'premium' : 'free';
@@ -771,7 +819,7 @@
         if (error) return err(error);
         stand.passClaimed[row].push(i);
         conn.send({ type: 'passPrize', row, tier: i });
-      } else if (CYBER && msg.type === 'gamePass') {
+      } else if (CYBER && seesCyber(stand) && msg.type === 'gamePass') {
         // 💎 Game Passes (TEST: free here; real money isn't built)
         const id = msg.id;
         if (id === 'starter') {
@@ -804,7 +852,7 @@
           if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
         } else if (id === 'restock') {
           restock();
-          broadcast({ type: 'chat', id: 0, from: '🛒 Supplies Shop', admin: false, text: `${stand.name} restocked the shop for everyone!` });
+          broadcast({ type: 'chat', id: 0, from: '🛒 Supplies Shop', admin: false, text: `${stand.name} restocked the shop for everyone!` }, true);
         } else return;
         conn.send({ type: 'gamePassDone', id, flavor: msg.flavor });
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
@@ -819,6 +867,10 @@
         const now = Date.now();
         if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second.');
         const give = cleanBundle(msg.give);
+        const get = msg.type === 'gift' ? cleanBundle(null) : cleanBundle(msg.get);
+        if ((bundleHasCyber(give) || bundleHasCyber(get)) && !(seesCyber(stand) && seesCyber(target))) {
+          return err(`${target.name} can't have Cyber stuff yet. Only admins can see it for now!`);
+        }
         if (msg.type === 'gift') {
           if (bundleEmpty(give)) return err('Pick something to gift first.');
           const error = exchange(stand, target, give, cleanBundle(null));
@@ -828,7 +880,6 @@
           conn.send({ type: 'giftSent', to: target.name, bundle: give });
           return;
         }
-        const get = cleanBundle(msg.get);
         if (bundleEmpty(give) && bundleEmpty(get)) return err('Pick what to trade first.');
         // make sure you really have what you're offering
         const test = { name: 'You', money: stand.money, pets: [...stand.pets],
@@ -926,7 +977,7 @@
         const n = Math.min(99, Math.max(1, Math.floor(Number(msg.count) || 1)));
         shop.stock[f.id] = (shop.stock[f.id] || 0) + n;
         broadcast({ type: 'chat', id: 0, from: '🛒 Supplies Shop', admin: false,
-          text: `${stand.name} put ${n} ${f.name} in the shop! Go get it before the next restock.` });
+          text: `${stand.name} put ${n} ${f.name} in the shop! Go get it before the next restock.` }, isCyber(f.id));
         conn.send({ type: 'admin', text: `🏪 Put ${n} ${f.name} in the Supplies Shop` });
       } else if (stand.admin && msg.type === 'adminSpawnPet') {
         // 🐾 admins can put any pet in their own pet inventory

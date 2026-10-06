@@ -97,10 +97,12 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.
 
-## ⚡ Cyber Event (test file only for now)
+## ⚡ Cyber Event (admins only online for now)
 
-The Cyber Event is switched on only in the single-file test version (`ice-cream-tycoon.html`). The online game
-doesn't have it yet. To put it online later, set `CYBER=1` on the server (an environment variable on Render).
+In the single-file test version (`ice-cream-tycoon.html`) everyone sees the Cyber Event. In the online game only
+admins can see it: everyone else never sees the Cyber Block, the Cyber Whale, Robo Ice Cream, the Robo look, the
+Cyber mutation or the Passes (not even on an admin), keeps the old 14 stand spaces, and can't be gifted or traded
+Cyber stuff. To show it to everyone online, set `CYBER=1` on the server (an environment variable on Render).
 
 - **Cyber Block** in the Pet Shop ($2B), only during the event week (Oct 5 to Oct 12, 2026). It's the only way to get
   the **🐋 Cyber Whale** (Cyber rarity, +5000% money, the best pet): the whale made of dark armor with glowing cyan
