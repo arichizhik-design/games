@@ -311,11 +311,12 @@
         upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, saved.upgrades?.[k] ?? 0])),
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
         avatar: fixAvatar(saved.avatar),
-        pets: (saved.pets || []).filter(id => petById[id]).slice(0, MAX_PETS),
+        // (the Cyber Hydra became the Cyber Whale)
+        pets: (saved.pets || []).map(id => id === 'hydra' ? 'cyberwhale' : id).filter(id => petById[id]).slice(0, MAX_PETS),
         passXP: saved.passXP || 0,                                   // ⚡ scoops sold during the Cyber Event
         passClaimed: { free: [...(saved.passClaimed?.free || [])], premium: [...(saved.passClaimed?.premium || [])] },
         premiumPass: !!saved.premiumPass,
-        worn: saved.worn || (saved.pet ? [saved.pet] : []), // the pets following you (older saves had one)
+        worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(id => id === 'hydra' ? 'cyberwhale' : id), // the pets following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
         x: s.x + 60, y: s.y + 110,        // the player's character

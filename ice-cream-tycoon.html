@@ -974,7 +974,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 900, stock: { chance: 0, min: 0, max: 0 } },
     divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
-    // ⚡ Cyber: the Cyber Hydra pet and the Robo Ice Cream (0.1% chance to be in the shop)
+    // ⚡ Cyber: the Cyber Whale pet and the Robo Ice Cream (0.1% chance to be in the shop)
     cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1200, stock: { chance: 0.001, min: 1, max: 1 } },
   };
 
@@ -1060,12 +1060,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   ];
 
   // ---------- ⚡ Cyber Event (test file only for now) ----------
-  // The event lasts one week. The Cyber Block (and with it the Cyber Hydra) is only in the Pet Shop
+  // The event lasts one week. The Cyber Block (and with it the Cyber Whale) is only in the Pet Shop
   // while it's on; pets you got from it stay yours. The Cyber mutation and Robo Ice Cream stay for good.
   const CYBER_EVENT = { start: Date.UTC(2026, 9, 5), end: Date.UTC(2026, 9, 12) }; // Oct 5 to Oct 12, 2026
   if (CYBER) {
     FLAVORS.push({ id: 'robo', name: 'Robo Ice Cream', rarity: 'cyber', price: 25000, cost: 50e6, color: '#c3ccd6', effect: 'robo' });
-    PETS.push({ id: 'hydra', name: 'Cyber Hydra', emoji: '🐉', rarity: 'cyber', boost: 50, fx: 'hydra', kind: 'swim', event: 'cyber' });
+    PETS.push({ id: 'cyberwhale', name: 'Cyber Whale', emoji: '🐋', rarity: 'cyber', boost: 50, fx: 'cyberwhale', kind: 'swim', event: 'cyber' });
     LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 2e9, color: 'cyber', event: 'cyber',
       odds: { legendary: 30, mythic: 35, secret: 22, celestial: 11, cyber: 2 } });
   }
@@ -1517,11 +1517,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, saved.upgrades?.[k] ?? 0])),
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
         avatar: fixAvatar(saved.avatar),
-        pets: (saved.pets || []).filter(id => petById[id]).slice(0, MAX_PETS),
+        // (the Cyber Hydra became the Cyber Whale)
+        pets: (saved.pets || []).map(id => id === 'hydra' ? 'cyberwhale' : id).filter(id => petById[id]).slice(0, MAX_PETS),
         passXP: saved.passXP || 0,                                   // ⚡ scoops sold during the Cyber Event
         passClaimed: { free: [...(saved.passClaimed?.free || [])], premium: [...(saved.passClaimed?.premium || [])] },
         premiumPass: !!saved.premiumPass,
-        worn: saved.worn || (saved.pet ? [saved.pet] : []), // the pets following you (older saves had one)
+        worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(id => id === 'hydra' ? 'cyberwhale' : id), // the pets following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
         x: s.x + 60, y: s.y + 110,        // the player's character
@@ -4408,36 +4409,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { dragon: 1.45, hydra: 1.7, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
-
-  // ---------- 🔺 low-poly pets: drawn from flat-shaded triangles so they look 3D (like Roblox pets) ----------
-  // All models face left with their feet at y = 10, the same as the pet emojis, so they flip and squish the same way.
-  const rgbCache = {};
-  function toRgb(c) {
-    if (rgbCache[c]) return rgbCache[c];
-    let r, g, b;
-    if (c[0] === '#') { const n = parseInt(c.slice(1), 16); r = n >> 16; g = n >> 8 & 255; b = n & 255; }
-    else [r, g, b] = c.match(/\d+(\.\d+)?/g).map(Number); // 'rgb(r, g, b)'
-    return (rgbCache[c] = [r, g, b]);
-  }
-  // k > 0 lightens (a facet facing the light), k < 0 darkens (a facet in shadow)
-  function shade(c, k) {
-    const [r, g, b] = Array.isArray(c) ? c : toRgb(c);
-    const f = v => Math.round(k >= 0 ? v + (255 - v) * k : v * (1 + k));
-    return `rgb(${f(r)}, ${f(g)}, ${f(b)})`;
-  }
-  // a flat facet; the thin outline in the same color hides the seams between facets
-  function facet(pts, color) {
-    ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 0.5; ctx.lineJoin = 'round';
-    ctx.beginPath();
-    pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  }
-  // a shape cut into facets: a fan of triangles from the middle, each shaded by which way it faces
-  function gem(pts, base, shades) {
-    const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
-    pts.forEach((p, i) => facet([[cx, cy], p, pts[(i + 1) % pts.length]], shade(base, shades[i % shades.length])));
-  }
+  const PET_SIZE = { dragon: 1.45, cyberwhale: 1.8, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
   const CYAN = '#2ee8ff';
@@ -4497,146 +4469,57 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     seam(pts, w);
   }
 
-  // 🐉 the low-poly dragon (Dragon, Dragon King, Infinity Dragon and the three-headed Cyber Hydra)
-  const DRAGON_LOOKS = {
-    hydra:      { body: '#2c343c', belly: '#3a444e', horn: '#0b0f13', wing: '#222a31', claw: '#0b0f13', eye: CYAN, heads: 3, cyber: true },
-  };
-
-  function drawDragonHead(look, hx, hy, tilt, k, time, ph) {
-    const B = look.body, J = look.belly;
+  // ⚡ the Cyber Whale, the best pet: the whale (like the Cosmic Whale) made of dark armor
+  // with glowing cyan cracks and a glowing ring core. It's drawn once into a picture, then reused.
+  let cyberWhaleSprite = null;
+  function makeCyberWhale() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 160;
+    const saved = ctx;
+    ctx = c.getContext('2d');
+    // the whale, darkened into gunmetal armor
+    ctx.font = `120px ${EMOJI_FONT}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.filter = 'grayscale(1) brightness(0.5) contrast(1.4)';
+    ctx.fillText('🐋', 80, 140);
+    ctx.filter = 'none';
+    // everything below only paints on the whale itself
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = 'rgba(10, 60, 80, 0.35)';
+    ctx.fillRect(0, 0, 160, 160);
+    seam([[0, 92], [30, 88], [44, 96], [70, 90], [96, 98], [124, 92], [160, 96]], 3.2);
+    seam([[44, 96], [40, 70], [48, 40]], 3);
+    seam([[96, 98], [104, 126], [98, 150]], 3);
+    seam([[124, 92], [132, 64], [150, 54]], 2.6);
+    seam([[16, 118], [40, 122], [64, 132]], 2.4);
+    seam([[70, 90], [76, 60], [72, 30]], 2.4);
+    cyberRing(82, 104, 11);
+    ctx = saved;
+    return c;
+  }
+  function drawCyberWhale(time) {
+    if (!cyberWhaleSprite) cyberWhaleSprite = makeCyberWhale();
+    // drawn where the emoji would be: centered, with its bottom at y = 10
+    ctx.drawImage(cyberWhaleSprite, -20, -25, 40, 40);
+    // the ring core pulses
     ctx.save();
-    ctx.translate(hx, hy);
-    ctx.rotate(tilt);
-    // horns (behind the head)
-    facet([[3, -4], [7, -4], [15, -12]], shade(look.horn, 0.15 + k));
-    facet([[0, -5], [4, -5], [8, -14]], shade(look.horn, k));
-    // lower jaw, opening and closing a little
-    const open = 2.2 + Math.sin(time * 3 + ph) * 1.2;
-    facet([[-2, 2], [-13, 3 + open], [3, 4]], shade(B, -0.25 + k));
-    facet([[-2, 2], [-12, 3.5 + open], [-13, 3 + open], [-3, 3.5]], shade(J, -0.1 + k));
-    // inside of the mouth and teeth
-    facet([[-3, 1], [-14, 1.5], [-12, 3 + open], [-2, 2.5]], '#5a0d10');
-    ctx.fillStyle = '#ffffff';
-    for (const tx of [-13, -10, -7, -4]) {
-      ctx.beginPath(); ctx.moveTo(tx, 1.2); ctx.lineTo(tx + 1.4, 1.2); ctx.lineTo(tx + 0.7, 3); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(tx + 0.5, 3 + open); ctx.lineTo(tx + 1.9, 3 + open); ctx.lineTo(tx + 1.2, 1.4 + open); ctx.fill();
-    }
-    // the skull and long snout, cut into facets
-    facet([[5, -3], [-4, -6], [1, 1]], shade(B, 0.25 + k));
-    facet([[-4, -6], [-13, -3], [-6, 1]], shade(B, 0.18 + k));
-    facet([[-13, -3], [-15, 0.5], [-6, 1]], shade(B, 0.02 + k));
-    facet([[-4, -6], [-6, 1], [1, 1]], shade(B, 0.08 + k));
-    facet([[5, -3], [1, 1], [5, 3]], shade(B, -0.12 + k));
-    facet([[-15, 0.5], [-14, 1.5], [-3, 1], [-6, 1]], shade(B, -0.18 + k));
-    // nostril and eye
-    ctx.fillStyle = shade(B, -0.5);
-    ctx.fillRect(-13.5, -2, 1.4, 0.9);
-    if (look.cyber) { ctx.shadowColor = CYAN; ctx.shadowBlur = 6; }
-    facet([[-5, -3.6], [-1.5, -4.4], [-1, -2.6], [-4.5, -2.2]], look.eye);
-    ctx.shadowBlur = 0;
-    if (look.cyber) seam([[3, -3], [-2, -1], [-8, -2]], 0.7);
-    ctx.fillStyle = '#111';
-    ctx.fillRect(-3.2, -4, 0.9, 1.7);
+    ctx.globalAlpha = 0.45 + 0.35 * Math.sin(time * 4);
+    glow(0.5, -5, 7, '46, 232, 255', 1);
     ctx.restore();
   }
-
-  function drawDragonModel(look, time, seed, flying) {
-    const B = look.body, J = look.belly;
-    const flap = flying ? Math.sin(time * 7 + seed) * 0.55 : Math.sin(time * 1.5 + seed) * 0.08;
-    const sway = Math.sin(time * 2 + seed);
-    ctx.save();
-    ctx.scale(0.56, 0.56); // the model is drawn big, then shrunk to pet size
-    ctx.translate(-4, 6);
-
-    // wing: bones from the shoulder, and membrane facets between them
-    const wing = (sx, sy, angle, k) => {
-      ctx.save();
-      ctx.translate(sx, sy);
-      ctx.rotate(angle);
-      facet([[0, 0], [8, -6], [26, -2], [20, 6]], shade(look.wing, -0.12 + k));
-      facet([[8, -6], [17, -26], [30, -14]], shade(look.wing, 0.12 + k));
-      facet([[8, -6], [30, -14], [26, -2]], shade(look.wing, k));
-      facet([[0, 0], [8, -6], [6, 2]], shade(look.wing, -0.22 + k));
-      if (look.cyber) { // glowing cyan bones
-        seam([[0, 0], [8, -6], [17, -26]], 1.2); seam([[8, -6], [30, -14]], 1.2); seam([[8, -6], [26, -2]], 1.2);
-      } else {
-        ctx.strokeStyle = shade(look.claw, 0.1); ctx.lineWidth = 1.4; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(8, -6); ctx.lineTo(17, -26);
-        ctx.moveTo(8, -6); ctx.lineTo(30, -14); ctx.moveTo(8, -6); ctx.lineTo(26, -2); ctx.stroke();
-      }
-      ctx.fillStyle = look.claw;
-      ctx.beginPath(); ctx.moveTo(17, -26); ctx.lineTo(16, -30); ctx.lineTo(19, -26.5); ctx.fill();
-      ctx.restore();
-    };
-    wing(10, -19, 0.3 - flap, -0.22);      // back wing (in shadow)
-
-    // tail, swishing
-    const ty = sway * 2.5;
-    facet([[18, -14], [32, -9 + ty * 0.4], [24, -4]], shade(B, 0.12));
-    facet([[22, -6], [32, -9 + ty * 0.4], [24, -4]], shade(B, -0.15));
-    facet([[32, -9 + ty * 0.4], [44, -5 + ty], [30, -5 + ty * 0.4]], shade(B, 0.05));
-    facet([[44, -5 + ty], [52, -12 + ty], [49, -2 + ty]], shade(look.horn, 0.1)); // spade tip
-
-    // back leg
-    facet([[10, -8], [20, -8], [16, 3], [10, 2]], shade(B, -0.05));
-    facet([[10, 2], [16, 3], [15, 10], [9, 10]], shade(B, -0.2));
-    // body
-    gem([[-6, -16], [6, -20], [18, -15], [22, -7], [14, 1], [2, 2], [-8, -2], [-10, -9]], B,
-      [0.28, 0.22, 0.06, -0.14, -0.26, -0.2, -0.05, 0.14]);
-    // cream belly plates
-    facet([[-9, -8], [-6, -2], [-1, -3], [-4, -10]], shade(J, 0.08));
-    facet([[-6, -2], [2, 1], [4, -3], [-1, -3]], shade(J, -0.02));
-    facet([[2, 1], [12, 0], [11, -4], [4, -3]], shade(J, -0.14));
-    // spikes along the back
-    for (const [x, y] of [[-3, -17], [4, -20], [11, -18], [17, -15]]) facet([[x - 2, y + 1], [x + 1, y - 4], [x + 3, y + 1]], shade(look.horn, 0.12));
-    // front leg with claws
-    const step = flying ? 0 : Math.sin(time * 6 + seed) * 1.5;
-    facet([[-8, -6], [-1, -5], [-3, 4], [-9, 5]], shade(B, 0.02));
-    facet([[-9, 5], [-3, 4], [-4 + step, 10], [-11 + step, 10]], shade(B, -0.16));
-    ctx.fillStyle = look.claw;
-    for (const cx of [-12, -9.5, -7, 8, 10.5, 13]) {
-      const sx = cx < 0 ? cx + step : cx;
-      ctx.beginPath(); ctx.moveTo(sx, 9); ctx.lineTo(sx - 2.2, 11); ctx.lineTo(sx + 0.8, 10.5); ctx.fill();
-    }
-
-    // neck(s) and head(s)
-    const heads = look.heads === 3 ? [[-8, -36, 0.15, -0.12, 2], [3, -33, 0.3, -0.18, 4], [-18, -27, 0, 0, 0]] : [[-18, -27, 0, 0, 0]];
-    for (const [hx0, hy0, tilt, k, ph] of heads) {
-      const hx = hx0 + Math.sin(time * 2.2 + ph + seed) * 1.2, hy = hy0 + Math.cos(time * 2.6 + ph + seed) * 1.2;
-      const mx = (-8 + hx) / 2 + 1, my = (-15 + hy) / 2;
-      facet([[-6, -16], [mx + 2, my - 3], [mx - 3, my + 3], [-10, -9]], shade(B, 0.16 + k));
-      facet([[mx + 2, my - 3], [hx + 4, hy - 3], [hx - 1, hy + 3], [mx - 3, my + 3]], shade(B, 0.06 + k));
-      facet([[-10, -9], [mx - 3, my + 3], [mx - 1, my + 5]], shade(J, -0.05 + k));
-      if (look.cyber) seam([[-7, -13], [mx, my], [hx + 2, hy + 1]], 1);
-      drawDragonHead(look, hx, hy, tilt, k, time, ph + seed);
-    }
-    if (look.cyber) {
-      // glowing cracks between the armor plates, and the ring core on its chest
-      seam([[-6, -16], [-1, -12], [5, -13], [10, -9], [18, -10], [22, -7]], 1.1);
-      seam([[6, -20], [5, -13]], 1); seam([[12, -9], [14, 1]], 1);
-      seam([[-8, -2], [0, -4], [8, -2], [14, -3]], 0.9);
-      seam([[22, -6], [32, -8], [44, -5]], 0.9);
-      cyberRing(1, -8, 3.4 + Math.sin(time * 4 + seed) * 0.3);
-    }
-    wing(1, -16, -0.5 - flap * 1.1, 0.08); // front wing
-    ctx.restore();
-  }
-
-  // only the ⚡ Cyber Hydra is drawn as a model; every other pet is its emoji
-  const LOW_POLY = {}; // pet id -> function that draws its model
-  for (const id of Object.keys(DRAGON_LOOKS)) LOW_POLY[id] = (time, seed, flying) => drawDragonModel(DRAGON_LOOKS[id], time, seed, flying);
+  const PET_MODELS = { cyberwhale: drawCyberWhale }; // pets drawn as pictures instead of their emoji
 
   // pictures of the low-poly pets for the pet lists (made once each)
   const petIcons = {};
   function petIcon(p) {
-    if (!LOW_POLY[p.id]) return p.emoji;
+    if (!PET_MODELS[p.id]) return p.emoji;
     if (!petIcons[p.id]) {
       const c = document.createElement('canvas');
       c.width = c.height = 96;
       const saved = ctx;
       ctx = c.getContext('2d');
       ctx.translate(46, 72); ctx.scale(1.7, 1.7);
-      LOW_POLY[p.id](0.6, 0, false);
+      PET_MODELS[p.id](0.6, 0, false);
       ctx = saved;
       petIcons[p.id] = c.toDataURL();
     }
@@ -4794,8 +4677,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (roar < 1) breathe(x, y, pp.facing, ['#fff3bf', '#ffd43b', '#ffa94d'], rnd);
         break;
       }
-      case 'hydra': {
-        // ⚡ Cyber Hydra, the best pet: EPIC cyber power all around it
+      case 'cyberwhale': {
+        // ⚡ Cyber Whale, the best pet: EPIC cyber power all around it
         const pulse = 1 + Math.sin(time * 5) * 0.1;
         const gx = pp.x, gy = pp.y + 9;
         // a glowing circuit platform on the ground with spinning hexagon rings
@@ -4840,14 +4723,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
             for (let k = 0; k < 14; k++) petSpark(x, y - 16, { shape: 'hex', color: k % 2 ? '#d9fdff' : CYAN, vx: rnd() * 260, vy: rnd() * 200 - 60, life: 0.8, size: 3 });
           }
         }
-        // triple plasma beams from all three heads
+        // a plasma spout from its blowhole, and a plasma beam from its mouth
         const beam = (time + seed) % 3.4;
         if (beam < 1.1) {
-          const len = Math.min(1, beam * 4) * 150, f = pp.facing, wv = 7 + Math.sin(time * 40) * 1.5;
-          for (const [dy, hx] of [[-14, 18], [-30, 8], [-27, 26]]) {
-            plasmaBeam(x + f * hx, y + dy, x + f * (hx + len), y + dy + 10, wv);
-            if (Math.random() < 0.5) petSpark(x + f * (hx + len), y + dy + 10, { shape: 'hex', color: '#d9fdff', vx: f * 60 + rnd() * 80, vy: rnd() * 80, life: 0.5, size: 2.5 });
+          const grow = Math.min(1, beam * 4), f = pp.facing, wv = 7 + Math.sin(time * 40) * 1.5;
+          const bx = x - f * 4 * big, by = y - 22 * big;
+          plasmaBeam(bx, by, bx + Math.sin(time * 9) * 6, by - 110 * grow, wv * 1.2);
+          for (let k = 0; k < 2; k++) {
+            petSpark(bx, by - 100 * grow, { shape: 'hex', color: k ? CYAN : '#d9fdff', vx: rnd() * 140, vy: -40 + Math.random() * 120, life: 0.9, size: 2.5 });
           }
+          plasmaBeam(x + f * 18 * big, y - 4 * big, x + f * (18 * big + 140 * grow), y + 2, wv);
         }
         break;
       }
@@ -4876,21 +4761,21 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.rotate(tilt * pp.facing);
     ctx.scale(-pp.turn * big * sx, big * sy); // pet emojis face left; turn smoothly to face where they go
     if (pet.fx === 'infinity') ctx.filter = `hue-rotate(${(time * 90) % 360}deg) saturate(1.6)`;
-    if (pet.fx === 'hydra' && Math.random() < 0.04) ctx.translate((Math.random() - 0.5) * 6, 0); // a little glitch
+    if (pet.fx === 'cyberwhale' && Math.random() < 0.04) ctx.translate((Math.random() - 0.5) * 6, 0); // a little glitch
     ctx.font = `30px ${EMOJI_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     // emoji pets get a soft glow in their rarity color (low-poly pets are drawn from many pieces, so they skip it)
-    if (r.order >= 2 && !LOW_POLY[pet.id]) { ctx.shadowColor = r.color === '#111111' ? '#ff5a00' : r.color; ctx.shadowBlur = 14; }
-    if (pet.fx === 'hydra' && pp.moving) {
+    if (r.order >= 2 && !PET_MODELS[pet.id]) { ctx.shadowColor = r.color === '#111111' ? '#ff5a00' : r.color; ctx.shadowBlur = 14; }
+    if (pet.fx === 'cyberwhale' && pp.moving) {
       // glowing ghost copies trailing behind it when it moves
       for (const [off, a] of [[16, 0.22], [30, 0.1]]) {
         ctx.save(); ctx.globalAlpha = a; ctx.translate(off, 0);
-        LOW_POLY[pet.id](time - off * 0.01, seed, true, true);
+        PET_MODELS[pet.id](time - off * 0.01, seed, true, true);
         ctx.restore();
       }
     }
-    if (LOW_POLY[pet.id]) LOW_POLY[pet.id](time, seed, pet.kind === 'fly' || pet.kind === 'swim', pp.moving);
+    if (PET_MODELS[pet.id]) PET_MODELS[pet.id](time, seed, pet.kind === 'fly' || pet.kind === 'swim', pp.moving);
     else ctx.fillText(pet.emoji, 0, 10); // drawn from its feet, so squishing and sitting look right
     ctx.restore();
     ctx.textBaseline = 'alphabetic';
@@ -6300,7 +6185,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     drawPetModel(id, canvasEl, time = 0.6) { // draws one low-poly pet big, to check how it looks
       const saved = ctx; ctx = canvasEl.getContext('2d');
       ctx.translate(canvasEl.width / 2, canvasEl.height * 0.78); ctx.scale(canvasEl.width / 48, canvasEl.width / 48);
-      LOW_POLY[id](time, 0, false); ctx = saved;
+      PET_MODELS[id](time, 0, false); ctx = saved;
     } }; // for automated tests
 })();
 </script>

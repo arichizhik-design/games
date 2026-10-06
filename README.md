@@ -103,9 +103,10 @@ The Cyber Event is switched on only in the single-file test version (`ice-cream-
 doesn't have it yet. To put it online later, set `CYBER=1` on the server (an environment variable on Render).
 
 - **Cyber Block** in the Pet Shop ($2B), only during the event week (Oct 5 to Oct 12, 2026). It's the only way to get
-  the **🐉 Cyber Hydra** (Cyber rarity, +5000% money, the best pet): a three-headed neon hydra with a circuit ring,
-  flying 0s and 1s and neon breath. When the event ends the Cyber Block (and the Hydra) is gone, but anyone who
-  got a Hydra keeps it.
+  the **🐋 Cyber Whale** (Cyber rarity, +5000% money, the best pet): the whale made of dark armor with glowing cyan
+  cracks and a ring core, standing on a glowing circuit platform, with energy orbs, sky lightning strikes, a plasma
+  spout and beam, and ghost trails. When the event ends the Cyber Block (and the Whale) is gone, but anyone who got
+  one keeps it.
 - **🤖 Cyber mutation** (x50, the second best). It never starts by itself; only admins can turn it on. It stays for good.
 - **Robo Ice Cream** (Cyber rarity): $25,000 a scoop, $50M a tub, a 0.1% chance to be in the shop. Shiny metal with
   glowing robot eyes and a blinking antenna.

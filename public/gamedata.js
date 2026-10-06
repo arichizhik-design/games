@@ -22,7 +22,7 @@
     celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 900, stock: { chance: 0, min: 0, max: 0 } },
     divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
-    // ⚡ Cyber: the Cyber Hydra pet and the Robo Ice Cream (0.1% chance to be in the shop)
+    // ⚡ Cyber: the Cyber Whale pet and the Robo Ice Cream (0.1% chance to be in the shop)
     cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1200, stock: { chance: 0.001, min: 1, max: 1 } },
   };
 
@@ -108,12 +108,12 @@
   ];
 
   // ---------- ⚡ Cyber Event (test file only for now) ----------
-  // The event lasts one week. The Cyber Block (and with it the Cyber Hydra) is only in the Pet Shop
+  // The event lasts one week. The Cyber Block (and with it the Cyber Whale) is only in the Pet Shop
   // while it's on; pets you got from it stay yours. The Cyber mutation and Robo Ice Cream stay for good.
   const CYBER_EVENT = { start: Date.UTC(2026, 9, 5), end: Date.UTC(2026, 9, 12) }; // Oct 5 to Oct 12, 2026
   if (CYBER) {
     FLAVORS.push({ id: 'robo', name: 'Robo Ice Cream', rarity: 'cyber', price: 25000, cost: 50e6, color: '#c3ccd6', effect: 'robo' });
-    PETS.push({ id: 'hydra', name: 'Cyber Hydra', emoji: '🐉', rarity: 'cyber', boost: 50, fx: 'hydra', kind: 'swim', event: 'cyber' });
+    PETS.push({ id: 'cyberwhale', name: 'Cyber Whale', emoji: '🐋', rarity: 'cyber', boost: 50, fx: 'cyberwhale', kind: 'swim', event: 'cyber' });
     LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 2e9, color: 'cyber', event: 'cyber',
       odds: { legendary: 30, mythic: 35, secret: 22, celestial: 11, cyber: 2 } });
   }
