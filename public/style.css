@@ -542,7 +542,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .fx-robo.scoop, .fx-robo .ball { background: linear-gradient(135deg, #f1f5f9, #9aa7b4 50%, #5f6b78) !important;
   box-shadow: 0 0 8px 2px rgba(0,255,213,0.7); }
 /* the Cyber Hydra's picture in pet lists */
-.petImg { width: 1.3em; height: 1.3em; vertical-align: middle; }
+.petImg { width: 1.7em; height: 1.7em; vertical-align: middle; }
 .revealEmoji .petImg { width: 110px; height: 110px; }
 @media (max-width: 760px) { #cyberBtns { bottom: calc(50px + env(safe-area-inset-bottom, 0px)); } #passBtn { font-size: 15px; padding: 7px 12px; } }
 /* 💰 Buy someone's ice cream */

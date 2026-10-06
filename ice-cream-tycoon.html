@@ -549,7 +549,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .fx-robo.scoop, .fx-robo .ball { background: linear-gradient(135deg, #f1f5f9, #9aa7b4 50%, #5f6b78) !important;
   box-shadow: 0 0 8px 2px rgba(0,255,213,0.7); }
 /* the Cyber Hydra's picture in pet lists */
-.petImg { width: 1.3em; height: 1.3em; vertical-align: middle; }
+.petImg { width: 1.7em; height: 1.7em; vertical-align: middle; }
 .revealEmoji .petImg { width: 110px; height: 110px; }
 @media (max-width: 760px) { #cyberBtns { bottom: calc(50px + env(safe-area-inset-bottom, 0px)); } #passBtn { font-size: 15px; padding: 7px 12px; } }
 /* 💰 Buy someone's ice cream */
@@ -4242,83 +4242,468 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // birds and dragons flap in the air, and sea creatures swim through it
   const PET_SIZE = { dragon: 1.45, hydra: 1.7, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
-  // ⚡ the Cyber Hydra: the neon green dragon, with two more copies of its own head on top (3 heads!).
-  // Drawn facing left with its feet at y = 10, like the other pet emojis.
-  const HYDRA_FILTER = 'hue-rotate(50deg) saturate(1.8) brightness(1.1)';
-  let hydraHead = null; // { img, x, y, r, color }: a sharp copy of the dragon's head, where it sits, and its color
-  function makeHydraHead() {
-    // draw the dragon big on its own (4x, so the copies stay sharp), then find its head (the top part) and cut it out
-    const Z = 4, W = 48 * Z;
-    const c = document.createElement('canvas');
-    c.width = c.height = W;
-    const h = c.getContext('2d');
-    h.font = `${30 * Z}px ${EMOJI_FONT}`;
-    h.textAlign = 'center';
-    h.textBaseline = 'bottom';
-    h.fillText('🐉', 24 * Z, 40 * Z);
-    const px = h.getImageData(0, 0, W, W).data;
-    const solid = (x, y) => px[(y * W + x) * 4 + 3] > 120;
-    let top = W, bottom = 0;
-    for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) if (solid(x, y)) { top = Math.min(top, y); bottom = Math.max(bottom, y); }
-    if (bottom <= top) return null; // no emoji font: just one head
-    const tall = bottom - top + 1, limit = top + tall * 0.38;
-    let sx = 0, sy = 0, n = 0, cr = 0, cg = 0, cb = 0, m = 0;
-    for (let y = top; y <= bottom; y++) for (let x = 0; x < W; x++) {
-      if (!solid(x, y)) continue;
-      if (y < limit) { sx += x; sy += y; n++; }
-      else { const i = (y * W + x) * 4; cr += px[i]; cg += px[i + 1]; cb += px[i + 2]; m++; } // the body's color, for the necks
-    }
-    const cx = sx / n, cy = sy / n, r = Math.max(5 * Z, tall * 0.24);
-    const size = Math.ceil(r * 2);
-    const head = document.createElement('canvas');
-    head.width = head.height = size;
-    const hh = head.getContext('2d');
-    hh.drawImage(c, cx - r, cy - r, size, size, 0, 0, size, size);
-    const g = hh.createRadialGradient(r, r, r * 0.8, r, r, r); // round, with just a soft edge
-    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
-    hh.globalCompositeOperation = 'destination-in';
-    hh.fillStyle = g; hh.fillRect(0, 0, size, size);
-    return { img: head, x: cx / Z - 24, y: cy / Z - 30, r: r / Z,
-      color: m ? `rgb(${cr / m | 0}, ${cg / m | 0}, ${cb / m | 0})` : '#3cb44a' };
+  // ---------- 🔺 low-poly pets: drawn from flat-shaded triangles so they look 3D (like Roblox pets) ----------
+  // All models face left with their feet at y = 10, the same as the pet emojis, so they flip and squish the same way.
+  const rgbCache = {};
+  function toRgb(c) {
+    if (rgbCache[c]) return rgbCache[c];
+    let r, g, b;
+    if (c[0] === '#') { const n = parseInt(c.slice(1), 16); r = n >> 16; g = n >> 8 & 255; b = n & 255; }
+    else [r, g, b] = c.match(/\d+(\.\d+)?/g).map(Number); // 'rgb(r, g, b)'
+    return (rgbCache[c] = [r, g, b]);
+  }
+  // k > 0 lightens (a facet facing the light), k < 0 darkens (a facet in shadow)
+  function shade(c, k) {
+    const [r, g, b] = Array.isArray(c) ? c : toRgb(c);
+    const f = v => Math.round(k >= 0 ? v + (255 - v) * k : v * (1 + k));
+    return `rgb(${f(r)}, ${f(g)}, ${f(b)})`;
+  }
+  // a flat facet; the thin outline in the same color hides the seams between facets
+  function facet(pts, color) {
+    ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 0.5; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  // a shape cut into facets: a fan of triangles from the middle, each shaded by which way it faces
+  function gem(pts, base, shades) {
+    const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+    pts.forEach((p, i) => facet([[cx, cy], p, pts[(i + 1) % pts.length]], shade(base, shades[i % shades.length])));
   }
 
-  function drawHydra(time, seed = 0) {
-    if (hydraHead === null) hydraHead = makeHydraHead() || false;
-    ctx.filter = HYDRA_FILTER;
-    if (hydraHead) {
-      // two more of the same head on their own necks, a little behind the first one
-      const { img, x, y, r, color } = hydraHead;
-      ctx.strokeStyle = color;
-      ctx.lineCap = 'round';
-      for (const [dx, dy, ph] of [[13, -1, 1.7], [6, -10, 0]]) {
-        const bob = Math.sin(time * 2.4 + ph + seed) * 1.5;
-        const hx = x + dx, hy = y + dy + bob;
-        ctx.lineWidth = r * 0.75;
-        ctx.beginPath(); ctx.moveTo(x + dx * 0.4, y + r * 1.6); ctx.quadraticCurveTo(hx + 2, hy + r, hx, hy + r * 0.4); ctx.stroke();
-        ctx.drawImage(img, hx - r, hy - r, r * 2, r * 2);
+  // 🐉 the low-poly dragon (Dragon, Dragon King, Infinity Dragon and the three-headed Cyber Hydra)
+  const DRAGON_LOOKS = {
+    dragon:     { body: '#d7262b', belly: '#eadbc0', horn: '#2b2b2b', wing: '#b51d22', claw: '#2b2b2b', eye: '#ffd43b' },
+    dragonking: { body: '#e8b21c', belly: '#fff3c4', horn: '#ffffff', wing: '#c98f00', claw: '#7a5200', eye: '#e03131' },
+    infinity:   { body: 'rainbow', belly: '#ffffff', horn: '#3b1f6b', wing: 'rainbow', claw: '#3b1f6b', eye: '#ffffff' },
+    hydra:      { body: '#16808a', belly: '#7dfff0', horn: '#04121c', wing: '#0e5a62', claw: '#04121c', eye: '#00ffd5', heads: 3 },
+  };
+
+  function drawDragonHead(look, hx, hy, tilt, k, time, ph) {
+    const B = look.body, J = look.belly;
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(tilt);
+    // horns (behind the head)
+    facet([[3, -4], [7, -4], [15, -12]], shade(look.horn, 0.15 + k));
+    facet([[0, -5], [4, -5], [8, -14]], shade(look.horn, k));
+    // lower jaw, opening and closing a little
+    const open = 2.2 + Math.sin(time * 3 + ph) * 1.2;
+    facet([[-2, 2], [-13, 3 + open], [3, 4]], shade(B, -0.25 + k));
+    facet([[-2, 2], [-12, 3.5 + open], [-13, 3 + open], [-3, 3.5]], shade(J, -0.1 + k));
+    // inside of the mouth and teeth
+    facet([[-3, 1], [-14, 1.5], [-12, 3 + open], [-2, 2.5]], '#5a0d10');
+    ctx.fillStyle = '#ffffff';
+    for (const tx of [-13, -10, -7, -4]) {
+      ctx.beginPath(); ctx.moveTo(tx, 1.2); ctx.lineTo(tx + 1.4, 1.2); ctx.lineTo(tx + 0.7, 3); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(tx + 0.5, 3 + open); ctx.lineTo(tx + 1.9, 3 + open); ctx.lineTo(tx + 1.2, 1.4 + open); ctx.fill();
+    }
+    // the skull and long snout, cut into facets
+    facet([[5, -3], [-4, -6], [1, 1]], shade(B, 0.25 + k));
+    facet([[-4, -6], [-13, -3], [-6, 1]], shade(B, 0.18 + k));
+    facet([[-13, -3], [-15, 0.5], [-6, 1]], shade(B, 0.02 + k));
+    facet([[-4, -6], [-6, 1], [1, 1]], shade(B, 0.08 + k));
+    facet([[5, -3], [1, 1], [5, 3]], shade(B, -0.12 + k));
+    facet([[-15, 0.5], [-14, 1.5], [-3, 1], [-6, 1]], shade(B, -0.18 + k));
+    // nostril and eye
+    ctx.fillStyle = shade(B, -0.5);
+    ctx.fillRect(-13.5, -2, 1.4, 0.9);
+    facet([[-5, -3.6], [-1.5, -4.4], [-1, -2.6], [-4.5, -2.2]], look.eye);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-3.2, -4, 0.9, 1.7);
+    ctx.restore();
+  }
+
+  function drawDragonModel(look, time, seed, flying) {
+    const B = look.body, J = look.belly;
+    const flap = flying ? Math.sin(time * 7 + seed) * 0.55 : Math.sin(time * 1.5 + seed) * 0.08;
+    const sway = Math.sin(time * 2 + seed);
+    ctx.save();
+    ctx.scale(0.56, 0.56); // the model is drawn big, then shrunk to pet size
+    ctx.translate(-4, 6);
+
+    // wing: bones from the shoulder, and membrane facets between them
+    const wing = (sx, sy, angle, k) => {
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(angle);
+      facet([[0, 0], [8, -6], [26, -2], [20, 6]], shade(look.wing, -0.12 + k));
+      facet([[8, -6], [17, -26], [30, -14]], shade(look.wing, 0.12 + k));
+      facet([[8, -6], [30, -14], [26, -2]], shade(look.wing, k));
+      facet([[0, 0], [8, -6], [6, 2]], shade(look.wing, -0.22 + k));
+      ctx.strokeStyle = shade(look.claw, 0.1); ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(8, -6); ctx.lineTo(17, -26);
+      ctx.moveTo(8, -6); ctx.lineTo(30, -14); ctx.moveTo(8, -6); ctx.lineTo(26, -2); ctx.stroke();
+      ctx.fillStyle = look.claw;
+      ctx.beginPath(); ctx.moveTo(17, -26); ctx.lineTo(16, -30); ctx.lineTo(19, -26.5); ctx.fill();
+      ctx.restore();
+    };
+    wing(10, -19, 0.3 - flap, -0.22);      // back wing (in shadow)
+
+    // tail, swishing
+    const ty = sway * 2.5;
+    facet([[18, -14], [32, -9 + ty * 0.4], [24, -4]], shade(B, 0.12));
+    facet([[22, -6], [32, -9 + ty * 0.4], [24, -4]], shade(B, -0.15));
+    facet([[32, -9 + ty * 0.4], [44, -5 + ty], [30, -5 + ty * 0.4]], shade(B, 0.05));
+    facet([[44, -5 + ty], [52, -12 + ty], [49, -2 + ty]], shade(look.horn, 0.1)); // spade tip
+
+    // back leg
+    facet([[10, -8], [20, -8], [16, 3], [10, 2]], shade(B, -0.05));
+    facet([[10, 2], [16, 3], [15, 10], [9, 10]], shade(B, -0.2));
+    // body
+    gem([[-6, -16], [6, -20], [18, -15], [22, -7], [14, 1], [2, 2], [-8, -2], [-10, -9]], B,
+      [0.28, 0.22, 0.06, -0.14, -0.26, -0.2, -0.05, 0.14]);
+    // cream belly plates
+    facet([[-9, -8], [-6, -2], [-1, -3], [-4, -10]], shade(J, 0.08));
+    facet([[-6, -2], [2, 1], [4, -3], [-1, -3]], shade(J, -0.02));
+    facet([[2, 1], [12, 0], [11, -4], [4, -3]], shade(J, -0.14));
+    // spikes along the back
+    for (const [x, y] of [[-3, -17], [4, -20], [11, -18], [17, -15]]) facet([[x - 2, y + 1], [x + 1, y - 4], [x + 3, y + 1]], shade(look.horn, 0.12));
+    // front leg with claws
+    const step = flying ? 0 : Math.sin(time * 6 + seed) * 1.5;
+    facet([[-8, -6], [-1, -5], [-3, 4], [-9, 5]], shade(B, 0.02));
+    facet([[-9, 5], [-3, 4], [-4 + step, 10], [-11 + step, 10]], shade(B, -0.16));
+    ctx.fillStyle = look.claw;
+    for (const cx of [-12, -9.5, -7, 8, 10.5, 13]) {
+      const sx = cx < 0 ? cx + step : cx;
+      ctx.beginPath(); ctx.moveTo(sx, 9); ctx.lineTo(sx - 2.2, 11); ctx.lineTo(sx + 0.8, 10.5); ctx.fill();
+    }
+
+    // neck(s) and head(s)
+    const heads = look.heads === 3 ? [[-8, -36, 0.15, -0.12, 2], [3, -33, 0.3, -0.18, 4], [-18, -27, 0, 0, 0]] : [[-18, -27, 0, 0, 0]];
+    for (const [hx0, hy0, tilt, k, ph] of heads) {
+      const hx = hx0 + Math.sin(time * 2.2 + ph + seed) * 1.2, hy = hy0 + Math.cos(time * 2.6 + ph + seed) * 1.2;
+      const mx = (-8 + hx) / 2 + 1, my = (-15 + hy) / 2;
+      facet([[-6, -16], [mx + 2, my - 3], [mx - 3, my + 3], [-10, -9]], shade(B, 0.16 + k));
+      facet([[mx + 2, my - 3], [hx + 4, hy - 3], [hx - 1, hy + 3], [mx - 3, my + 3]], shade(B, 0.06 + k));
+      facet([[-10, -9], [mx - 3, my + 3], [mx - 1, my + 5]], shade(J, -0.05 + k));
+      drawDragonHead(look, hx, hy, tilt, k, time, ph + seed);
+    }
+    wing(1, -16, -0.5 - flap * 1.1, 0.08); // front wing
+    ctx.restore();
+  }
+
+  // colors that change every frame (the rainbow Infinity Dragon)
+  function liveLook(look, time) {
+    if (look.body !== 'rainbow') return look;
+    const h = (time * 60) % 360;
+    return { ...look, body: `rgb(${hueRgb(h)})`, wing: `rgb(${hueRgb((h + 40) % 360)})` };
+  }
+
+  const LOW_POLY = {}; // pet id -> function that draws its low-poly model
+  for (const id of Object.keys(DRAGON_LOOKS)) LOW_POLY[id] = (time, seed, flying) => drawDragonModel(liveLook(DRAGON_LOOKS[id], time), time, seed, flying);
+
+  // 🐾 four-legged animals: one body plan, with each pet's own colors, ears, tail, snout and extras
+  const BEAST_LOOKS = {
+    puppy:   { body: '#c8915a', belly: '#f3e2c7', dark: '#7a4f2a', ears: 'flop', tail: 'wag', snout: 4, nose: '#2b2b2b', tongue: true },
+    kitty:   { body: '#f08c3a', belly: '#ffe8cc', dark: '#b85c12', ears: 'pointy', tail: 'curl', snout: 1, nose: '#ff8fab', stripes: true, whiskers: true },
+    bunny:   { body: '#f1f3f5', belly: '#ffffff', dark: '#ced4da', ears: 'long', tail: 'puff', snout: 1, nose: '#ff8fab', inner: '#ffc9de', small: true },
+    fox:     { body: '#e8590c', belly: '#ffffff', dark: '#3b2314', ears: 'pointy', tail: 'bushy', tip: '#ffffff', snout: 5, nose: '#1a1a1a', inner: '#3b2314' },
+    panda:   { body: '#f8f9fa', belly: '#ffffff', dark: '#1f1f1f', ears: 'round', tail: 'stub', snout: 2, nose: '#1f1f1f', panda: true, chunky: true },
+    unicorn: { body: '#fbf3ff', belly: '#ffffff', dark: '#d9c4f0', ears: 'pointy', tail: 'hair', snout: 6, nose: '#d9a9e8', horn: '#ffd43b', mane: 'rainbow', tall: true, hooves: '#c9a227' },
+    wolf:    { body: '#4a3f6b', belly: '#9d93c4', dark: '#2a2340', ears: 'pointy', tail: 'bushy', tip: '#2a2340', snout: 6, nose: '#111', eye: '#d0a3ff', tall: true },
+    lion:    { body: '#e0a536', belly: '#f6d98b', dark: '#9c6a12', ears: 'round', tail: 'tuft', snout: 3, nose: '#5a3a1a', mane: '#4b2a8a', stars: true },
+  };
+
+  function drawBeast(L, time, seed, moving) {
+    const B = L.body, D = L.dark;
+    const s = L.small ? 0.82 : L.chunky ? 1.08 : 1;
+    const legH = L.tall ? 9 : L.small ? 5 : 7;
+    const swing = moving ? Math.sin(time * 9 + seed) * 2.2 : 0;
+    ctx.save();
+    ctx.translate(0, 10);
+    ctx.scale(s, s);
+    ctx.translate(0, -10);
+    const top = 10 - legH; // where the legs meet the body
+    // far legs (darker)
+    const leg = (x, k, sw, color) => {
+      facet([[x - 2.2, top - 3], [x + 2.2, top - 3], [x + 1.8 + sw * 0.5, 10], [x - 2 + sw * 0.5, 10]], shade(color, k));
+      if (L.hooves) facet([[x - 2 + sw * 0.5, 8.6], [x + 1.8 + sw * 0.5, 8.6], [x + 1.8 + sw * 0.5, 10], [x - 2 + sw * 0.5, 10]], L.hooves);
+    };
+    const legColor = L.panda ? '#1f1f1f' : B;
+    leg(9, -0.3, -swing, legColor); leg(-5, -0.3, swing, legColor);
+
+    // tail
+    const wag = Math.sin(time * (L.tail === 'wag' ? 14 : 3) + seed);
+    const tx = 15, ty = top - 9;
+    if (L.tail === 'bushy') {
+      facet([[tx, ty + 1], [tx + 9, ty - 6 + wag * 2], [tx + 13, ty - 1 + wag * 2], [tx + 4, ty + 5]], shade(B, 0.05));
+      facet([[tx + 9, ty - 6 + wag * 2], [tx + 16, ty - 6 + wag * 3], [tx + 13, ty - 1 + wag * 2]], shade(L.tip || B, 0.1));
+      facet([[tx, ty + 1], [tx + 4, ty + 5], [tx + 13, ty - 1 + wag * 2]], shade(B, -0.18));
+    } else if (L.tail === 'wag' || L.tail === 'curl') {
+      const up = L.tail === 'curl' ? -11 : -6;
+      facet([[tx, ty], [tx + 7, ty + up + wag * 3], [tx + 9, ty + up + 2 + wag * 3], [tx + 1, ty + 3]], shade(B, -0.05));
+    } else if (L.tail === 'puff') {
+      gem([[tx, ty - 1], [tx + 4, ty - 3], [tx + 6, ty + 1], [tx + 3, ty + 4], [tx - 1, ty + 3]], '#ffffff', [0.1, 0, -0.08, -0.15, 0.05]);
+    } else if (L.tail === 'tuft') {
+      facet([[tx, ty], [tx + 9, ty + 4 + wag], [tx + 9, ty + 6 + wag], [tx, ty + 2]], shade(B, -0.08));
+      gem([[tx + 8, ty + 3 + wag], [tx + 12, ty + 2 + wag], [tx + 12, ty + 7 + wag], [tx + 8, ty + 8 + wag]], L.mane, [0.15, 0, -0.15, -0.05]);
+    } else if (L.tail === 'hair') {
+      ['#ff8fab', '#ffd43b', '#8ce99a', '#74c0fc', '#b197fc'].forEach((c, i) =>
+        facet([[tx, ty - 1 + i], [tx + 10, ty + 2 + i * 2 + wag * 2], [tx + 9, ty + 4 + i * 2 + wag * 2], [tx, ty + 1 + i]], shade(c, 0)));
+    } else { // stub
+      gem([[tx - 1, ty], [tx + 3, ty - 1], [tx + 4, ty + 2], [tx, ty + 3]], L.panda ? '#1f1f1f' : B, [0.1, -0.1, -0.2, 0]);
+    }
+
+    // body
+    const by = top - 1;
+    gem([[-9, by - 9], [2, by - 12], [12, by - 11], [17, by - 6], [15, by], [4, by + 2], [-6, by + 1], [-11, by - 4]], B,
+      [0.25, 0.2, 0.05, -0.12, -0.22, -0.2, -0.05, 0.12]);
+    facet([[-9, by - 3], [-5, by + 1], [6, by + 2], [3, by - 3]], shade(L.belly, -0.05));
+    if (L.stripes) for (const x of [2, 7, 12]) facet([[x - 1, by - 11], [x + 1.5, by - 11], [x + 0.5, by - 5]], shade(D, 0));
+    if (L.panda) facet([[-9, by - 9], [2, by - 12], [3, by - 6], [-10, by - 3]], shade('#1f1f1f', 0.1)); // black shoulders
+
+    // near legs
+    leg(12, -0.08, swing, legColor); leg(-3, -0.05, -swing, legColor);
+
+    // head
+    const hx = -13, hy = by - 11 + Math.sin(time * 2 + seed) * 0.6;
+    ctx.save();
+    ctx.translate(hx, hy);
+    // mane behind the head
+    if (L.mane === 'rainbow') {
+      ['#ff8fab', '#ffd43b', '#8ce99a', '#74c0fc', '#b197fc'].forEach((c, i) =>
+        facet([[2 + i * 2, -7 + i], [7 + i * 2, -5 + i * 1.5], [6 + i * 2, 4 + i], [1 + i * 2, 1 + i]], shade(c, 0)));
+    } else if (L.mane) {
+      gem([[-3, -9], [5, -10], [11, -4], [10, 6], [3, 9], [-4, 6], [-7, -2]], L.mane, [0.25, 0.1, -0.1, -0.25, -0.15, 0, 0.15]);
+      if (L.stars) {
+        for (const [x, y, k] of [[6, -6, 0], [8, 3, 1], [0, 6, 2]]) {
+          ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 4 + k + seed)})`;
+          ctx.beginPath(); ctx.arc(x, y, 0.9, 0, Math.PI * 2); ctx.fill();
+        }
       }
-      ctx.lineCap = 'butt';
     }
-    ctx.fillText('🐉', 0, 10);
-    ctx.filter = 'none';
+    // ears
+    const ear = (x, k) => {
+      if (L.ears === 'pointy') {
+        facet([[x - 2, -5], [x + 0.5, -11], [x + 3, -5]], shade(B, k));
+        facet([[x - 0.8, -5.5], [x + 0.5, -9], [x + 1.8, -5.5]], shade(L.inner || '#ffc9de', k * 0.5));
+      } else if (L.ears === 'long') {
+        facet([[x - 1.5, -5], [x - 1, -16], [x + 2, -16], [x + 2.5, -5]], shade(B, k));
+        facet([[x - 0.4, -6], [x - 0.2, -14.5], [x + 1.2, -14.5], [x + 1.4, -6]], shade(L.inner, k * 0.5));
+      } else if (L.ears === 'round') {
+        gem([[x - 2.5, -5], [x - 2, -8.5], [x + 1.5, -9], [x + 2.8, -5.5]], L.panda ? '#1f1f1f' : B, [0.15, 0.05, -0.1, 0]);
+      } else if (L.ears === 'flop') {
+        facet([[x - 1, -6], [x + 3, -6], [x + 3.5, 1], [x + 0.5, 2]], shade(D, k));
+      }
+    };
+    ear(2.5, -0.15);
+    // skull
+    gem([[-6, -5], [2, -7], [5, -2], [3, 4], [-4, 5], [-7, 1]], B, [0.25, 0.15, -0.05, -0.2, -0.1, 0.12]);
+    // snout
+    const sn = L.snout;
+    facet([[-6, -3], [-7 - sn, -1], [-7 - sn, 2.5], [-4, 4]], shade(B, 0.08));
+    facet([[-7 - sn, 2.5], [-4, 4], [-2, 5], [-6 - sn, 4]], shade(L.belly, -0.12));
+    facet([[-8.2 - sn, -1.2], [-6.8 - sn, -1.6], [-6.6 - sn, 0.6], [-8.4 - sn, 0.6]], L.nose);
+    if (L.tongue && Math.sin(time * 5 + seed) > 0) facet([[-5 - sn, 4], [-3 - sn, 4], [-3.5 - sn, 6.5]], '#ff6b8a');
+    if (L.whiskers) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 0.4;
+      ctx.beginPath(); ctx.moveTo(-6, 1); ctx.lineTo(-12, 0); ctx.moveTo(-6, 2); ctx.lineTo(-12, 3); ctx.stroke();
+    }
+    if (L.panda) facet([[-5, -3.6], [-1.5, -4], [-1, -0.5], [-4.5, 0]], '#1f1f1f');
+    // eye
+    const blink = Math.sin(time * 1.3 + seed * 3) > 0.97;
+    ctx.fillStyle = L.eye || (L.panda ? '#ffffff' : '#1a1a1a');
+    if (blink) ctx.fillRect(-4, -2, 2.4, 0.6);
+    else { ctx.beginPath(); ctx.arc(-2.8, -2, 1.1, 0, Math.PI * 2); ctx.fill(); }
+    if (!blink && !L.eye) { ctx.fillStyle = '#fff'; ctx.fillRect(-3.2, -2.6, 0.6, 0.6); }
+    ear(-0.5, 0.1);
+    if (L.horn) {
+      facet([[-3, -6], [0, -6.5], [-4, -17]], shade(L.horn, 0.15));
+      facet([[-1.5, -6.3], [0, -6.5], [-4, -17]], shade(L.horn, -0.15));
+    }
+    ctx.restore();
+    ctx.restore();
   }
+  for (const id of Object.keys(BEAST_LOOKS)) LOW_POLY[id] = (time, seed, flying, moving) => drawBeast(BEAST_LOOKS[id], time, seed, moving);
 
-  // a picture of the Cyber Hydra for the pet lists (made once)
-  let hydraIcon = '';
+  // 🦖 Lava Rex: a big two-legged dinosaur with glowing lava cracks
+  function drawRex(time, seed, flying, moving) {
+    const B = '#4a1a0e', J = '#7a2a12';
+    const swing = moving ? Math.sin(time * 8 + seed) * 2.5 : 0;
+    const glowA = 0.6 + 0.4 * Math.sin(time * 3 + seed);
+    ctx.save();
+    ctx.translate(0, 10); ctx.scale(0.72, 0.72); ctx.translate(0, -10);
+    // far leg
+    facet([[4, -8], [10, -8], [9 + swing * 0.4, 10], [4 + swing * 0.4, 10]], shade(B, -0.35));
+    // tail
+    const wag = Math.sin(time * 2.5 + seed) * 2;
+    facet([[10, -14], [30, -10 + wag], [12, -5]], shade(B, 0.05));
+    facet([[12, -5], [30, -10 + wag], [33, -8 + wag]], shade(B, -0.2));
+    // body
+    gem([[-7, -19], [4, -18], [12, -14], [12, -5], [3, -1], [-6, -6]], B, [0.25, 0.12, -0.08, -0.25, -0.18, 0.08]);
+    facet([[-6, -6], [-7, -14], [-2, -9], [3, -1]], shade(J, 0));
+    // near leg (big thigh)
+    gem([[2, -12], [10, -12], [12, -4], [7, 0], [1, -4]], B, [0.15, 0, -0.2, -0.25, 0.05]);
+    facet([[3, -1], [8, -1], [8 - swing * 0.4, 10], [2 - swing * 0.4, 10]], shade(B, -0.12));
+    facet([[0 - swing * 0.4, 9], [9 - swing * 0.4, 9], [9 - swing * 0.4, 10.5], [-1 - swing * 0.4, 10.5]], shade(B, -0.25));
+    // tiny arms
+    facet([[-6, -11], [-3, -10], [-8, -6]], shade(B, -0.1));
+    // head with big jaws
+    ctx.save();
+    ctx.translate(-12, -21 + Math.sin(time * 2 + seed) * 0.6);
+    const open = 1.5 + Math.max(0, Math.sin(time * 1.4 + seed)) * 2.5;
+    facet([[-10, 2], [4, 3], [5, 5 + open], [-9, 3 + open]], shade(J, -0.15));   // lower jaw
+    facet([[-10, 2], [3, 2.5], [3, 4 + open * 0.6], [-9, 3 + open]], '#3a0a05'); // mouth
+    ctx.fillStyle = '#fff4d6';
+    for (const tx of [-9, -6.5, -4, -1.5]) {
+      ctx.beginPath(); ctx.moveTo(tx, 2); ctx.lineTo(tx + 1.4, 2); ctx.lineTo(tx + 0.7, 3.8); ctx.fill();
+    }
+    gem([[-11, -2], [-3, -6], [6, -5], [8, 0], [4, 3], [-10, 2]], B, [0.28, 0.2, 0.02, -0.18, -0.1, 0.1]);
+    ctx.fillStyle = '#ffb000';
+    ctx.beginPath(); ctx.arc(0, -2.5, 1.1, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // glowing lava cracks
+    ctx.strokeStyle = `rgba(255, 120, 0, ${glowA})`; ctx.lineWidth = 0.9;
+    ctx.shadowColor = '#ff6a00'; ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.moveTo(-4, -16); ctx.lineTo(0, -12); ctx.lineTo(-1, -8);
+    ctx.moveTo(6, -15); ctx.lineTo(8, -10); ctx.lineTo(5, -7);
+    ctx.moveTo(15, -11); ctx.lineTo(20, -9);
+    ctx.moveTo(-17, -24); ctx.lineTo(-13, -23); ctx.lineTo(-11, -25);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+  LOW_POLY.rex = drawRex;
+
+  // 🐦 birds: owl, phoenix and dove share a body plan; the penguin stands up straight
+  const BIRD_LOOKS = {
+    owl:     { body: '#7a5230', belly: '#e9d5b5', wing: '#5c3b1e', beak: '#f2a516', eye: '#ffd43b', tufts: true, bigEye: true, tail: 'short' },
+    phoenix: { body: '#e8590c', belly: '#ffd43b', wing: '#c92a2a', beak: '#ffd43b', eye: '#fff3bf', crest: true, tail: 'plume' },
+    dove:    { body: '#f8f9fa', belly: '#ffffff', wing: '#dee2e6', beak: '#ff922b', eye: '#1a1a1a', tail: 'fan' },
+  };
+  function drawBird(L, time, seed, flying) {
+    const B = L.body;
+    const flap = flying ? Math.sin(time * 12 + seed) * 0.7 : 0;
+    // tail
+    if (L.tail === 'plume') {
+      ['#ffd43b', '#ff922b', '#e03131'].forEach((c, i) => {
+        const w = Math.sin(time * 3 + i + seed) * 2;
+        facet([[8, -6 + i], [24, -10 + i * 4 + w], [22, -6 + i * 4 + w], [8, -3 + i]], shade(c, 0.05 - i * 0.05));
+      });
+    } else if (L.tail === 'fan') {
+      facet([[8, -7], [17, -11], [18, -5], [8, -3]], shade(L.wing, 0));
+    } else facet([[8, -6], [14, -7], [13, -3], [8, -3]], shade(L.wing, -0.1));
+    // body
+    gem([[-6, -12], [3, -15], [10, -11], [12, -5], [7, 0], [-2, 1], [-7, -4]], B, [0.25, 0.15, 0, -0.18, -0.22, -0.12, 0.08]);
+    facet([[-7, -4], [-2, 1], [4, 0], [0, -7]], shade(L.belly, -0.02));
+    // legs
+    ctx.strokeStyle = '#e8a33a'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-1, 9.5); ctx.moveTo(4, 0); ctx.lineTo(4, 9.5); ctx.stroke();
+    // head
+    ctx.save();
+    ctx.translate(-6, -14 + Math.sin(time * 2.4 + seed) * 0.5);
+    if (L.crest) {
+      for (let i = 0; i < 3; i++) {
+        const f = Math.sin(time * 9 + i * 2 + seed) * 1.2;
+        facet([[i * 2 - 1, -4], [i * 2.5 + 2 + f, -12 + i], [i * 2 + 2, -4]], shade(['#ffd43b', '#ff922b', '#e03131'][i], 0.1));
+      }
+    }
+    if (L.tufts) {
+      facet([[-3, -4], [-4, -9], [0, -5]], shade(B, -0.1));
+      facet([[2, -5], [4, -9], [4, -3]], shade(B, -0.2));
+    }
+    gem([[-5, -4], [1, -6], [4, -1], [2, 3], [-4, 3], [-6, 0]], B, [0.25, 0.12, -0.12, -0.2, -0.05, 0.15]);
+    facet([[-6, -1], [-10, 0.5], [-5.5, 1.8]], shade(L.beak, 0.05));
+    if (L.bigEye) {
+      gem([[-5, -3], [-1, -4], [0, 0], [-4, 1]], '#f8f0e0', [0.1, 0, -0.1, 0]);
+      ctx.fillStyle = L.eye; ctx.beginPath(); ctx.arc(-2.6, -1.6, 1.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-2.6, -1.6, 0.7, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = L.eye; ctx.beginPath(); ctx.arc(-2.5, -1.5, 0.9, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    // wing (flaps when flying)
+    ctx.save();
+    ctx.translate(2, -10);
+    ctx.rotate(-0.15 - flap);
+    facet([[0, 0], [8, -3], [14, 1], [6, 4]], shade(L.wing, 0.05));
+    facet([[8, -3], [16, -2], [14, 1]], shade(L.wing, -0.1));
+    facet([[0, 0], [6, 4], [-1, 3]], shade(L.wing, -0.2));
+    ctx.restore();
+  }
+  for (const id of Object.keys(BIRD_LOOKS)) LOW_POLY[id] = (time, seed, flying) => drawBird(BIRD_LOOKS[id], time, seed, flying);
+
+  LOW_POLY.penguin = (time, seed, flying, moving) => {
+    const flip = moving ? Math.sin(time * 10 + seed) * 0.5 : Math.sin(time * 2 + seed) * 0.1;
+    facet([[-4, 9], [1, 9], [0, 10.5], [-6, 10.5]], '#ff922b'); facet([[2, 9], [7, 9], [6, 10.5], [0, 10.5]], '#e8590c');
+    gem([[-6, -14], [2, -16], [7, -10], [7, 2], [3, 9], [-4, 9], [-7, 1], [-8, -7]], '#1f2933', [0.25, 0.15, -0.05, -0.2, -0.25, -0.15, 0, 0.15]);
+    facet([[-6, -8], [-1, -10], [1, 2], [-3, 8.5], [-6, 2]], shade('#ffffff', -0.02));
+    facet([[-6, -8], [-1, -10], [-2, -12]], shade('#ffffff', 0.05));
+    facet([[-7, -11], [-12, -10], [-7, -9]], '#ff922b');
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-4, -12, 0.9, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(3, -7); ctx.rotate(0.2 + flip);
+    facet([[0, 0], [4, 1], [3, 10], [0, 7]], shade('#1f2933', 0.1));
+    ctx.restore();
+  };
+
+  // 🐙 Kraken: a purple dome with waving tentacles
+  LOW_POLY.kraken = (time, seed) => {
+    const C = '#7048e8';
+    for (let i = 0; i < 6; i++) {
+      const x = -8 + i * 3.4, w = Math.sin(time * 3 + i + seed) * 3;
+      facet([[x, -4], [x + 2.6, -4], [x + 1.5 + w, 6], [x + 2.5 + w * 1.4, 10], [x + w * 1.2, 7]], shade(C, i % 2 ? -0.25 : -0.12));
+    }
+    gem([[-11, -6], [-8, -16], [0, -21], [8, -16], [11, -6], [5, -2], [-5, -2]], C, [0.12, 0.3, 0.22, 0.02, -0.18, -0.25, -0.05]);
+    for (const x of [-4, 3]) {
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, -8, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(x - 0.5, -8, 1, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = shade(C, 0.45);
+    for (const [x, y] of [[-4, -15], [3, -17], [6, -11]]) { ctx.beginPath(); ctx.arc(x, y, 0.9, 0, Math.PI * 2); ctx.fill(); }
+  };
+
+  // 🐋 Cosmic Whale: a big blue whale with stars on its back
+  LOW_POLY.whale = (time, seed) => {
+    const C = '#1c4fb8', tail = Math.sin(time * 2.5 + seed) * 3;
+    facet([[16, -8], [26, -14 + tail], [24, -8 + tail * 0.5], [27, -2 + tail]], shade(C, -0.1));
+    gem([[-18, -8], [-8, -16], [6, -15], [17, -10], [18, -6], [8, 1], [-8, 2], [-19, -2]], C, [0.18, 0.28, 0.16, 0, -0.15, -0.25, -0.18, -0.02]);
+    facet([[-19, -2], [-8, 2], [8, 1], [4, -3], [-16, -4]], shade('#e7f5ff', -0.05));
+    facet([[0, -2], [6, -1], [3, 5]], shade(C, -0.3));
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-12, -6, 1, 0, Math.PI * 2); ctx.fill();
+    for (const [x, y, k] of [[-6, -13, 0], [2, -14, 1], [9, -11, 2], [-1, -10, 3]]) {
+      ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 4 + k + seed)})`;
+      ctx.beginPath(); ctx.arc(x, y, 0.8, 0, Math.PI * 2); ctx.fill();
+    }
+    const spout = (time + seed) % 4;
+    if (spout < 1) {
+      ctx.fillStyle = 'rgba(165, 216, 255, 0.8)';
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(-9 + (i - 1) * 2, -18 - spout * 6 - i, 1.2, 0, Math.PI * 2); ctx.fill(); }
+    }
+  };
+
+  // 🦈 Thunder Shark: a blue-grey shark with a big grin
+  LOW_POLY.shark = (time, seed) => {
+    const C = '#4d7ea8', tail = Math.sin(time * 4 + seed) * 2.5;
+    facet([[16, -7], [25, -15 + tail], [22, -6 + tail * 0.5]], shade(C, 0.05));
+    facet([[16, -5], [22, -6 + tail * 0.5], [24, 1 + tail]], shade(C, -0.2));
+    facet([[0, -11], [6, -20], [9, -11]], shade(C, 0.1));
+    gem([[-19, -5], [-8, -11], [8, -11], [17, -7], [17, -4], [6, 0], [-10, 0]], C, [0.25, 0.18, 0.05, -0.12, -0.22, -0.15, 0.05]);
+    facet([[-19, -5], [-10, 0], [6, 0], [0, -3], [-14, -3]], shade('#f1f3f5', -0.05));
+    facet([[-2, -2], [5, -1], [1, 5]], shade(C, -0.25));
+    facet([[-17, -3.2], [-10, -2.6], [-11, -1], [-16, -1.8]], '#2b0a0a');
+    ctx.fillStyle = '#fff';
+    for (const tx of [-16, -14, -12]) { ctx.beginPath(); ctx.moveTo(tx, -3); ctx.lineTo(tx + 1.2, -3); ctx.lineTo(tx + 0.6, -1.6); ctx.fill(); }
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-12, -7, 0.9, 0, Math.PI * 2); ctx.fill();
+    for (const x of [-7, -5.5, -4]) { ctx.strokeStyle = shade(C, -0.35); ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(x, -8); ctx.lineTo(x - 0.6, -4.5); ctx.stroke(); }
+  };
+
+  // pictures of the low-poly pets for the pet lists (made once each)
+  const petIcons = {};
   function petIcon(p) {
-    if (p.fx !== 'hydra') return p.emoji;
-    if (!hydraIcon) {
+    if (!LOW_POLY[p.id]) return p.emoji;
+    if (!petIcons[p.id]) {
       const c = document.createElement('canvas');
       c.width = c.height = 96;
       const saved = ctx;
       ctx = c.getContext('2d');
-      ctx.translate(48, 76); ctx.scale(1.6, 1.6);
-      ctx.font = `30px ${EMOJI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      drawHydra(0.6);
+      ctx.translate(46, 72); ctx.scale(1.7, 1.7);
+      LOW_POLY[p.id](0.6, 0, false);
       ctx = saved;
-      hydraIcon = c.toDataURL();
+      petIcons[p.id] = c.toDataURL();
     }
-    return `<img class="petImg" src="${hydraIcon}" alt="${p.name}">`;
+    return `<img class="petImg" src="${petIcons[p.id]}" alt="${p.name}">`;
   }
 
   // fire (or rainbow fire) out of the pet's mouth
@@ -4522,8 +4907,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.font = `30px ${EMOJI_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    if (r.order >= 2) { ctx.shadowColor = r.color === '#111111' ? '#ff5a00' : r.color; ctx.shadowBlur = 14; }
-    if (pet.fx === 'hydra') drawHydra(time, seed); // one body, three heads
+    // emoji pets get a soft glow in their rarity color (low-poly pets are drawn from many pieces, so they skip it)
+    if (r.order >= 2 && !LOW_POLY[pet.id]) { ctx.shadowColor = r.color === '#111111' ? '#ff5a00' : r.color; ctx.shadowBlur = 14; }
+    if (LOW_POLY[pet.id]) LOW_POLY[pet.id](time, seed, pet.kind === 'fly' || pet.kind === 'swim', pp.moving);
     else ctx.fillText(pet.emoji, 0, 10); // drawn from its feet, so squishing and sitting look right
     ctx.restore();
     ctx.textBaseline = 'alphabetic';
@@ -5873,7 +6259,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  window.__icecream = { view, player, home: () => myStandPos(), send }; // for automated tests // for automated tests
+  window.__icecream = { view, player, home: () => myStandPos(), send, // for automated tests
+    drawPetModel(id, canvasEl, time = 0.6) { // draws one low-poly pet big, to check how it looks
+      const saved = ctx; ctx = canvasEl.getContext('2d');
+      ctx.translate(canvasEl.width / 2, canvasEl.height * 0.78); ctx.scale(canvasEl.width / 48, canvasEl.width / 48);
+      LOW_POLY[id](time, 0, false); ctx = saved;
+    } }; // for automated tests
 })();
 </script>
 </body>
