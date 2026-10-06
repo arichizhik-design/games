@@ -583,3 +583,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   box-shadow: 0 0 9px 3px rgba(46,232,255,.8) !important; }
 .avOpt.swatch.robo { background: var(--cyber-ring) center / 100% 100% no-repeat !important; box-shadow: 0 0 6px rgba(46,232,255,.8); }
 .eventTag { background: #0b1116; color: #7ff6ff; box-shadow: 0 0 5px #2ee8ff; }
+/* 🎁 Give in Lucky Block (admins) */
+#adminBlockInput { flex: 1; min-width: 0; }
+.adminBlockBtn { background: #7048e8; white-space: nowrap; }
+.revealItem { display: inline-flex; transform: scale(3.2); margin: 36px 0 30px; }

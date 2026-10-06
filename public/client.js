@@ -270,6 +270,9 @@
       case 'petGot':
         revealPet(msg);
         break;
+      case 'blockGot':
+        revealItem(msg);
+        break;
       case 'boughtTopping': {
         const t = toppingById[msg.topping];
         toast(`You bought ${msg.count} ${t.name}! Hold it and tap an ice cream on your stand.`);
@@ -1113,8 +1116,21 @@
 
   // the lucky block shakes, then pops open to show your new pet
   let revealTimer = null;
+  // a lucky block that opens with an ice cream or topping (admins' Give in Lucky Block)
+  function revealItem(msg) {
+    const it = itemById[msg.item];
+    revealPet({ ...msg, show: {
+      icon: `<div class="revealItem">${iconHtml(it.id)}</div>`, name: it.name,
+      rarity: RARITIES[it.rarity] || { name: 'Topping', color: '#ff6fa5', order: 3 }, rarityId: it.rarity || 'topping',
+      line: flavorById[it.id] ? `${fmt(it.price)} a scoop · it's in your hotbar or Inventory` : `${pct(it.bonus)} money · it's in your hotbar or Inventory`,
+    } });
+  }
+
   function revealPet(msg) {
-    const pet = petById[msg.pet], r = RARITIES[pet.rarity];
+    const pet = petById[msg.pet];
+    const show = msg.show || { icon: petIcon(pet), name: pet.name, rarity: RARITIES[pet.rarity], rarityId: pet.rarity,
+      line: `${pct(pet.boost)} money from every scoop` + (msg.equipped ? ' · it\'s following you now!' : '') };
+    const r = show.rarity;
     const block = LUCKY_BLOCKS.find(b => b.id === msg.block);
     const el = $('revealBlock');
     el.className = 'luckyBlock shake ' + fancyBlock(block);
@@ -1127,14 +1143,13 @@
     revealTimer = setTimeout(() => {
       el.classList.add('hidden');
       const box = $('revealPet');
-      box.querySelector('.revealEmoji').innerHTML = petIcon(pet);
+      box.querySelector('.revealEmoji').innerHTML = show.icon;
       const badge = box.querySelector('.revealRarity');
       badge.textContent = r.name.toUpperCase();
       badge.style.background = r.color;
-      badge.className = 'revealRarity ' + pet.rarity;
-      box.querySelector('.revealName').textContent = pet.name;
-      box.querySelector('.revealBoost').textContent = `${pct(pet.boost)} money from every scoop` +
-        (msg.equipped ? ' · it\'s following you now!' : '');
+      badge.className = 'revealRarity ' + show.rarityId;
+      box.querySelector('.revealName').textContent = show.name;
+      box.querySelector('.revealBoost').textContent = show.line;
       box.classList.remove('hidden');
       $('revealOk').classList.remove('hidden');
       const s = me();
@@ -1607,6 +1622,18 @@
   $('adminGiveBtn').addEventListener('click', () =>
     send({ type: 'adminGive', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
+  // 🎁 Give in Lucky Block: whatever you type comes out of a lucky block
+  function giveInBlock() {
+    const text = $('adminBlockInput').value.trim();
+    if (!text) return toast('Type a pet or ice cream first, like dragon or void.');
+    const pet = PETS.find(p => squash(p.id) === squash(text) || squash(p.name) === squash(text));
+    const item = !pet && (findFlavor(text) || findTopping(text));
+    if (!pet && !item) return toast(`"${text}" isn't a pet or ice cream. Try dragon, unicorn, void or cherry.`);
+    send(pet ? { type: 'adminBlockGive', pet: pet.id } : { type: 'adminBlockGive', item: item.id });
+    $('adminBlockInput').value = '';
+  }
+  $('adminBlockBtn').addEventListener('click', giveInBlock);
+  $('adminBlockInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); giveInBlock(); } });
   $('adminShopBtn').addEventListener('click', () =>
     send({ type: 'adminShopSpawn', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('talkBtn').addEventListener('click', () => {

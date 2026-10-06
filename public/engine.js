@@ -902,6 +902,22 @@
         conn.send({ type: 'admin', text: target === stand ? '🚫 You banned yourself and started over.'
           : `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
         conn.send({ type: 'players', players: playerList() });
+      } else if (stand.admin && msg.type === 'adminBlockGive') {
+        // 🎁 a lucky block that opens with exactly what the admin typed (a pet, ice cream or topping)
+        const pet = petById[msg.pet], item = itemById[msg.item];
+        const rarity = pet ? pet.rarity : item && item.rarity;
+        // show the fanciest block that could have it (toppings and admin things come in the best block)
+        const block = [...LUCKY_BLOCKS].reverse().find(b => b.odds[rarity] && (!b.event || cyberOn())) || LUCKY_BLOCKS[LUCKY_BLOCKS.length - 1];
+        if (pet) {
+          if (stand.pets.length >= MAX_PETS) return err(`You have too many pets (the most is ${MAX_PETS}).`);
+          stand.pets.push(pet.id);
+          const wearing = autoWear(stand, pet.id);
+          conn.send({ type: 'petGot', pet: pet.id, block: block.id, equipped: wearing });
+        } else if (item) {
+          if (addItem(stand.storage, item.id, addItem(stand.hotbar, item.id, 1)) > 0) return err('Your inventory is full!');
+          if (flavorById[item.id] && !stand.seen.includes(item.id)) stand.seen.push(item.id);
+          conn.send({ type: 'blockGot', item: item.id, block: block.id });
+        } else return err('Nothing with that name. Try a pet like dragon, or an ice cream like void.');
       } else if (stand.admin && msg.type === 'adminShopSpawn') {
         // 🏪 put any ice cream in the Supplies Shop for everyone (until the next restock)
         const f = flavorById[msg.flavor];
