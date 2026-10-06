@@ -587,3 +587,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #adminBlockInput { flex: 1; min-width: 0; }
 .adminBlockBtn { background: #7048e8; white-space: nowrap; }
 .revealItem { display: inline-flex; transform: scale(3.2); margin: 36px 0 30px; }
+/* 🌱 Grow All (admins) */
+.growEveryone { width: 100%; margin-bottom: 8px; background: #2f9e44; font-size: 15px; }
+#growList .row { gap: 10px; }
+#growList .who { flex: 1; }
+#growList button { background: #2f9e44; }

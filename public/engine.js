@@ -962,6 +962,16 @@
         stand.totalEarned += 1000;
       } else if (stand.admin && msg.type === 'testRestock') {
         restock();
+      } else if (stand.admin && msg.type === 'adminGrow') {
+        // 🌱 grow all the ice cream on one player's stand (or everyone's) right now
+        const targets = msg.all ? [...stands.values()] : [stands.get(Number(msg.to))].filter(Boolean);
+        if (!targets.length) return err('That player left the park.');
+        for (const t of targets) {
+          for (const tub of t.tubs) if (tub) tub.grow = 0;
+          if (t !== stand) t.conn.send({ type: 'admin', text: `🌱 ${stand.name} grew all your ice cream!` });
+        }
+        conn.send({ type: 'admin', text: msg.all ? "🌱 Grew everyone's ice cream!"
+          : targets[0] === stand ? '🌱 Grew all your ice cream!' : `🌱 Grew all of ${targets[0].name}'s ice cream!` });
       } else if (stand.admin && msg.type === 'testGrow') {
         for (const t of stand.tubs) if (t) t.grow = 0;
       }

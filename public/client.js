@@ -634,6 +634,7 @@
     $('petsModal').classList.add('hidden');
     $('adminPetsModal').classList.add('hidden');
     $('passModal').classList.add('hidden');
+    $('growModal').classList.add('hidden');
     $('storeModal').classList.add('hidden');
   }
 
@@ -1602,7 +1603,29 @@
     send({ type: 'testMutation', id: $('testMutationPick').value || undefined }));
   $('testMoneyBtn').addEventListener('click', () => send({ type: 'testMoney' }));
   $('testRestockBtn').addEventListener('click', () => send({ type: 'testRestock' }));
-  $('testGrowBtn').addEventListener('click', () => send({ type: 'testGrow' }));
+  // 🌱 Grow all: pick anyone playing (you too), and all the ice cream on their stand grows right now
+  function openGrow() {
+    closeWindows();
+    openWindow = 'grow';
+    $('growModal').classList.remove('hidden');
+    const list = $('growList');
+    list.innerHTML = '';
+    const people = [...stands].sort((a, b) => (b.id === myId) - (a.id === myId)); // you first
+    for (const st of people) {
+      const growing = st.tubs.filter(t => t && t.grow > 0).length, total = st.tubs.filter(Boolean).length;
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `<div class="who"><div class="name"></div>
+        <div class="meta">${total} ice cream on their stand · ${growing ? `${growing} still growing` : 'all grown'}</div></div>
+        <button type="button">🌱 Grow</button>`;
+      row.querySelector('.name').textContent = (st.admin ? '👑 ' : '') + st.name + (st.id === myId ? ' (you)' : '');
+      row.querySelector('button').addEventListener('click', () => { send({ type: 'adminGrow', to: st.id }); setTimeout(openGrow, 300); });
+      list.appendChild(row);
+    }
+  }
+  $('testGrowBtn').addEventListener('click', openGrow);
+  $('growClose').addEventListener('click', closeWindows);
+  $('growEveryone').addEventListener('click', () => { send({ type: 'adminGrow', all: true }); setTimeout(openGrow, 300); });
 
   // ---------- admin commands (only work for admin names like "coolkid") ----------
   for (const f of FLAVORS) {
