@@ -5,7 +5,7 @@
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
@@ -135,7 +135,7 @@
     return { ...msg, cyber: null,
       event: { ...msg.event, id: ids[0] || null, ids },
       shop: { ...msg.shop, stock },
-      stands: msg.stands.map(({ passXP, passClaimed, premiumPass, ...s }) => {
+      stands: msg.stands.map(({ passXP, passClaimed, premiumPass, shards, ...s }) => {
         const mutations = { ...s.mutations };
         delete mutations.cyber;
         return { ...s, tubs: slots(s.tubs), hotbar: slots(s.hotbar), storage: slots(s.storage), seen: noCyber(s.seen),
@@ -311,6 +311,7 @@
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
         upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn,
         ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
+        shards: s.shards, shardWeek: s.shardWeek, shardScoops: s.shardScoops,
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -356,6 +357,9 @@
         passXP: saved.passXP || 0,                                   // ⚡ scoops sold during the Cyber Event
         passClaimed: { free: [...(saved.passClaimed?.free || [])], premium: [...(saved.passClaimed?.premium || [])] },
         premiumPass: !!saved.premiumPass,
+        shards: Math.max(0, Math.floor(saved.shards || 0)),        // 💎
+        shardWeek: saved.shardWeek || { week: 0, earned: 0 },      // shards earned by playing this week
+        shardScoops: saved.shardScoops || 0,                       // scoops toward the next shard
         worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(id => id === 'hydra' ? 'cyberwhale' : id), // the pets following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
@@ -380,6 +384,7 @@
         seen: [], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
         mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {},
         passXP: 0, passClaimed: { free: [], premium: [] }, premiumPass: false, hand: -1, serveProgress: 0,
+        shards: 0, shardWeek: { week: 0, earned: 0 }, shardScoops: 0,
       };
     }
 
@@ -450,6 +455,7 @@
       stand.totalEarned += amount;
       stand.sold++;
       if (cyberOn()) stand.passXP++;
+      earnShard(stand);
       c.served = true;
       sendOffCustomer(c);
       broadcast({ type: 'sale', standId: stand.id, customerId: c.id, flavor: c.flavor,
@@ -568,6 +574,7 @@
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           pets: s.pets, worn: s.worn,
           ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
+          shards: s.shards,
           serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
@@ -576,6 +583,17 @@
           served: !!c.served,
         })),
       });
+    }
+
+    // 💎 1 shard for every SHARD_SCOOPS scoops sold, up to SHARD_WEEKLY shards a week
+    function earnShard(stand) {
+      if (++stand.shardScoops < SHARD_SCOOPS) return;
+      stand.shardScoops = 0;
+      const week = Math.floor(Date.now() / (7 * 86400e3));
+      if (stand.shardWeek.week !== week) stand.shardWeek = { week, earned: 0 };
+      if (stand.shardWeek.earned >= SHARD_WEEKLY) return;
+      stand.shardWeek.earned++;
+      stand.shards++;
     }
 
     // ⚡ give a Cyber Pass prize; returns an error message if it doesn't fit
@@ -821,8 +839,13 @@
         stand.passClaimed[row].push(i);
         conn.send({ type: 'passPrize', row, tier: i });
       } else if (CYBER && seesCyber(stand) && msg.type === 'gamePass') {
-        // 💎 Game Passes (TEST: free here; real money isn't built)
+        // 💎 Game Passes cost shards (admins have unlimited shards)
         const id = msg.id;
+        const pass = GAME_PASSES.find(g => g.id === id);
+        if (!pass) return;
+        const price = id === 'icecream' ? ICE_CREAM_PRICES[flavorById[msg.flavor]?.rarity] : pass.shards;
+        if (!price) return err('Pick an ice cream from the shop list.');
+        if (!stand.admin && stand.shards < price) return err(`You need 💎 ${price - stand.shards} more shards. You get 1 for every ${SHARD_SCOOPS} scoops you sell!`);
         if (id === 'starter') {
           const items = { strawberry: 2, mint: 2 };
           const copy = { hotbar: stand.hotbar.map(x => x && { ...x }), storage: stand.storage.map(x => x && { ...x }) };
@@ -855,7 +878,8 @@
           restock();
           broadcast({ type: 'chat', id: 0, from: '🛒 Supplies Shop', admin: false, text: `${stand.name} restocked the shop for everyone!` }, true);
         } else return;
-        conn.send({ type: 'gamePassDone', id, flavor: msg.flavor });
+        if (!stand.admin) stand.shards -= price;
+        conn.send({ type: 'gamePassDone', id, flavor: msg.flavor, price });
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
         cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
@@ -944,6 +968,16 @@
         if (!text || now - (stand.lastAnnounce || 0) < 1500) return;
         stand.lastAnnounce = now;
         broadcast({ type: 'announce', from: stand.name, text });
+      } else if (stand.admin && msg.type === 'adminGiftShards') {
+        // 💎 admins give shards to a player
+        const target = stands.get(Number(msg.to));
+        if (!target) return err('That player left the park.');
+        const n = Math.min(1e6, Math.max(1, Math.floor(Number(msg.amount) || 0)));
+        if (target.admin) return err(`${target.name} is an admin and already has unlimited shards.`);
+        target.shards += n;
+        console.log(`[shards] ${stand.name} gave ${n} shards to ${target.name}`); // the gift log
+        target.conn.send({ type: 'shardsGift', from: stand.name, amount: n });
+        conn.send({ type: 'admin', text: `💎 Gave ${n.toLocaleString()} shards to ${target.name}` });
       } else if (stand.admin && msg.type === 'adminPlayers') {
         conn.send({ type: 'players', players: playerList() });
       } else if (stand.admin && msg.type === 'adminBan') {

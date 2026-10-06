@@ -76,8 +76,7 @@
           <div class="modalTitle">💎 Game Passes</div>
           <button id="storeClose" class="closeBtn">✕</button>
         </div>
-        <p class="testNote">🧪 TEST VERSION: nothing here costs real money, so you can try everything for free.
-          Real payments aren't built yet (they need a parent and a payment company).</p>
+        <p id="storeShards" class="shardLine"></p>
         <div id="storeList"></div>
       </div>
 
@@ -182,6 +181,14 @@
         </div>
       </div>
 
+      <div id="giftShardsModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">💎 Gift Shards</div>
+          <button id="giftShardsClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Everyone playing right now. Type how many shards to give, then tap Give.</p>
+        <div id="giftShardsList"></div>
+      </div>
       <div id="growModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">🌱 Grow All</div>
@@ -288,6 +295,7 @@
         <button id="testMoneyBtn">+$1,000</button>
         <button id="testRestockBtn">Restock shop</button>
         <button id="testGrowBtn">Grow all now</button>
+        <button id="giftShardsBtn">💎 Gift Shards</button>
       </div>
 
       <h2>Flavor guide</h2>

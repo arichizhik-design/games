@@ -36,7 +36,10 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 | Mythic    | Unicorn Dream, Frozen Aurora, Phoenix Fire | $300–$350       |
 | Secret    | ??? (buy it to find out!)        | $1,200          |
 | 👑 Admin | Crown Jewel, Storm Cloud, Supernova, Prism Swirl (admins only) | $5,000–$15,000 |
-| ♾️ Celestial | Infinity Swirl (admins only, not in the shop; grows in 15 min) | $3,000 |
+| ♾️ Celestial | Infinity Swirl (admins only, not in the shop; grows in 20 min) | $3,000 |
+
+- Rarer tubs take longer to fill up after you place them: Common 10 s, Uncommon 30 s, Rare 1 min, Epic 3 min,
+  Legendary 6 min, Mythic 10 min, Secret 15 min, Celestial 20 min, Cyber 30 min.
 
 - **Stand spaces:** your stand starts with 5 spaces for tubs. When they're all full, an **Extra Space** button appears on top of your stand. Buy it to get 3 more spaces ($300, then $6,000, then $75,000).
 - **Avatar Shop:** walk to the blue Avatar Shop at the bottom of the middle plaza and tap it to change your
@@ -82,7 +85,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   with cool effects and gives you more money from every scoop. Pets move like real animals: they trot to catch up,
   wait and look around when you stop, and sit down after a while. Bunnies hop, pandas and penguins waddle, birds
   and dragons flap in the air, and sea creatures swim through it.
-  - Blocks: Wooden, Iron, Gold, Diamond, Rainbow, Cosmic ($1B), Divine ($25B) and Infinity ($500B).
+  - Blocks: Wooden, Iron, Gold, Diamond, Rainbow, Rainbow ($15M), Cosmic ($50M), Divine ($150M) and Infinity ($500M).
   - The 🐉 Dragon (+500%) is Secret. Even better are the new pet rarities: **Celestial** (🦖 Lava Rex +700%,
     🦈 Thunder Shark +800%), **Divine** (🕊️ Angel Dove +1,200%, 🐲 Dragon King +1,500%) and **Infinity**
     (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
@@ -106,7 +109,7 @@ admins can see it: everyone else never sees the Cyber Block, the Cyber Whale, Ro
 Cyber mutation or the Passes (not even on an admin), keeps the old 14 stand spaces, and can't be gifted or traded
 Cyber stuff. To show it to everyone online, set `CYBER=1` on the server (an environment variable on Render).
 
-- **Cyber Block** in the Pet Shop ($2B), only during the event week (Oct 5 to Oct 12, 2026). It has these odds:
+- **Cyber Block** in the Pet Shop ($1B), only during the event week (Oct 5 to Oct 12, 2026). It has these odds:
   Legendary 72.5%, Mythic 15%, Secret (the Tiger) 8%, Mammoth 2%, Dolphin 2%, Cyber Whale 0.5%. It has its own all-cyber pets that no other
   block gives: 🦂 Cyber Scorpion and 🦇 Cyber Bat (Legendary), 🦍 Cyber Gorilla and 🦕 Cyber Dino (Mythic),
   🐅 Cyber Tiger (Secret), 🦣 Cyber Mammoth and 🐬 Cyber Dolphin (Celestial). Each is made of dark armor with glowing
@@ -118,13 +121,19 @@ Cyber stuff. To show it to everyone online, set `CYBER=1` on the server (an envi
 - **🤖 Cyber mutation** (x50, the second best). It never starts by itself; only admins can turn it on. It stays for good.
 - **Robo Ice Cream** (Cyber rarity): $25,000 a scoop, $50M a tub, a 0.1% chance to be in the shop. Shiny metal with
   glowing robot eyes and a blinking antenna.
-- **Robo avatar:** a Robo choice for shirt, pants, skin, hat (antenna) and face (glowing visor).
+- **Robo avatar:** a Robo choice for shirt (chest plate and shoulder pads), pants (metal legs), skin (a square metal
+  head with bolts), hat (two antennas) and face (glowing visor).
+- Every character has shading, swinging arms, shoes, an ear, hair when there's no hat, and eyes with pupils.
 - **⚡ Cyber Pass** (button at the bottom left): sell scoops during the event to unlock 10 prizes in a row, each better
   than the last. The second row has better prizes and needs the Premium Cyber Pass.
 - **💎 Game Passes** (bottom left): Starter Bundle ($20,000 + 2 Strawberry + 2 Mint Chip), Premium Cyber Pass,
   Fill All (every empty stand space gets a grown ice cream), Buy an Ice Cream, and Restock the Shop for everyone.
-  These are meant for real money, which isn't built (it needs a parent and a payment company), so in the test file
-  they're free and marked TEST.
+  They cost **💎 shards**: Starter 199, Premium Cyber Pass 499, Fill All 99, Restock 99, one ice cream 49 to 299
+  (by rarity). You get 1 shard for every 10 scoops you sell (up to 100 a week), or an admin can gift them with
+  **💎 Gift Shards** (test buttons). Admins have unlimited shards. Buying shards with real money isn't built yet:
+  see `docs/shards-payments-plan.pdf`.
+- **Cyber Pass prizes** that don't fit say so on the button ("🎒 Make room" or "🐾 Pets full"), and error messages
+  now show on top of open windows.
 - **Up to 30 stand spaces:** the Extra Space button keeps going until 30 and then disappears. With lots of spaces the
   tubs get smaller so they all fit.
 - Admins can test the event with `/cyber off`, `/cyber on` and `/cyber auto` (back to the calendar).

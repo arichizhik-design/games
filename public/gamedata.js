@@ -13,19 +13,19 @@
     uncommon:  { name: 'Uncommon',  color: '#4caf50', order: 1, growSec: 30,  stock: { chance: 0.8,  min: 3, max: 6 } },
     rare:      { name: 'Rare',      color: '#2196f3', order: 2, growSec: 60,  stock: { chance: 0.6,  min: 2, max: 4 } },
     // the really good ones are really rare in the shop
-    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 120, stock: { chance: 0.2,   min: 1, max: 2 } },
-    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.07,  min: 1, max: 1 } },
-    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.02,  min: 1, max: 1 } },
-    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.004, min: 1, max: 1 } },
+    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 180, stock: { chance: 0.2,   min: 1, max: 2 } },
+    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 360, stock: { chance: 0.07,  min: 1, max: 1 } },
+    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 600, stock: { chance: 0.02,  min: 1, max: 1 } },
+    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 900, stock: { chance: 0.004, min: 1, max: 1 } },
     // admin-only ice creams: never in the shop, only admins can give or spawn them
     admin:     { name: 'Admin',     color: '#e8a200', order: 7, growSec: 30,  stock: { chance: 0,     min: 0, max: 0 } },
     // pet-only rarities, even better than Secret
     // Celestial is also the rarity of Infinity Swirl (an admin-only ice cream)
-    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 900, stock: { chance: 0, min: 0, max: 0 } },
+    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 1200, stock: { chance: 0, min: 0, max: 0 } },
     divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     // ⚡ Cyber: the Cyber Whale pet and the Robo Ice Cream (0.1% chance to be in the shop)
-    cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1200, stock: { chance: 0.001, min: 1, max: 1 } },
+    cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1800, stock: { chance: 0.001, min: 1, max: 1 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -103,10 +103,10 @@
     { id: 'iron',    name: 'Iron Block',    cost: 15000,    color: '#adb5bd', odds: { common: 35, uncommon: 40, rare: 20, epic: 5 } },
     { id: 'gold',    name: 'Gold Block',    cost: 150000,   color: '#fcc419', odds: { uncommon: 30, rare: 40, epic: 25, legendary: 5 } },
     { id: 'diamond', name: 'Diamond Block', cost: 2000000,  color: '#66d9e8', odds: { rare: 30, epic: 45, legendary: 20, mythic: 5 } },
-    { id: 'rainbow', name: 'Rainbow Block', cost: 25000000, color: 'rainbow', odds: { epic: 44, legendary: 40, mythic: 15, secret: 1 } },
-    { id: 'cosmic',  name: 'Cosmic Block',  cost: 1e9,      color: '#3b1f8f', odds: { legendary: 30, mythic: 45, secret: 20, celestial: 5 } },
-    { id: 'divine',  name: 'Divine Block',  cost: 25e9,     color: '#ffe8a3', odds: { mythic: 30, secret: 40, celestial: 25, divine: 5 } },
-    { id: 'infinity', name: 'Infinity Block', cost: 500e9,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
+    { id: 'rainbow', name: 'Rainbow Block', cost: 15000000, color: 'rainbow', odds: { epic: 44, legendary: 40, mythic: 15, secret: 1 } },
+    { id: 'cosmic',  name: 'Cosmic Block',  cost: 50e6,     color: '#3b1f8f', odds: { legendary: 30, mythic: 45, secret: 20, celestial: 5 } },
+    { id: 'divine',  name: 'Divine Block',  cost: 150e6,    color: '#ffe8a3', odds: { mythic: 30, secret: 40, celestial: 25, divine: 5 } },
+    { id: 'infinity', name: 'Infinity Block', cost: 500e6,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
   ];
 
   // ---------- ⚡ Cyber Event (online: admins only for now) ----------
@@ -127,7 +127,7 @@
       { id: 'cyberdolphin',  name: 'Cyber Dolphin',  emoji: '🐬', rarity: 'celestial', boost: 9,   fx: 'cyber', kind: 'swim', event: 'cyber', block: 'cyber' },
       { id: 'cyberwhale',    name: 'Cyber Whale',    emoji: '🐋', rarity: 'cyber',     boost: 50,  fx: 'cyberwhale', kind: 'swim', event: 'cyber', block: 'cyber' },
     );
-    LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 2e9, color: 'cyber', event: 'cyber', ownPets: true,
+    LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 1e9, color: 'cyber', event: 'cyber', ownPets: true,
       odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, cyber: 0.5 } }); // Mammoth and Dolphin 2% each
   }
 
@@ -160,18 +160,20 @@
     ],
   };
 
-  // 💎 Game Passes: things bought with real money. Real payments aren't built (that needs a parent and a
-  // payment company), so in the test file they're free and marked TEST.
+  // 💎 Shards: the special currency. Game Passes cost shards. For now you only get shards by playing
+  // (1 for every SHARD_SCOOPS scoops you sell, up to SHARD_WEEKLY a week) or as a gift from an admin;
+  // admins have unlimited shards. Buying shards with real money isn't built yet (see docs/shards-payments-plan.pdf).
+  const SHARD_SCOOPS = 10;
+  const SHARD_WEEKLY = 100;
   const GAME_PASSES = [
-    { id: 'starter', name: 'Starter Bundle', emoji: '🎁', price: '$1.99', desc: '$20,000, 2 Strawberry and 2 Mint Chip tubs' },
-    { id: 'premium', name: 'Premium Cyber Pass', emoji: '⚡', price: '$4.99', desc: 'Unlocks the better prize row in the Cyber Pass' },
-    { id: 'fillall', name: 'Fill All', emoji: '🧺', price: '$0.99', desc: 'Every empty space on your stand gets a fully grown ice cream' },
-    { id: 'icecream', name: 'Buy an Ice Cream', emoji: '🍦', price: '$0.49–$2.99', desc: 'Pick any ice cream from the shop list, even if it\'s sold out' },
-    { id: 'restock', name: 'Restock the Shop', emoji: '🛒', price: '$0.99', desc: 'New stock in the Supplies Shop for everyone, right now' },
+    { id: 'starter', name: 'Starter Bundle', emoji: '🎁', shards: 199, desc: '$20,000, 2 Strawberry and 2 Mint Chip tubs' },
+    { id: 'premium', name: 'Premium Cyber Pass', emoji: '⚡', shards: 499, desc: 'Unlocks the better prize row in the Cyber Pass' },
+    { id: 'fillall', name: 'Fill All', emoji: '🧺', shards: 99, desc: 'Every empty space on your stand gets a fully grown ice cream' },
+    { id: 'icecream', name: 'Buy an Ice Cream', emoji: '🍦', desc: 'Pick any ice cream from the shop list, even if it\'s sold out' },
+    { id: 'restock', name: 'Restock the Shop', emoji: '🛒', shards: 99, desc: 'New stock in the Supplies Shop for everyone, right now' },
   ];
-  // real-money price of one ice cream by rarity (shown only)
-  const ICE_CREAM_PRICES = { common: '$0.49', uncommon: '$0.49', rare: '$0.99', epic: '$0.99', legendary: '$1.49',
-    mythic: '$1.99', secret: '$2.49', cyber: '$2.99' };
+  // shards for one ice cream (the Buy an Ice Cream pass), by rarity
+  const ICE_CREAM_PRICES = { common: 49, uncommon: 49, rare: 99, epic: 99, legendary: 149, mythic: 199, secret: 249, cyber: 299 };
 
   // list them from most common to rarest, cheapest first (for the shop and the Flavor guide)
   FLAVORS.sort((a, b) => RARITIES[a.rarity].order - RARITIES[b.rarity].order || a.price - b.price);
@@ -258,7 +260,7 @@
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;

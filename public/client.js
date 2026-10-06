@@ -1,7 +1,7 @@
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
+    CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -265,14 +265,19 @@
         break;
       case 'gamePassDone': {
         const gp = GAME_PASSES.find(g => g.id === msg.id);
-        toast(msg.id === 'icecream' ? `🍦 You got a ${flavorById[msg.flavor].name}! (TEST: free)`
-          : msg.id === 'premium' ? '⚡ Premium Cyber Pass unlocked! Open the Pass to claim the better prizes. (TEST: free)'
-          : `${gp.emoji} ${gp.name} done! (TEST: free)`);
+        toast(msg.id === 'icecream' ? `🍦 You got a ${flavorById[msg.flavor].name}!`
+          : msg.id === 'premium' ? '⚡ Premium Cyber Pass unlocked! Open the Pass to claim the better prizes.'
+          : `${gp.emoji} ${gp.name} done!`);
+        if (openWindow === 'store') updateStore();
         confetti(player.x, player.y - 30, 25);
         break;
       }
       case 'petGot':
         revealPet(msg);
+        break;
+      case 'shardsGift':
+        toast(`🎁 ${msg.from} gave you 💎 ${msg.amount.toLocaleString()} shards!`);
+        confetti(player.x, player.y - 30, 30);
         break;
       case 'petReleased':
         toast(`👋 You let go of your ${petById[msg.pet].name}.`);
@@ -642,6 +647,7 @@
     $('adminPetsModal').classList.add('hidden');
     $('passModal').classList.add('hidden');
     $('growModal').classList.add('hidden');
+    $('giftShardsModal').classList.add('hidden');
     $('storeModal').classList.add('hidden');
   }
 
@@ -1007,10 +1013,15 @@
       CYBER_PASS[row].forEach((p, i) => {
         const claimed = (s.passClaimed?.[row] || []).includes(i);
         const unlocked = (s.passXP || 0) >= p.at && (row === 'free' || premium);
+        // a prize that won't fit: say so on the button instead of failing quietly
+        const noRoom = p.item && ![...s.hotbar, ...s.storage].some(x => !x || (x.flavor === p.item && x.count < MAX_STACK));
+        const noPets = p.block && s.pets.length + (p.count || 1) > MAX_PETS;
+        const text = claimed ? '✓ Claimed' : !unlocked ? (row === 'premium' && !premium ? '🔒 Premium' : `🔒 ${p.at - (s.passXP || 0)} more`)
+          : noRoom ? '🎒 Make room' : noPets ? '🐾 Pets full' : 'Claim!';
         const btn = p.tile.querySelector('button');
-        const text = claimed ? '✓ Claimed' : unlocked ? 'Claim!' : row === 'premium' && !premium ? '🔒 Premium' : `🔒 ${p.at - (s.passXP || 0)} more`;
         if (btn.textContent !== text) btn.textContent = text;
-        btn.disabled = claimed || !unlocked;
+        btn.title = noRoom ? 'Your hotbar and Inventory are full. Move or use something, then claim it.' : noPets ? 'Let a pet go in My Pets first.' : '';
+        btn.disabled = claimed || !unlocked || noRoom || noPets;
         p.tile.classList.toggle('claimed', claimed);
         p.tile.classList.toggle('ready', unlocked && !claimed);
       });
@@ -1032,22 +1043,23 @@
       row.className = 'row';
       row.innerHTML = `<div class="gpEmoji">${gp.emoji}</div>
         <div class="info"><div class="name">${gp.name}</div><div class="meta">${gp.desc}</div>
-          <div class="gpPrice">${gp.price} real money</div></div>`;
+          <div class="gpPrice">${gp.shards ? `💎 ${gp.shards} shards` : '💎 49 to 299 shards'}</div></div>`;
       let pick = null;
       if (gp.id === 'icecream') {
         pick = document.createElement('select');
         for (const f of FLAVORS.filter(f => !f.adminOnly && ICE_CREAM_PRICES[f.rarity])) {
           const o = document.createElement('option');
           o.value = f.id;
-          o.textContent = `${f.name} (${ICE_CREAM_PRICES[f.rarity]})`;
+          o.textContent = `${f.name} (💎 ${ICE_CREAM_PRICES[f.rarity]})`;
           pick.appendChild(o);
         }
         row.querySelector('.info').appendChild(pick);
       }
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = 'Buy (TEST: free)';
       b.addEventListener('click', () => send({ type: 'gamePass', id: gp.id, flavor: pick ? pick.value : undefined }));
+      if (pick) pick.addEventListener('change', updateStore);
+      gp.pick = pick;
       row.appendChild(b);
       list.appendChild(row);
       gp.row = row;
@@ -1060,18 +1072,27 @@
     $('storeModal').classList.remove('hidden');
     updateStore();
   }
+  const shardText = s => iAmAdmin ? '∞' : (s.shards || 0).toLocaleString();
   function updateStore() {
     const s = me();
-    const gp = GAME_PASSES.find(g => g.id === 'premium');
-    if (s && gp.row) {
+    if (!s) return;
+    $('storeShards').textContent = `💎 You have ${shardText(s)} shards` +
+      (iAmAdmin ? ' (admins have unlimited)' : ` · get 1 for every ${SHARD_SCOOPS} scoops you sell (up to ${SHARD_WEEKLY} a week)`);
+    for (const gp of GAME_PASSES) {
+      if (!gp.row) continue;
       const b = gp.row.querySelector('button');
-      b.disabled = !!s.premiumPass;
-      b.textContent = s.premiumPass ? '✅ You have it' : 'Buy (TEST: free)';
+      const price = gp.pick ? ICE_CREAM_PRICES[flavorById[gp.pick.value].rarity] : gp.shards;
+      const owned = gp.id === 'premium' && s.premiumPass;
+      const text = owned ? '✅ You have it' : `Buy 💎 ${price}`;
+      if (b.textContent !== text) b.textContent = text;
+      b.disabled = owned || (!iAmAdmin && (s.shards || 0) < price);
     }
   }
 
   function updateCyber() {
     $('cyberBtns').classList.toggle('hidden', !seeCyber);
+    const s = me();
+    if (s && seeCyber) $('storeBtn').textContent = `💎 ${shardText(s)} · Game Passes`;
     $('passBtn').classList.toggle('hidden', !cyberIsOn());
     if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
@@ -1645,6 +1666,35 @@
     }
   }
   $('testGrowBtn').addEventListener('click', openGrow);
+
+  // 💎 admins: give shards to anyone playing
+  function openGiftShards() {
+    closeWindows();
+    openWindow = 'giftshards';
+    $('giftShardsModal').classList.remove('hidden');
+    const list = $('giftShardsList');
+    list.innerHTML = '';
+    for (const st of stands.filter(st => st.id !== myId)) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `<div class="who"><div class="name"></div>
+        <div class="meta">${st.admin ? 'admin: unlimited shards' : `has 💎 ${(st.shards || 0).toLocaleString()}`}</div></div>
+        <input type="number" min="1" max="1000000" value="100" ${st.admin ? 'disabled' : ''}>
+        <button type="button" ${st.admin ? 'disabled' : ''}>💎 Give</button>`;
+      row.querySelector('.name').textContent = (st.admin ? '👑 ' : '') + st.name;
+      row.querySelector('button').addEventListener('click', () => {
+        const amount = Math.floor(Number(row.querySelector('input').value) || 0);
+        if (amount < 1) return toast('Type how many shards to give.');
+        if (amount > 5000 && !confirm(`Give ${amount.toLocaleString()} shards to ${st.name}? That's a lot!`)) return;
+        send({ type: 'adminGiftShards', to: st.id, amount });
+        setTimeout(openGiftShards, 300);
+      });
+      list.appendChild(row);
+    }
+    if (!list.children.length) list.innerHTML = '<p class="sub">Nobody else is playing right now.</p>';
+  }
+  $('giftShardsBtn').addEventListener('click', openGiftShards);
+  $('giftShardsClose').addEventListener('click', closeWindows);
   $('growClose').addEventListener('click', closeWindows);
   $('growEveryone').addEventListener('click', () => { send({ type: 'adminGrow', all: true }); setTimeout(openGrow, 300); });
 
@@ -1963,6 +2013,19 @@
     const ox = view.w / 2 - cam.x * view.scale, oy = view.h / 2 - cam.y * view.scale;
     view.ox = sw <= view.w ? (view.w - sw) / 2 : Math.min(0, Math.max(view.w - sw, ox));
     view.oy = sh <= view.h ? (view.h - sh) / 2 : Math.min(0, Math.max(view.h - sh, oy));
+  }
+
+  // a lighter (k > 0) or darker (k < 0) version of a #rrggbb color
+  const tintCache = {};
+  function tint(hex, k) {
+    const key = hex + k;
+    if (tintCache[key]) return tintCache[key];
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+    const ch = i => {
+      const c = parseInt(hex.slice(i, i + 2), 16);
+      return Math.round(k > 0 ? c + (255 - c) * k : c * (1 + k));
+    };
+    return (tintCache[key] = `rgb(${ch(1)}, ${ch(3)}, ${ch(5)})`);
   }
 
   function roundRect(x, y, w, h, r) {
@@ -3452,29 +3515,94 @@
     }
     ctx.scale(1.7 * (p.facing || 1), 1.7);
     const y = -bounce / 1.7;
-    // legs
-    ctx.fillStyle = av.pants === 'robo' ? ROBO.pants : av.pants || '#3b3b58';
-    ctx.fillRect(-6, y + 6, 5, 6);
-    ctx.fillRect(1, y + 6, 5, 6);
-    if (av.pants === 'robo') { seam([[-5, y + 7], [-3.5, y + 9], [-4, y + 11.5]], 0.45); seam([[2, y + 7], [3.5, y + 9], [3, y + 11.5]], 0.45); }
+    const roboLegs = av.pants === 'robo', roboBody = av.shirt === 'robo', roboHead = av.skin === 'robo';
+    const pants = roboLegs ? ROBO.pants : av.pants || '#3b3b58';
+    const swing = p.moving ? Math.sin(time * 12) : 0; // arms and legs swing while walking
+    // a little shading makes everyone look rounder: lighter on top, darker underneath
+    const shaded = (color, x1, y1, x2, y2, k = 0.22) => {
+      const g = ctx.createLinearGradient(x1, y1, x2, y2);
+      g.addColorStop(0, tint(color, k)); g.addColorStop(1, tint(color, -k));
+      return g;
+    };
+    // legs and shoes
+    for (const [lx, ph] of [[-6, 1], [1, -1]]) {
+      const step = swing * ph * 1.2;
+      ctx.fillStyle = shaded(pants, lx, y + 6, lx + 5, y + 12);
+      ctx.fillRect(lx, y + 6, 5, 5.5 - Math.max(0, step) * 0.5);
+      ctx.fillStyle = roboLegs ? '#151b21' : '#2b2b2b'; // shoes (robo: metal feet)
+      roundRect(lx - 0.5 + (ph > 0 ? 0 : 0.5), y + 10.5 - Math.max(0, step) * 0.5, 6, 2.6, [1, 2, 1, 1]); ctx.fill();
+      if (roboLegs) { ctx.fillStyle = '#5c6b7a'; ctx.beginPath(); ctx.arc(lx + 2.5, y + 8, 1, 0, Math.PI * 2); ctx.fill(); } // knee joint
+    }
+    if (roboLegs) { seam([[-5, y + 7], [-3.5, y + 9], [-4, y + 10.5]], 0.45); seam([[2, y + 7], [3.5, y + 9], [3, y + 10.5]], 0.45); }
+    // arms: the back one behind the body, the front one in front (it holds your ice cream)
+    const armColor = roboBody ? ROBO.shirt : shirt, hand = roboBody ? '#5c6b7a' : skin;
+    const holding = !!p.item;
+    const arm = (front) => {
+      ctx.save();
+      ctx.translate(front ? 6.5 : -6.5, y - 4.5);
+      ctx.rotate(front && holding ? -0.95 : swing * (front ? 0.5 : -0.5));
+      ctx.fillStyle = front ? armColor : tint(armColor, -0.25);
+      roundRect(-1.8, 0, 3.6, 8.5, 1.8); ctx.fill();
+      ctx.fillStyle = front ? hand : tint(hand, -0.2);
+      ctx.beginPath(); ctx.arc(0, 9, 1.9, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    };
+    arm(false);
     // body
-    ctx.fillStyle = shirt;
+    ctx.fillStyle = shaded(shirt, -9, y - 7, 9, y + 8);
     roundRect(-9, y - 7, 18, 15, 5); ctx.fill();
-    if (shirt === '#ffffff') { ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.8; ctx.stroke(); }
-    if (av.shirt === 'robo') {
-      // armor plates with glowing cyan cracks and a glowing ring core
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 0.6; ctx.stroke();
+    if (roboBody) {
+      // a chest plate and shoulder pads with glowing cyan cracks and a glowing ring core
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      roundRect(-6, y - 5, 12, 9, 2); ctx.fill();
+      ctx.fillStyle = '#46525e';
+      roundRect(-9.5, y - 7.5, 5, 3.5, 1.5); ctx.fill(); roundRect(4.5, y - 7.5, 5, 3.5, 1.5); ctx.fill();
       seam([[-9, y - 3], [-4, y - 2.5], [-2.5, y - 6]], 0.5);
       seam([[9, y - 2], [4, y - 3], [3, y - 6.5]], 0.5);
       seam([[-6, y + 7.5], [-3, y + 3], [3, y + 3.5], [6, y + 7.5]], 0.5);
       cyberRing(0, y, 2.1 + Math.sin(time * 4) * 0.15);
+    } else {
+      // a collar
+      ctx.fillStyle = tint(shirt, -0.3);
+      ctx.beginPath(); ctx.moveTo(-3.5, y - 7); ctx.lineTo(0, y - 4.5); ctx.lineTo(3.5, y - 7); ctx.closePath(); ctx.fill();
     }
+    arm(true);
     // head
-    ctx.fillStyle = skin;
-    ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
-    if (av.skin === 'robo') {
-      // a dark armor head with glowing cyan cracks
-      seam([[-7.5, y - 18], [-3, y - 19.5], [0, y - 22]], 0.45);
-      seam([[-7, y - 10], [-4, y - 12], [-7.8, y - 14]], 0.45);
+    if (roboHead) {
+      // ⚡ a square metal robot head with bolts, panel lines and glowing cyan cracks
+      ctx.fillStyle = '#20272e';
+      ctx.fillRect(-2.5, y - 8, 5, 2); // neck joint
+      ctx.fillStyle = shaded('#4a5763', -8, y - 22, 8, y - 7, 0.3);
+      roundRect(-8, y - 22, 16, 15, 2.5); ctx.fill();
+      ctx.strokeStyle = '#151b21'; ctx.lineWidth = 0.7; ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; // shine on the metal
+      roundRect(-7, y - 21, 6, 3, 1.5); ctx.fill();
+      ctx.fillStyle = '#2a323a'; // an ear bolt on the side
+      roundRect(-10, y - 17, 2.5, 5, 1); ctx.fill();
+      ctx.fillStyle = '#8a99a8';
+      for (const [bx, by] of [[-6.3, y - 20.3], [6.3, y - 20.3], [-6.3, y - 8.7], [6.3, y - 8.7]]) { ctx.beginPath(); ctx.arc(bx, by, 0.7, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 0.4;
+      ctx.beginPath(); ctx.moveTo(-8, y - 11); ctx.lineTo(8, y - 11); ctx.stroke();
+      seam([[-7.5, y - 18.5], [-4, y - 19], [-2.5, y - 21.5]], 0.45);
+      seam([[-7.5, y - 10], [-4.5, y - 12.5], [-7.8, y - 14]], 0.45);
+    } else {
+      ctx.fillStyle = tint(skin, -0.12);
+      ctx.fillRect(-2.5, y - 8, 5, 2); // neck
+      const g = ctx.createRadialGradient(-2.5, y - 17, 1, 0, y - 14, 9);
+      g.addColorStop(0, tint(skin, 0.15)); g.addColorStop(1, tint(skin, -0.12));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = tint(skin, -0.15); // an ear
+      ctx.beginPath(); ctx.ellipse(-1.5, y - 13.5, 1.6, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+      // hair shows when there's no hat
+      const hatNow = av.hat || 'cap';
+      if (hatNow === 'none' || (p.admin && hatNow === 'cap')) {
+        ctx.fillStyle = '#4a2f1d';
+        ctx.beginPath(); ctx.arc(0, y - 15, 8.3, Math.PI * 0.95, Math.PI * 2.05); ctx.lineTo(-7.8, y - 13); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255, 120, 140, 0.25)'; // rosy cheek
+      ctx.beginPath(); ctx.arc(6, y - 11.5, 1.5, 0, Math.PI * 2); ctx.fill();
     }
     drawFace(av.face || 'happy', y, time);
     // admins wear their crown unless they picked a special hat in the Avatar Shop
@@ -3485,8 +3613,8 @@
     if (p.item && toppingById[p.item.flavor]) {
       ctx.font = '9px serif';
       ctx.textAlign = 'center';
-      ctx.fillText(toppingById[p.item.flavor].emoji, 11, y + 1);
-    } else if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
+      ctx.fillText(toppingById[p.item.flavor].emoji, 13, y + 2);
+    } else if (p.item) drawCone(13, y - 1, flavorById[p.item.flavor], 6);
     if (crown) {
       // golden crown
       ctx.fillStyle = '#ffd43b';
@@ -3514,12 +3642,16 @@
     if (face === 'robo') {
       // a glowing visor instead of eyes
       ctx.fillStyle = '#1b2430';
-      roundRect(-1, y - 17.5, 10, 5, 2); ctx.fill();
+      roundRect(-1, y - 18, 9.5, 5, 1.5); ctx.fill();
+      ctx.fillStyle = 'rgba(46, 232, 255, 0.18)'; // the visor glass
+      roundRect(-0.5, y - 17.5, 8.5, 4, 1.2); ctx.fill();
       ctx.fillStyle = CYAN;
       ctx.shadowColor = CYAN; ctx.shadowBlur = 5;
-      const scan = (Math.sin(time * 3) + 1) / 2 * 6;
-      ctx.fillRect(0 + scan, y - 16.3, 2.5, 2.6);
+      const scan = (Math.sin(time * 3) + 1) / 2 * 5.5;
+      ctx.fillRect(0 + scan, y - 16.8, 2.5, 2.6);
       ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; // a reflection
+      ctx.fillRect(5.5, y - 17.3, 1.6, 0.8);
       ctx.fillStyle = '#5c6b7a';
       ctx.fillRect(2, y - 10.5, 6, 1.2);
       return;
@@ -3537,8 +3669,13 @@
       ctx.beginPath(); ctx.arc(5, y - 10, 1.4, 0, Math.PI * 2); ctx.fill();
       return;
     } else {
-      ctx.fillRect(2, y - 15, 2, 2.5);
-      ctx.fillRect(5.5, y - 15, 2, 2.5);
+      // eyes: a white with a dark pupil looking the way you face
+      for (const ex of [3, 6.5]) {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(ex, y - 14, 1.4, 1.7, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#222';
+        ctx.beginPath(); ctx.arc(ex + 0.4, y - 13.8, 0.95, 0, Math.PI * 2); ctx.fill();
+      }
     }
     if (face === 'silly') {
       ctx.fillStyle = '#ff6b8a';
@@ -3551,11 +3688,18 @@
 
   function drawHat(hat, y, shirt) {
     switch (hat) {
-      case 'robo': // a robot antenna with a blinking light
-        ctx.fillStyle = '#2c343c';
-        ctx.fillRect(-0.6, y - 28, 1.2, 7);
-        ctx.fillRect(-3, y - 22.5, 6, 1.5);
-        cyberRing(0, y - 29.5, 1.5 + Math.sin(nowSec * 6) * 0.2); // a glowing cyan ring on top
+      case 'robo': // two robot antennas with glowing tips that blink one after the other
+        for (const [ax, tilt, ph] of [[-4, -0.25, 0], [4, 0.25, Math.PI]]) {
+          ctx.save();
+          ctx.translate(ax, y - 21.5);
+          ctx.fillStyle = '#20272e';
+          roundRect(-2, -1, 4, 2, 1); ctx.fill(); // the base
+          ctx.rotate(tilt);
+          ctx.fillStyle = '#6b7a88';
+          ctx.fillRect(-0.5, -8, 1, 8);
+          cyberRing(0, -9.2, 1.3 + Math.sin(nowSec * 6 + ph) * 0.25);
+          ctx.restore();
+        }
         break;
       case 'cap':
         ctx.fillStyle = shirt;

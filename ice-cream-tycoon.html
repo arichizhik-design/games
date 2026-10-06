@@ -279,7 +279,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #leaderboard li.me { font-weight: bold; color: #e0457b; }
 
 #toast {
-  position: absolute; bottom: 84px; left: 50%; transform: translateX(-50%); z-index: 9;
+  position: absolute; bottom: 84px; left: 50%; transform: translateX(-50%); z-index: 40; /* above open windows */
   background: rgba(40, 20, 35, 0.85); color: white; padding: 10px 18px;
   border-radius: 12px; font-weight: bold; opacity: 0; transition: opacity 0.3s;
   pointer-events: none; text-align: center; max-width: 90%;
@@ -634,6 +634,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 @keyframes cyberScan { from { transform: translateY(-60px); } to { transform: translateY(700px); } }
 .passTile.ready { animation: tileReady 0.9s ease-in-out infinite alternate; }
 @keyframes tileReady { to { box-shadow: 0 0 22px rgba(46, 232, 255, 1), inset 0 0 12px rgba(46, 232, 255, 0.5) !important; transform: translateY(-2px); } }
+
+/* 💎 shards */
+.shardLine { font-weight: bold; color: #7ff6ff; margin: 4px 0 10px; }
+#giftShardsList .row { display: flex; align-items: center; gap: 8px; }
+#giftShardsList .who { flex: 1; }
+#giftShardsList input { width: 90px; }
 </style>
 </head>
 <body>
@@ -706,8 +712,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <div class="modalTitle">💎 Game Passes</div>
           <button id="storeClose" class="closeBtn">✕</button>
         </div>
-        <p class="testNote">🧪 TEST VERSION: nothing here costs real money, so you can try everything for free.
-          Real payments aren't built yet (they need a parent and a payment company).</p>
+        <p id="storeShards" class="shardLine"></p>
         <div id="storeList"></div>
       </div>
 
@@ -812,6 +817,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         </div>
       </div>
 
+      <div id="giftShardsModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">💎 Gift Shards</div>
+          <button id="giftShardsClose" class="closeBtn">✕</button>
+        </div>
+        <p class="sub">Everyone playing right now. Type how many shards to give, then tap Give.</p>
+        <div id="giftShardsList"></div>
+      </div>
       <div id="growModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">🌱 Grow All</div>
@@ -918,6 +931,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <button id="testMoneyBtn">+$1,000</button>
         <button id="testRestockBtn">Restock shop</button>
         <button id="testGrowBtn">Grow all now</button>
+        <button id="giftShardsBtn">💎 Gift Shards</button>
       </div>
 
       <h2>Flavor guide</h2>
@@ -967,19 +981,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     uncommon:  { name: 'Uncommon',  color: '#4caf50', order: 1, growSec: 30,  stock: { chance: 0.8,  min: 3, max: 6 } },
     rare:      { name: 'Rare',      color: '#2196f3', order: 2, growSec: 60,  stock: { chance: 0.6,  min: 2, max: 4 } },
     // the really good ones are really rare in the shop
-    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 120, stock: { chance: 0.2,   min: 1, max: 2 } },
-    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 240, stock: { chance: 0.07,  min: 1, max: 1 } },
-    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 420, stock: { chance: 0.02,  min: 1, max: 1 } },
-    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 600, stock: { chance: 0.004, min: 1, max: 1 } },
+    epic:      { name: 'Epic',      color: '#9c27b0', order: 3, growSec: 180, stock: { chance: 0.2,   min: 1, max: 2 } },
+    legendary: { name: 'Legendary', color: '#ff9800', order: 4, growSec: 360, stock: { chance: 0.07,  min: 1, max: 1 } },
+    mythic:    { name: 'Mythic',    color: '#f44336', order: 5, growSec: 600, stock: { chance: 0.02,  min: 1, max: 1 } },
+    secret:    { name: 'Secret',    color: '#111111', order: 6, growSec: 900, stock: { chance: 0.004, min: 1, max: 1 } },
     // admin-only ice creams: never in the shop, only admins can give or spawn them
     admin:     { name: 'Admin',     color: '#e8a200', order: 7, growSec: 30,  stock: { chance: 0,     min: 0, max: 0 } },
     // pet-only rarities, even better than Secret
     // Celestial is also the rarity of Infinity Swirl (an admin-only ice cream)
-    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 900, stock: { chance: 0, min: 0, max: 0 } },
+    celestial: { name: 'Celestial', color: '#00b8d9', order: 8, growSec: 1200, stock: { chance: 0, min: 0, max: 0 } },
     divine:    { name: 'Divine',    color: '#f5b700', order: 9, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     // ⚡ Cyber: the Cyber Whale pet and the Robo Ice Cream (0.1% chance to be in the shop)
-    cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1200, stock: { chance: 0.001, min: 1, max: 1 } },
+    cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1800, stock: { chance: 0.001, min: 1, max: 1 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -1057,10 +1071,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'iron',    name: 'Iron Block',    cost: 15000,    color: '#adb5bd', odds: { common: 35, uncommon: 40, rare: 20, epic: 5 } },
     { id: 'gold',    name: 'Gold Block',    cost: 150000,   color: '#fcc419', odds: { uncommon: 30, rare: 40, epic: 25, legendary: 5 } },
     { id: 'diamond', name: 'Diamond Block', cost: 2000000,  color: '#66d9e8', odds: { rare: 30, epic: 45, legendary: 20, mythic: 5 } },
-    { id: 'rainbow', name: 'Rainbow Block', cost: 25000000, color: 'rainbow', odds: { epic: 44, legendary: 40, mythic: 15, secret: 1 } },
-    { id: 'cosmic',  name: 'Cosmic Block',  cost: 1e9,      color: '#3b1f8f', odds: { legendary: 30, mythic: 45, secret: 20, celestial: 5 } },
-    { id: 'divine',  name: 'Divine Block',  cost: 25e9,     color: '#ffe8a3', odds: { mythic: 30, secret: 40, celestial: 25, divine: 5 } },
-    { id: 'infinity', name: 'Infinity Block', cost: 500e9,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
+    { id: 'rainbow', name: 'Rainbow Block', cost: 15000000, color: 'rainbow', odds: { epic: 44, legendary: 40, mythic: 15, secret: 1 } },
+    { id: 'cosmic',  name: 'Cosmic Block',  cost: 50e6,     color: '#3b1f8f', odds: { legendary: 30, mythic: 45, secret: 20, celestial: 5 } },
+    { id: 'divine',  name: 'Divine Block',  cost: 150e6,    color: '#ffe8a3', odds: { mythic: 30, secret: 40, celestial: 25, divine: 5 } },
+    { id: 'infinity', name: 'Infinity Block', cost: 500e6,  color: 'infinity', odds: { secret: 40, celestial: 40, divine: 19, infinity: 1 } },
   ];
 
   // ---------- ⚡ Cyber Event (online: admins only for now) ----------
@@ -1081,7 +1095,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       { id: 'cyberdolphin',  name: 'Cyber Dolphin',  emoji: '🐬', rarity: 'celestial', boost: 9,   fx: 'cyber', kind: 'swim', event: 'cyber', block: 'cyber' },
       { id: 'cyberwhale',    name: 'Cyber Whale',    emoji: '🐋', rarity: 'cyber',     boost: 50,  fx: 'cyberwhale', kind: 'swim', event: 'cyber', block: 'cyber' },
     );
-    LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 2e9, color: 'cyber', event: 'cyber', ownPets: true,
+    LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 1e9, color: 'cyber', event: 'cyber', ownPets: true,
       odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, cyber: 0.5 } }); // Mammoth and Dolphin 2% each
   }
 
@@ -1114,18 +1128,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ],
   };
 
-  // 💎 Game Passes: things bought with real money. Real payments aren't built (that needs a parent and a
-  // payment company), so in the test file they're free and marked TEST.
+  // 💎 Shards: the special currency. Game Passes cost shards. For now you only get shards by playing
+  // (1 for every SHARD_SCOOPS scoops you sell, up to SHARD_WEEKLY a week) or as a gift from an admin;
+  // admins have unlimited shards. Buying shards with real money isn't built yet (see docs/shards-payments-plan.pdf).
+  const SHARD_SCOOPS = 10;
+  const SHARD_WEEKLY = 100;
   const GAME_PASSES = [
-    { id: 'starter', name: 'Starter Bundle', emoji: '🎁', price: '$1.99', desc: '$20,000, 2 Strawberry and 2 Mint Chip tubs' },
-    { id: 'premium', name: 'Premium Cyber Pass', emoji: '⚡', price: '$4.99', desc: 'Unlocks the better prize row in the Cyber Pass' },
-    { id: 'fillall', name: 'Fill All', emoji: '🧺', price: '$0.99', desc: 'Every empty space on your stand gets a fully grown ice cream' },
-    { id: 'icecream', name: 'Buy an Ice Cream', emoji: '🍦', price: '$0.49–$2.99', desc: 'Pick any ice cream from the shop list, even if it\'s sold out' },
-    { id: 'restock', name: 'Restock the Shop', emoji: '🛒', price: '$0.99', desc: 'New stock in the Supplies Shop for everyone, right now' },
+    { id: 'starter', name: 'Starter Bundle', emoji: '🎁', shards: 199, desc: '$20,000, 2 Strawberry and 2 Mint Chip tubs' },
+    { id: 'premium', name: 'Premium Cyber Pass', emoji: '⚡', shards: 499, desc: 'Unlocks the better prize row in the Cyber Pass' },
+    { id: 'fillall', name: 'Fill All', emoji: '🧺', shards: 99, desc: 'Every empty space on your stand gets a fully grown ice cream' },
+    { id: 'icecream', name: 'Buy an Ice Cream', emoji: '🍦', desc: 'Pick any ice cream from the shop list, even if it\'s sold out' },
+    { id: 'restock', name: 'Restock the Shop', emoji: '🛒', shards: 99, desc: 'New stock in the Supplies Shop for everyone, right now' },
   ];
-  // real-money price of one ice cream by rarity (shown only)
-  const ICE_CREAM_PRICES = { common: '$0.49', uncommon: '$0.49', rare: '$0.99', epic: '$0.99', legendary: '$1.49',
-    mythic: '$1.99', secret: '$2.49', cyber: '$2.99' };
+  // shards for one ice cream (the Buy an Ice Cream pass), by rarity
+  const ICE_CREAM_PRICES = { common: 49, uncommon: 49, rare: 99, epic: 99, legendary: 149, mythic: 199, secret: 249, cyber: 299 };
 
   // list them from most common to rarest, cheapest first (for the shop and the Flavor guide)
   FLAVORS.sort((a, b) => RARITIES[a.rarity].order - RARITIES[b.rarity].order || a.price - b.price);
@@ -1212,7 +1228,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;
@@ -1226,7 +1242,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
 
@@ -1356,7 +1372,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return { ...msg, cyber: null,
       event: { ...msg.event, id: ids[0] || null, ids },
       shop: { ...msg.shop, stock },
-      stands: msg.stands.map(({ passXP, passClaimed, premiumPass, ...s }) => {
+      stands: msg.stands.map(({ passXP, passClaimed, premiumPass, shards, ...s }) => {
         const mutations = { ...s.mutations };
         delete mutations.cyber;
         return { ...s, tubs: slots(s.tubs), hotbar: slots(s.hotbar), storage: slots(s.storage), seen: noCyber(s.seen),
@@ -1532,6 +1548,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
         upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn,
         ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
+        shards: s.shards, shardWeek: s.shardWeek, shardScoops: s.shardScoops,
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -1577,6 +1594,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         passXP: saved.passXP || 0,                                   // ⚡ scoops sold during the Cyber Event
         passClaimed: { free: [...(saved.passClaimed?.free || [])], premium: [...(saved.passClaimed?.premium || [])] },
         premiumPass: !!saved.premiumPass,
+        shards: Math.max(0, Math.floor(saved.shards || 0)),        // 💎
+        shardWeek: saved.shardWeek || { week: 0, earned: 0 },      // shards earned by playing this week
+        shardScoops: saved.shardScoops || 0,                       // scoops toward the next shard
         worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(id => id === 'hydra' ? 'cyberwhale' : id), // the pets following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
@@ -1601,6 +1621,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         seen: [], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
         mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {},
         passXP: 0, passClaimed: { free: [], premium: [] }, premiumPass: false, hand: -1, serveProgress: 0,
+        shards: 0, shardWeek: { week: 0, earned: 0 }, shardScoops: 0,
       };
     }
 
@@ -1671,6 +1692,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       stand.totalEarned += amount;
       stand.sold++;
       if (cyberOn()) stand.passXP++;
+      earnShard(stand);
       c.served = true;
       sendOffCustomer(c);
       broadcast({ type: 'sale', standId: stand.id, customerId: c.id, flavor: c.flavor,
@@ -1789,6 +1811,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           pets: s.pets, worn: s.worn,
           ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
+          shards: s.shards,
           serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
@@ -1797,6 +1820,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           served: !!c.served,
         })),
       });
+    }
+
+    // 💎 1 shard for every SHARD_SCOOPS scoops sold, up to SHARD_WEEKLY shards a week
+    function earnShard(stand) {
+      if (++stand.shardScoops < SHARD_SCOOPS) return;
+      stand.shardScoops = 0;
+      const week = Math.floor(Date.now() / (7 * 86400e3));
+      if (stand.shardWeek.week !== week) stand.shardWeek = { week, earned: 0 };
+      if (stand.shardWeek.earned >= SHARD_WEEKLY) return;
+      stand.shardWeek.earned++;
+      stand.shards++;
     }
 
     // ⚡ give a Cyber Pass prize; returns an error message if it doesn't fit
@@ -2042,8 +2076,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         stand.passClaimed[row].push(i);
         conn.send({ type: 'passPrize', row, tier: i });
       } else if (CYBER && seesCyber(stand) && msg.type === 'gamePass') {
-        // 💎 Game Passes (TEST: free here; real money isn't built)
+        // 💎 Game Passes cost shards (admins have unlimited shards)
         const id = msg.id;
+        const pass = GAME_PASSES.find(g => g.id === id);
+        if (!pass) return;
+        const price = id === 'icecream' ? ICE_CREAM_PRICES[flavorById[msg.flavor]?.rarity] : pass.shards;
+        if (!price) return err('Pick an ice cream from the shop list.');
+        if (!stand.admin && stand.shards < price) return err(`You need 💎 ${price - stand.shards} more shards. You get 1 for every ${SHARD_SCOOPS} scoops you sell!`);
         if (id === 'starter') {
           const items = { strawberry: 2, mint: 2 };
           const copy = { hotbar: stand.hotbar.map(x => x && { ...x }), storage: stand.storage.map(x => x && { ...x }) };
@@ -2076,7 +2115,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           restock();
           broadcast({ type: 'chat', id: 0, from: '🛒 Supplies Shop', admin: false, text: `${stand.name} restocked the shop for everyone!` }, true);
         } else return;
-        conn.send({ type: 'gamePassDone', id, flavor: msg.flavor });
+        if (!stand.admin) stand.shards -= price;
+        conn.send({ type: 'gamePassDone', id, flavor: msg.flavor, price });
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
         cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
@@ -2165,6 +2205,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (!text || now - (stand.lastAnnounce || 0) < 1500) return;
         stand.lastAnnounce = now;
         broadcast({ type: 'announce', from: stand.name, text });
+      } else if (stand.admin && msg.type === 'adminGiftShards') {
+        // 💎 admins give shards to a player
+        const target = stands.get(Number(msg.to));
+        if (!target) return err('That player left the park.');
+        const n = Math.min(1e6, Math.max(1, Math.floor(Number(msg.amount) || 0)));
+        if (target.admin) return err(`${target.name} is an admin and already has unlimited shards.`);
+        target.shards += n;
+        console.log(`[shards] ${stand.name} gave ${n} shards to ${target.name}`); // the gift log
+        target.conn.send({ type: 'shardsGift', from: stand.name, amount: n });
+        conn.send({ type: 'admin', text: `💎 Gave ${n.toLocaleString()} shards to ${target.name}` });
       } else if (stand.admin && msg.type === 'adminPlayers') {
         conn.send({ type: 'players', players: playerList() });
       } else if (stand.admin && msg.type === 'adminBan') {
@@ -2284,7 +2334,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
+    CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -2548,14 +2598,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         break;
       case 'gamePassDone': {
         const gp = GAME_PASSES.find(g => g.id === msg.id);
-        toast(msg.id === 'icecream' ? `🍦 You got a ${flavorById[msg.flavor].name}! (TEST: free)`
-          : msg.id === 'premium' ? '⚡ Premium Cyber Pass unlocked! Open the Pass to claim the better prizes. (TEST: free)'
-          : `${gp.emoji} ${gp.name} done! (TEST: free)`);
+        toast(msg.id === 'icecream' ? `🍦 You got a ${flavorById[msg.flavor].name}!`
+          : msg.id === 'premium' ? '⚡ Premium Cyber Pass unlocked! Open the Pass to claim the better prizes.'
+          : `${gp.emoji} ${gp.name} done!`);
+        if (openWindow === 'store') updateStore();
         confetti(player.x, player.y - 30, 25);
         break;
       }
       case 'petGot':
         revealPet(msg);
+        break;
+      case 'shardsGift':
+        toast(`🎁 ${msg.from} gave you 💎 ${msg.amount.toLocaleString()} shards!`);
+        confetti(player.x, player.y - 30, 30);
         break;
       case 'petReleased':
         toast(`👋 You let go of your ${petById[msg.pet].name}.`);
@@ -2925,6 +2980,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     $('adminPetsModal').classList.add('hidden');
     $('passModal').classList.add('hidden');
     $('growModal').classList.add('hidden');
+    $('giftShardsModal').classList.add('hidden');
     $('storeModal').classList.add('hidden');
   }
 
@@ -3290,10 +3346,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       CYBER_PASS[row].forEach((p, i) => {
         const claimed = (s.passClaimed?.[row] || []).includes(i);
         const unlocked = (s.passXP || 0) >= p.at && (row === 'free' || premium);
+        // a prize that won't fit: say so on the button instead of failing quietly
+        const noRoom = p.item && ![...s.hotbar, ...s.storage].some(x => !x || (x.flavor === p.item && x.count < MAX_STACK));
+        const noPets = p.block && s.pets.length + (p.count || 1) > MAX_PETS;
+        const text = claimed ? '✓ Claimed' : !unlocked ? (row === 'premium' && !premium ? '🔒 Premium' : `🔒 ${p.at - (s.passXP || 0)} more`)
+          : noRoom ? '🎒 Make room' : noPets ? '🐾 Pets full' : 'Claim!';
         const btn = p.tile.querySelector('button');
-        const text = claimed ? '✓ Claimed' : unlocked ? 'Claim!' : row === 'premium' && !premium ? '🔒 Premium' : `🔒 ${p.at - (s.passXP || 0)} more`;
         if (btn.textContent !== text) btn.textContent = text;
-        btn.disabled = claimed || !unlocked;
+        btn.title = noRoom ? 'Your hotbar and Inventory are full. Move or use something, then claim it.' : noPets ? 'Let a pet go in My Pets first.' : '';
+        btn.disabled = claimed || !unlocked || noRoom || noPets;
         p.tile.classList.toggle('claimed', claimed);
         p.tile.classList.toggle('ready', unlocked && !claimed);
       });
@@ -3315,22 +3376,23 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       row.className = 'row';
       row.innerHTML = `<div class="gpEmoji">${gp.emoji}</div>
         <div class="info"><div class="name">${gp.name}</div><div class="meta">${gp.desc}</div>
-          <div class="gpPrice">${gp.price} real money</div></div>`;
+          <div class="gpPrice">${gp.shards ? `💎 ${gp.shards} shards` : '💎 49 to 299 shards'}</div></div>`;
       let pick = null;
       if (gp.id === 'icecream') {
         pick = document.createElement('select');
         for (const f of FLAVORS.filter(f => !f.adminOnly && ICE_CREAM_PRICES[f.rarity])) {
           const o = document.createElement('option');
           o.value = f.id;
-          o.textContent = `${f.name} (${ICE_CREAM_PRICES[f.rarity]})`;
+          o.textContent = `${f.name} (💎 ${ICE_CREAM_PRICES[f.rarity]})`;
           pick.appendChild(o);
         }
         row.querySelector('.info').appendChild(pick);
       }
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = 'Buy (TEST: free)';
       b.addEventListener('click', () => send({ type: 'gamePass', id: gp.id, flavor: pick ? pick.value : undefined }));
+      if (pick) pick.addEventListener('change', updateStore);
+      gp.pick = pick;
       row.appendChild(b);
       list.appendChild(row);
       gp.row = row;
@@ -3343,18 +3405,27 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     $('storeModal').classList.remove('hidden');
     updateStore();
   }
+  const shardText = s => iAmAdmin ? '∞' : (s.shards || 0).toLocaleString();
   function updateStore() {
     const s = me();
-    const gp = GAME_PASSES.find(g => g.id === 'premium');
-    if (s && gp.row) {
+    if (!s) return;
+    $('storeShards').textContent = `💎 You have ${shardText(s)} shards` +
+      (iAmAdmin ? ' (admins have unlimited)' : ` · get 1 for every ${SHARD_SCOOPS} scoops you sell (up to ${SHARD_WEEKLY} a week)`);
+    for (const gp of GAME_PASSES) {
+      if (!gp.row) continue;
       const b = gp.row.querySelector('button');
-      b.disabled = !!s.premiumPass;
-      b.textContent = s.premiumPass ? '✅ You have it' : 'Buy (TEST: free)';
+      const price = gp.pick ? ICE_CREAM_PRICES[flavorById[gp.pick.value].rarity] : gp.shards;
+      const owned = gp.id === 'premium' && s.premiumPass;
+      const text = owned ? '✅ You have it' : `Buy 💎 ${price}`;
+      if (b.textContent !== text) b.textContent = text;
+      b.disabled = owned || (!iAmAdmin && (s.shards || 0) < price);
     }
   }
 
   function updateCyber() {
     $('cyberBtns').classList.toggle('hidden', !seeCyber);
+    const s = me();
+    if (s && seeCyber) $('storeBtn').textContent = `💎 ${shardText(s)} · Game Passes`;
     $('passBtn').classList.toggle('hidden', !cyberIsOn());
     if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
@@ -3928,6 +3999,35 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
   }
   $('testGrowBtn').addEventListener('click', openGrow);
+
+  // 💎 admins: give shards to anyone playing
+  function openGiftShards() {
+    closeWindows();
+    openWindow = 'giftshards';
+    $('giftShardsModal').classList.remove('hidden');
+    const list = $('giftShardsList');
+    list.innerHTML = '';
+    for (const st of stands.filter(st => st.id !== myId)) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `<div class="who"><div class="name"></div>
+        <div class="meta">${st.admin ? 'admin: unlimited shards' : `has 💎 ${(st.shards || 0).toLocaleString()}`}</div></div>
+        <input type="number" min="1" max="1000000" value="100" ${st.admin ? 'disabled' : ''}>
+        <button type="button" ${st.admin ? 'disabled' : ''}>💎 Give</button>`;
+      row.querySelector('.name').textContent = (st.admin ? '👑 ' : '') + st.name;
+      row.querySelector('button').addEventListener('click', () => {
+        const amount = Math.floor(Number(row.querySelector('input').value) || 0);
+        if (amount < 1) return toast('Type how many shards to give.');
+        if (amount > 5000 && !confirm(`Give ${amount.toLocaleString()} shards to ${st.name}? That's a lot!`)) return;
+        send({ type: 'adminGiftShards', to: st.id, amount });
+        setTimeout(openGiftShards, 300);
+      });
+      list.appendChild(row);
+    }
+    if (!list.children.length) list.innerHTML = '<p class="sub">Nobody else is playing right now.</p>';
+  }
+  $('giftShardsBtn').addEventListener('click', openGiftShards);
+  $('giftShardsClose').addEventListener('click', closeWindows);
   $('growClose').addEventListener('click', closeWindows);
   $('growEveryone').addEventListener('click', () => { send({ type: 'adminGrow', all: true }); setTimeout(openGrow, 300); });
 
@@ -4246,6 +4346,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const ox = view.w / 2 - cam.x * view.scale, oy = view.h / 2 - cam.y * view.scale;
     view.ox = sw <= view.w ? (view.w - sw) / 2 : Math.min(0, Math.max(view.w - sw, ox));
     view.oy = sh <= view.h ? (view.h - sh) / 2 : Math.min(0, Math.max(view.h - sh, oy));
+  }
+
+  // a lighter (k > 0) or darker (k < 0) version of a #rrggbb color
+  const tintCache = {};
+  function tint(hex, k) {
+    const key = hex + k;
+    if (tintCache[key]) return tintCache[key];
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+    const ch = i => {
+      const c = parseInt(hex.slice(i, i + 2), 16);
+      return Math.round(k > 0 ? c + (255 - c) * k : c * (1 + k));
+    };
+    return (tintCache[key] = `rgb(${ch(1)}, ${ch(3)}, ${ch(5)})`);
   }
 
   function roundRect(x, y, w, h, r) {
@@ -5735,29 +5848,94 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
     ctx.scale(1.7 * (p.facing || 1), 1.7);
     const y = -bounce / 1.7;
-    // legs
-    ctx.fillStyle = av.pants === 'robo' ? ROBO.pants : av.pants || '#3b3b58';
-    ctx.fillRect(-6, y + 6, 5, 6);
-    ctx.fillRect(1, y + 6, 5, 6);
-    if (av.pants === 'robo') { seam([[-5, y + 7], [-3.5, y + 9], [-4, y + 11.5]], 0.45); seam([[2, y + 7], [3.5, y + 9], [3, y + 11.5]], 0.45); }
+    const roboLegs = av.pants === 'robo', roboBody = av.shirt === 'robo', roboHead = av.skin === 'robo';
+    const pants = roboLegs ? ROBO.pants : av.pants || '#3b3b58';
+    const swing = p.moving ? Math.sin(time * 12) : 0; // arms and legs swing while walking
+    // a little shading makes everyone look rounder: lighter on top, darker underneath
+    const shaded = (color, x1, y1, x2, y2, k = 0.22) => {
+      const g = ctx.createLinearGradient(x1, y1, x2, y2);
+      g.addColorStop(0, tint(color, k)); g.addColorStop(1, tint(color, -k));
+      return g;
+    };
+    // legs and shoes
+    for (const [lx, ph] of [[-6, 1], [1, -1]]) {
+      const step = swing * ph * 1.2;
+      ctx.fillStyle = shaded(pants, lx, y + 6, lx + 5, y + 12);
+      ctx.fillRect(lx, y + 6, 5, 5.5 - Math.max(0, step) * 0.5);
+      ctx.fillStyle = roboLegs ? '#151b21' : '#2b2b2b'; // shoes (robo: metal feet)
+      roundRect(lx - 0.5 + (ph > 0 ? 0 : 0.5), y + 10.5 - Math.max(0, step) * 0.5, 6, 2.6, [1, 2, 1, 1]); ctx.fill();
+      if (roboLegs) { ctx.fillStyle = '#5c6b7a'; ctx.beginPath(); ctx.arc(lx + 2.5, y + 8, 1, 0, Math.PI * 2); ctx.fill(); } // knee joint
+    }
+    if (roboLegs) { seam([[-5, y + 7], [-3.5, y + 9], [-4, y + 10.5]], 0.45); seam([[2, y + 7], [3.5, y + 9], [3, y + 10.5]], 0.45); }
+    // arms: the back one behind the body, the front one in front (it holds your ice cream)
+    const armColor = roboBody ? ROBO.shirt : shirt, hand = roboBody ? '#5c6b7a' : skin;
+    const holding = !!p.item;
+    const arm = (front) => {
+      ctx.save();
+      ctx.translate(front ? 6.5 : -6.5, y - 4.5);
+      ctx.rotate(front && holding ? -0.95 : swing * (front ? 0.5 : -0.5));
+      ctx.fillStyle = front ? armColor : tint(armColor, -0.25);
+      roundRect(-1.8, 0, 3.6, 8.5, 1.8); ctx.fill();
+      ctx.fillStyle = front ? hand : tint(hand, -0.2);
+      ctx.beginPath(); ctx.arc(0, 9, 1.9, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    };
+    arm(false);
     // body
-    ctx.fillStyle = shirt;
+    ctx.fillStyle = shaded(shirt, -9, y - 7, 9, y + 8);
     roundRect(-9, y - 7, 18, 15, 5); ctx.fill();
-    if (shirt === '#ffffff') { ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.8; ctx.stroke(); }
-    if (av.shirt === 'robo') {
-      // armor plates with glowing cyan cracks and a glowing ring core
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 0.6; ctx.stroke();
+    if (roboBody) {
+      // a chest plate and shoulder pads with glowing cyan cracks and a glowing ring core
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      roundRect(-6, y - 5, 12, 9, 2); ctx.fill();
+      ctx.fillStyle = '#46525e';
+      roundRect(-9.5, y - 7.5, 5, 3.5, 1.5); ctx.fill(); roundRect(4.5, y - 7.5, 5, 3.5, 1.5); ctx.fill();
       seam([[-9, y - 3], [-4, y - 2.5], [-2.5, y - 6]], 0.5);
       seam([[9, y - 2], [4, y - 3], [3, y - 6.5]], 0.5);
       seam([[-6, y + 7.5], [-3, y + 3], [3, y + 3.5], [6, y + 7.5]], 0.5);
       cyberRing(0, y, 2.1 + Math.sin(time * 4) * 0.15);
+    } else {
+      // a collar
+      ctx.fillStyle = tint(shirt, -0.3);
+      ctx.beginPath(); ctx.moveTo(-3.5, y - 7); ctx.lineTo(0, y - 4.5); ctx.lineTo(3.5, y - 7); ctx.closePath(); ctx.fill();
     }
+    arm(true);
     // head
-    ctx.fillStyle = skin;
-    ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
-    if (av.skin === 'robo') {
-      // a dark armor head with glowing cyan cracks
-      seam([[-7.5, y - 18], [-3, y - 19.5], [0, y - 22]], 0.45);
-      seam([[-7, y - 10], [-4, y - 12], [-7.8, y - 14]], 0.45);
+    if (roboHead) {
+      // ⚡ a square metal robot head with bolts, panel lines and glowing cyan cracks
+      ctx.fillStyle = '#20272e';
+      ctx.fillRect(-2.5, y - 8, 5, 2); // neck joint
+      ctx.fillStyle = shaded('#4a5763', -8, y - 22, 8, y - 7, 0.3);
+      roundRect(-8, y - 22, 16, 15, 2.5); ctx.fill();
+      ctx.strokeStyle = '#151b21'; ctx.lineWidth = 0.7; ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; // shine on the metal
+      roundRect(-7, y - 21, 6, 3, 1.5); ctx.fill();
+      ctx.fillStyle = '#2a323a'; // an ear bolt on the side
+      roundRect(-10, y - 17, 2.5, 5, 1); ctx.fill();
+      ctx.fillStyle = '#8a99a8';
+      for (const [bx, by] of [[-6.3, y - 20.3], [6.3, y - 20.3], [-6.3, y - 8.7], [6.3, y - 8.7]]) { ctx.beginPath(); ctx.arc(bx, by, 0.7, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 0.4;
+      ctx.beginPath(); ctx.moveTo(-8, y - 11); ctx.lineTo(8, y - 11); ctx.stroke();
+      seam([[-7.5, y - 18.5], [-4, y - 19], [-2.5, y - 21.5]], 0.45);
+      seam([[-7.5, y - 10], [-4.5, y - 12.5], [-7.8, y - 14]], 0.45);
+    } else {
+      ctx.fillStyle = tint(skin, -0.12);
+      ctx.fillRect(-2.5, y - 8, 5, 2); // neck
+      const g = ctx.createRadialGradient(-2.5, y - 17, 1, 0, y - 14, 9);
+      g.addColorStop(0, tint(skin, 0.15)); g.addColorStop(1, tint(skin, -0.12));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, y - 14, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = tint(skin, -0.15); // an ear
+      ctx.beginPath(); ctx.ellipse(-1.5, y - 13.5, 1.6, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+      // hair shows when there's no hat
+      const hatNow = av.hat || 'cap';
+      if (hatNow === 'none' || (p.admin && hatNow === 'cap')) {
+        ctx.fillStyle = '#4a2f1d';
+        ctx.beginPath(); ctx.arc(0, y - 15, 8.3, Math.PI * 0.95, Math.PI * 2.05); ctx.lineTo(-7.8, y - 13); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255, 120, 140, 0.25)'; // rosy cheek
+      ctx.beginPath(); ctx.arc(6, y - 11.5, 1.5, 0, Math.PI * 2); ctx.fill();
     }
     drawFace(av.face || 'happy', y, time);
     // admins wear their crown unless they picked a special hat in the Avatar Shop
@@ -5768,8 +5946,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (p.item && toppingById[p.item.flavor]) {
       ctx.font = '9px serif';
       ctx.textAlign = 'center';
-      ctx.fillText(toppingById[p.item.flavor].emoji, 11, y + 1);
-    } else if (p.item) drawCone(11, y - 2, flavorById[p.item.flavor], 6);
+      ctx.fillText(toppingById[p.item.flavor].emoji, 13, y + 2);
+    } else if (p.item) drawCone(13, y - 1, flavorById[p.item.flavor], 6);
     if (crown) {
       // golden crown
       ctx.fillStyle = '#ffd43b';
@@ -5797,12 +5975,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (face === 'robo') {
       // a glowing visor instead of eyes
       ctx.fillStyle = '#1b2430';
-      roundRect(-1, y - 17.5, 10, 5, 2); ctx.fill();
+      roundRect(-1, y - 18, 9.5, 5, 1.5); ctx.fill();
+      ctx.fillStyle = 'rgba(46, 232, 255, 0.18)'; // the visor glass
+      roundRect(-0.5, y - 17.5, 8.5, 4, 1.2); ctx.fill();
       ctx.fillStyle = CYAN;
       ctx.shadowColor = CYAN; ctx.shadowBlur = 5;
-      const scan = (Math.sin(time * 3) + 1) / 2 * 6;
-      ctx.fillRect(0 + scan, y - 16.3, 2.5, 2.6);
+      const scan = (Math.sin(time * 3) + 1) / 2 * 5.5;
+      ctx.fillRect(0 + scan, y - 16.8, 2.5, 2.6);
       ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; // a reflection
+      ctx.fillRect(5.5, y - 17.3, 1.6, 0.8);
       ctx.fillStyle = '#5c6b7a';
       ctx.fillRect(2, y - 10.5, 6, 1.2);
       return;
@@ -5820,8 +6002,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.beginPath(); ctx.arc(5, y - 10, 1.4, 0, Math.PI * 2); ctx.fill();
       return;
     } else {
-      ctx.fillRect(2, y - 15, 2, 2.5);
-      ctx.fillRect(5.5, y - 15, 2, 2.5);
+      // eyes: a white with a dark pupil looking the way you face
+      for (const ex of [3, 6.5]) {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(ex, y - 14, 1.4, 1.7, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#222';
+        ctx.beginPath(); ctx.arc(ex + 0.4, y - 13.8, 0.95, 0, Math.PI * 2); ctx.fill();
+      }
     }
     if (face === 'silly') {
       ctx.fillStyle = '#ff6b8a';
@@ -5834,11 +6021,18 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   function drawHat(hat, y, shirt) {
     switch (hat) {
-      case 'robo': // a robot antenna with a blinking light
-        ctx.fillStyle = '#2c343c';
-        ctx.fillRect(-0.6, y - 28, 1.2, 7);
-        ctx.fillRect(-3, y - 22.5, 6, 1.5);
-        cyberRing(0, y - 29.5, 1.5 + Math.sin(nowSec * 6) * 0.2); // a glowing cyan ring on top
+      case 'robo': // two robot antennas with glowing tips that blink one after the other
+        for (const [ax, tilt, ph] of [[-4, -0.25, 0], [4, 0.25, Math.PI]]) {
+          ctx.save();
+          ctx.translate(ax, y - 21.5);
+          ctx.fillStyle = '#20272e';
+          roundRect(-2, -1, 4, 2, 1); ctx.fill(); // the base
+          ctx.rotate(tilt);
+          ctx.fillStyle = '#6b7a88';
+          ctx.fillRect(-0.5, -8, 1, 8);
+          cyberRing(0, -9.2, 1.3 + Math.sin(nowSec * 6 + ph) * 0.25);
+          ctx.restore();
+        }
         break;
       case 'cap':
         ctx.fillStyle = shirt;
