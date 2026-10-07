@@ -219,9 +219,34 @@ backup is thrown away. A paid Render plan with a disk would keep progress on the
 Static hosts like GitHub Pages or Netlify can only host the single-player `ice-cream-tycoon.html`, not the
 multiplayer game.
 
+**With a database (recommended).** Set `DATABASE_URL` (Render Postgres, the *Internal Database URL*) on the web
+service and everything is kept in the database instead: progress, accounts and purchases, safe across updates.
+On the first start with an empty database, players come back from their browser backups as they rejoin.
+
+## 🔑 Accounts and 💎 the Shard Shop (online game)
+
+- **Passwords:** every player picks a password the first time they join (at least 4 letters or numbers). A device
+  that logged in once is remembered (a "remember me" token, not the password). Forgot it? An admin types
+  `/resetpass name` while that player is offline, and they pick a new one next time.
+- **Shard Shop** (💎 button, top right): packs of shards for real money through **Stripe Checkout**: $5 → 550,
+  $10 → 1,200, $20 → 2,600, $35 → 4,800, $50 → 7,250, $75 → 11,250, $100 → 16,000. Players pay on Stripe's own
+  page; the game adds shards only when Stripe's webhook says the payment went through (each payment once), and a
+  refund in Stripe takes the shards back.
+- **Parents:** before the first purchase a parent enters their email (Stripe sends receipts there) and a parent PIN.
+  Each account can spend **$50 a month**; the parent can change that (up to $500) or the email with the PIN.
+- **Who sees it:** admins only while testing. Set `SHARDS=everyone` to open it to all players.
+- **`/policy`**: the page Stripe needs (contact, what's sold, refunds). Set `CONTACT_EMAIL` to show your email there.
+
+Setup (Render → ice-cream-tycoon → Environment): `DATABASE_URL`, `STRIPE_SECRET_KEY` (`sk_test_…` first),
+`STRIPE_WEBHOOK_SECRET` (`whsec_…` from a Stripe webhook pointing at `https://<your address>/stripe/webhook`
+with the events `checkout.session.completed`, `checkout.session.expired` and `charge.refunded`), and `CONTACT_EMAIL`.
+The full plan is in `docs/shards-payments-plan.pdf`.
+
 ## Files
 
 - `server.js`: multiplayer server (connections and saving)
+- `store.js`: where progress, accounts and purchases are kept (Postgres with `DATABASE_URL`, otherwise files in `data/`)
+- `shop.js`: passwords, parent settings, the Shard Shop and Stripe (checkout and the webhook)
 - `public/engine.js`: the game rules (players, customers, sales, the shop, inventories, mutation events), used by the server and the single-file version
 - `build.js`: makes `ice-cream-tycoon.html` (with the cover picture packed inside)
 - `public/cover.png`: the game's cover picture on the start screen

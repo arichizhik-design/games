@@ -15,11 +15,15 @@
         <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off">
         <button id="joinBtn" type="button">Open my stand</button>
       </div>
+      <div id="passwordRow">
+        <input id="passwordInput" type="password" maxlength="64" placeholder="Password" autocomplete="current-password">
+      </div>
       <div id="adminCodeRow" class="hidden">
         <input id="adminCodeInput" type="password" maxlength="40" placeholder="Secret admin code" autocomplete="off">
       </div>
       <p id="joinError" class="error"></p>
-      <p class="hint">Use the same name next time to keep your money and flavors.</p>
+      <p class="hint">Use the same name and password next time to keep your money and flavors.</p>
+      <p class="policyLink"><a href="/policy" target="_blank">Shop, refunds &amp; contact</a></p>
     </div>
   </div>
 
@@ -51,6 +55,7 @@
       </div>
 
       <!-- ⚡ Cyber Event buttons (test file only for now) -->
+      <button id="shardShopBtn" type="button" class="hidden">💎 Shard Shop</button>
       <div id="cyberBtns" class="hidden">
         <button id="passBtn" type="button">⚡ Pass</button>
         <button id="storeBtn" type="button">💎 Game Passes</button>
@@ -122,6 +127,14 @@
         <div class="avSaveBar"><button id="avatarSave" type="button">💾 Save</button></div>
       </div>
 
+      <!-- 💎 Shard Shop (online game; real money through Stripe) -->
+      <div id="shardShopModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">💎 Shard Shop</div>
+          <button id="shardShopClose" class="closeBtn">✕</button>
+        </div>
+        <div id="shardShopBody"></div>
+      </div>
       <div id="sellModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">💰 Sell Shop</div>
@@ -297,7 +310,7 @@
           <button id="adminRunBtn" type="button">Run</button>
         </div>
         <div class="sub">Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /shop void 3 · /pet dragon · /give cherry 10 · /mutation rainbow meteor ·
-          /mutation end · /restock · /grow · /help</div>
+          /mutation end · /restock · /grow · /resetpass bobby · /help</div>
       </div>
       <div id="testTools" class="hidden">
         <div class="label">🧪 Test buttons</div>

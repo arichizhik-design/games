@@ -176,6 +176,19 @@
     { id: 'icecream', name: 'Buy an Ice Cream', emoji: '🍦', desc: 'Pick any ice cream from the shop list, even if it\'s sold out' },
     { id: 'restock', name: 'Restock the Shop', emoji: '🛒', shards: 99, desc: 'New stock in the Supplies Shop for everyone, right now' },
   ];
+  // 💎 Shard packs for real money (online game only, through Stripe). The bonus is compared to 100 shards per $1.
+  const SHARD_PACKS = [
+    { id: 'p5',   usd: 5,   shards: 550,   bonus: 10 },
+    { id: 'p10',  usd: 10,  shards: 1200,  bonus: 20 },
+    { id: 'p20',  usd: 20,  shards: 2600,  bonus: 30 },
+    { id: 'p35',  usd: 35,  shards: 4800,  bonus: 37 },
+    { id: 'p50',  usd: 50,  shards: 7250,  bonus: 45 },
+    { id: 'p75',  usd: 75,  shards: 11250, bonus: 50 },
+    { id: 'p100', usd: 100, shards: 16000, bonus: 60 },
+  ];
+  const MONTHLY_LIMIT_USD = 50;   // the most an account can spend in a month, unless a parent raises it
+  const MAX_LIMIT_USD = 500;      // the highest a parent can set it
+
   // shards for one ice cream (the Buy an Ice Cream pass), by rarity
   const ICE_CREAM_PRICES = { common: 49, uncommon: 49, rare: 99, epic: 99, legendary: 149, mythic: 199, secret: 249, cyber: 299 };
 
@@ -266,7 +279,7 @@
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY, SHARD_PACKS, MONTHLY_LIMIT_USD, MAX_LIMIT_USD,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;

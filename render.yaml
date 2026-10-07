@@ -10,3 +10,12 @@ services:
       # seals the progress backups in players' browsers; Render makes it once and keeps it
       - key: SAVE_SECRET
         generateValue: true
+      # set these by hand in Render → ice-cream-tycoon → Environment (never put the values in this file)
+      - key: DATABASE_URL          # the database's Internal Database URL: progress, accounts and purchases
+        sync: false
+      - key: STRIPE_SECRET_KEY     # sk_test_… while testing, sk_live_… when real payments start
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET # whsec_… from the Stripe webhook for /stripe/webhook
+        sync: false
+      - key: CONTACT_EMAIL         # shown on the /policy page (Stripe needs a way to contact you)
+        sync: false

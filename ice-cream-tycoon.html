@@ -652,6 +652,34 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .sellBtns { display: flex; flex-direction: column; gap: 4px; }
 .sellBtns button { background: #2f9e44; font-size: 13px; padding: 6px 10px; }
 .sellBtns button.all { background: #e8a200; }
+
+/* 🔑 password on the join screen */
+#passwordRow { margin-top: 8px; }
+#passwordRow.hidden { display: none; }
+.policyLink { font-size: 12px; margin-top: 4px; }
+.policyLink a { color: #b0899c; }
+/* 💎 Shard Shop */
+#shardShopBtn { position: absolute; right: 12px; top: 12px; z-index: 6; background: linear-gradient(135deg, #7048e8, #22b8cf);
+  color: #fff; font-size: 16px; padding: 8px 14px; box-shadow: 0 0 12px rgba(112,72,232,0.5); }
+#shardShopBtn.hidden { display: none; }
+#shardShopModal { width: min(560px, calc(100% - 24px)); border-color: #b197fc; }
+#shardShopModal .modalTitle { color: #7048e8; }
+.shopTest { background: #fff3bf; border: 1px dashed #f08c00; border-radius: 10px; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; }
+.shopSpent { font-weight: bold; color: #5f3dc4; margin: 6px 0 10px; }
+.packGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.packBtn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; border-radius: 12px;
+  background: linear-gradient(160deg, #f3f0ff, #e5dbff); color: #3b2a77; border: 2px solid #b197fc; box-shadow: none; }
+.packBtn .gems { font-size: 18px; font-weight: bold; }
+.packBtn .usd { font-size: 16px; font-weight: bold; color: #2b8a3e; }
+.packBtn .bonus { font-size: 11px; background: #ff6b6b; color: #fff; border-radius: 8px; padding: 1px 6px; }
+.packBtn:disabled { opacity: 0.45; }
+.parentForm { display: flex; flex-direction: column; gap: 8px; background: #f8f0fc; border-radius: 12px; padding: 10px; }
+.parentForm label { font-size: 13px; }
+.parentForm input[type=email], .parentForm input[type=password], .parentForm input[type=number] { width: 100%; box-sizing: border-box; }
+.shopSection { margin-top: 14px; }
+.shopSection h3 { margin: 0 0 6px; font-size: 15px; color: #5f3dc4; }
+.purchaseRow { font-size: 13px; padding: 3px 0; border-bottom: 1px solid #eee; }
+.purchaseRow .refunded { color: #c92a2a; }
 </style>
 </head>
 <body>
@@ -663,11 +691,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off">
         <button id="joinBtn" type="button">Open my stand</button>
       </div>
+      <div id="passwordRow">
+        <input id="passwordInput" type="password" maxlength="64" placeholder="Password" autocomplete="current-password">
+      </div>
       <div id="adminCodeRow" class="hidden">
         <input id="adminCodeInput" type="password" maxlength="40" placeholder="Secret admin code" autocomplete="off">
       </div>
       <p id="joinError" class="error"></p>
-      <p class="hint">Use the same name next time to keep your money and flavors.</p>
+      <p class="hint">Use the same name and password next time to keep your money and flavors.</p>
+      <p class="policyLink"><a href="/policy" target="_blank">Shop, refunds &amp; contact</a></p>
     </div>
   </div>
 
@@ -699,6 +731,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       </div>
 
       <!-- ⚡ Cyber Event buttons (test file only for now) -->
+      <button id="shardShopBtn" type="button" class="hidden">💎 Shard Shop</button>
       <div id="cyberBtns" class="hidden">
         <button id="passBtn" type="button">⚡ Pass</button>
         <button id="storeBtn" type="button">💎 Game Passes</button>
@@ -770,6 +803,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         <div class="avSaveBar"><button id="avatarSave" type="button">💾 Save</button></div>
       </div>
 
+      <!-- 💎 Shard Shop (online game; real money through Stripe) -->
+      <div id="shardShopModal" class="modal hidden">
+        <div class="modalHead">
+          <div class="modalTitle">💎 Shard Shop</div>
+          <button id="shardShopClose" class="closeBtn">✕</button>
+        </div>
+        <div id="shardShopBody"></div>
+      </div>
       <div id="sellModal" class="modal hidden">
         <div class="modalHead">
           <div class="modalTitle">💰 Sell Shop</div>
@@ -945,7 +986,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <button id="adminRunBtn" type="button">Run</button>
         </div>
         <div class="sub">Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /shop void 3 · /pet dragon · /give cherry 10 · /mutation rainbow meteor ·
-          /mutation end · /restock · /grow · /help</div>
+          /mutation end · /restock · /grow · /resetpass bobby · /help</div>
       </div>
       <div id="testTools" class="hidden">
         <div class="label">🧪 Test buttons</div>
@@ -1167,6 +1208,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'icecream', name: 'Buy an Ice Cream', emoji: '🍦', desc: 'Pick any ice cream from the shop list, even if it\'s sold out' },
     { id: 'restock', name: 'Restock the Shop', emoji: '🛒', shards: 99, desc: 'New stock in the Supplies Shop for everyone, right now' },
   ];
+  // 💎 Shard packs for real money (online game only, through Stripe). The bonus is compared to 100 shards per $1.
+  const SHARD_PACKS = [
+    { id: 'p5',   usd: 5,   shards: 550,   bonus: 10 },
+    { id: 'p10',  usd: 10,  shards: 1200,  bonus: 20 },
+    { id: 'p20',  usd: 20,  shards: 2600,  bonus: 30 },
+    { id: 'p35',  usd: 35,  shards: 4800,  bonus: 37 },
+    { id: 'p50',  usd: 50,  shards: 7250,  bonus: 45 },
+    { id: 'p75',  usd: 75,  shards: 11250, bonus: 50 },
+    { id: 'p100', usd: 100, shards: 16000, bonus: 60 },
+  ];
+  const MONTHLY_LIMIT_USD = 50;   // the most an account can spend in a month, unless a parent raises it
+  const MAX_LIMIT_USD = 500;      // the highest a parent can set it
+
   // shards for one ice cream (the Buy an Ice Cream pass), by rarity
   const ICE_CREAM_PRICES = { common: 49, uncommon: 49, rare: 99, epic: 99, legendary: 149, mythic: 199, secret: 249, cyber: 299 };
 
@@ -1257,7 +1311,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY, SHARD_PACKS, MONTHLY_LIMIT_USD, MAX_LIMIT_USD,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;
@@ -2269,12 +2323,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (target) {
           for (const id of target.queue) { const c = customers.get(id); if (c) sendOffCustomer(c); }
           target.queue = [];
-          Object.assign(target, freshProgress());
+          const keepShards = target.shards; // shards may have been bought with real money, so a ban keeps them
+          Object.assign(target, freshProgress(), { shards: keepShards });
           if (target.admin) target.money = ADMIN_MONEY; // a banned admin starts over like a new admin
           target.conn.send({ type: 'banned', by: stand.name, self: target === stand });
         } else if (saves[key]) {
-          const { adminDevice, name } = saves[key];
-          saves[key] = { name, ...(adminDevice ? { adminDevice } : {}), ...freshProgress() };
+          const { adminDevice, name, shards } = saves[key];
+          saves[key] = { name, ...(adminDevice ? { adminDevice } : {}), ...freshProgress(), shards: shards || 0 };
         } else return err('No player with that name.');
         conn.send({ type: 'admin', text: target === stand ? '🚫 You banned yourself and started over.'
           : `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
@@ -2366,7 +2421,23 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // send everyone their latest backup right now (the server calls this just before it shuts down)
     const sendBackups = () => { for (const s of stands.values()) sendBackup(s); };
 
-    return { handle, leave, tick, snapshotSaves, sendBackups };
+    // 💎 shards bought with real money (or taken back after a refund): works whether the player is online or not
+    function addShards(key, n) {
+      const s = [...stands.values()].find(st => st.key === key);
+      if (s) {
+        s.shards = Math.max(0, s.shards + n);
+        s.conn.send({ type: 'shardsChanged', amount: n });
+      } else if (saves[key]) saves[key].shards = Math.max(0, (saves[key].shards || 0) + n);
+      else return false;
+      return true;
+    }
+    // who's playing on this connection (the server uses it for accounts and the Shard Shop)
+    function whoIs(conn) {
+      const s = conn.standId && stands.get(conn.standId);
+      return s ? { key: s.key, name: s.name, admin: !!s.admin } : null;
+    }
+
+    return { handle, leave, tick, snapshotSaves, sendBackups, addShards, whoIs };
   }
 
   const Engine = { createGame, MAX_WORN, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, chestPos, tubPos };
@@ -2493,6 +2564,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     try { return JSON.parse(localStorage.getItem('icecream-backup:' + nameKey(name))) || null; } catch (e) { return null; }
   }
 
+  // 🔑 a device that logged in once remembers it (a "remember me" token, not the password)
+  const tokenKey = name => 'icecream-token:' + nameKey(name);
+  const savedToken = name => { try { return localStorage.getItem(tokenKey(name)) || ''; } catch (e) { return ''; } };
+  function updatePasswordBox() {
+    if (window.SOLO) return;
+    const remembered = !!savedToken($('nameInput').value);
+    $('passwordInput').placeholder = remembered ? 'Password (remembered on this device)' : 'Password';
+  }
+  $('nameInput').addEventListener('input', updatePasswordBox);
+
   function join() {
     const name = $('nameInput').value.trim();
     if (!name) { $('joinError').textContent = 'Type your name first!'; return; }
@@ -2502,6 +2583,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     try { localStorage.setItem('icecream-name', name); } catch (e) {}
     connect(name);
   }
+  $('passwordInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
   $('adminCodeInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
   $('joinBtn').addEventListener('click', join);
   $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
@@ -2510,6 +2592,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   if (window.SOLO) {
     document.querySelector('.hint').textContent =
       'Single-player version: your progress is saved in this browser.';
+    $('passwordRow').classList.add('hidden');
+    document.querySelector('.policyLink').classList.add('hidden');
+  }
+  updatePasswordBox();
+  // back from Stripe's payment page: join again right away if this device is remembered
+  const backFromStripe = new URLSearchParams(location.search);
+  const stripeReturn = backFromStripe.has('paid') ? 'paid' : backFromStripe.has('cancelled') ? 'cancelled' : null;
+  if (stripeReturn) {
+    history.replaceState(null, '', location.pathname);
+    if (!window.SOLO && $('nameInput').value && savedToken($('nameInput').value)) setTimeout(join, 50);
   }
 
   // a random id saved on this device, so admin names stay locked to the device that first used them
@@ -2529,7 +2621,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (window.SOLO) return startSolo(name);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode, backup: loadBackup(name) });
+    const password = $('passwordInput').value;
+    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode, backup: loadBackup(name),
+      password, token: password ? '' : savedToken(name) });
     ws.onmessage = e => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
@@ -2595,6 +2689,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         else {
           $('joinError').textContent = msg.text;
           joining = false;
+          if (msg.needPassword) {
+            // the remembered login didn't work (or there isn't one): ask for the password
+            try { localStorage.removeItem(tokenKey($('nameInput').value)); } catch (e) {}
+            updatePasswordBox();
+            $('passwordInput').value = '';
+            $('passwordInput').placeholder = msg.newAccount ? 'Pick a password' : 'Password';
+            $('passwordInput').focus();
+          }
           if (msg.needCode) {
             // the saved code didn't work (or there isn't one): ask for it
             try { localStorage.removeItem(codeKey()); } catch (e) {}
@@ -2652,6 +2754,29 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       }
       case 'petGot':
         revealPet(msg);
+        break;
+      case 'loggedIn':
+        try { localStorage.setItem(tokenKey(msg.key), msg.token); } catch (e) {}
+        $('passwordInput').value = '';
+        if (msg.newAccount) toast('🔑 Your password is set. Remember it! This device will remember you.');
+        if (stripeReturn === 'paid') toast('💎 Thank you! Your shards show up as soon as the payment goes through.');
+        if (stripeReturn === 'cancelled') toast('Purchase cancelled. Nothing was charged.');
+        break;
+      case 'account':
+        account = msg;
+        $('shardShopBtn').classList.toggle('hidden', !msg.shop);
+        if (openWindow === 'shardshop') renderShardShop();
+        break;
+      case 'checkout':
+        toast('Going to the secure payment page…');
+        location.href = msg.url;
+        break;
+      case 'shopNote':
+        toast(msg.text);
+        break;
+      case 'shardsChanged':
+        toast(msg.amount > 0 ? `💎 +${msg.amount.toLocaleString()} shards! Thank you!` : `💎 ${(-msg.amount).toLocaleString()} shards were taken back (refund).`);
+        if (msg.amount > 0) confetti(player.x, player.y - 30, 40);
         break;
       case 'shardsGift':
         toast(`🎁 ${msg.from} gave you 💎 ${msg.amount.toLocaleString()} shards!`);
@@ -3029,6 +3154,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     $('giftModal').classList.add('hidden');
     $('petShopModal').classList.add('hidden');
     $('sellModal').classList.add('hidden');
+    $('shardShopModal').classList.add('hidden');
     $('petsModal').classList.add('hidden');
     $('adminPetsModal').classList.add('hidden');
     $('passModal').classList.add('hidden');
@@ -3582,6 +3708,76 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }, 1400);
   }
   $('revealOk').addEventListener('click', () => $('revealModal').classList.add('hidden'));
+
+  // ---------- 💎 Shard Shop (real money through Stripe; online game only) ----------
+  let account = null;
+  function openShardShop() {
+    closeWindows();
+    openWindow = 'shardshop';
+    $('shardShopModal').classList.remove('hidden');
+    renderShardShop();
+    send({ type: 'shopOpen' }); // get the newest numbers
+  }
+  function renderShardShop() {
+    const box = $('shardShopBody');
+    const a = account;
+    if (!a || !a.shop) { box.innerHTML = '<p class="sub">The Shard Shop isn\'t open yet.</p>'; return; }
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    let html = a.testMode ? `<div class="shopTest">🧪 <b>TEST MODE:</b> no real money. Pay with the test card
+      <b>4242 4242 4242 4242</b>, any future date, any 3 numbers.</div>` : '';
+    if (!a.hasParent) {
+      html += `<p><b>👪 Ask a parent!</b> Shards cost real money, so a parent has to set this up once.</p>
+        <div class="parentForm">
+          <label>Parent's email (receipts go here)<input id="parentEmail" type="email" maxlength="120" autocomplete="email"></label>
+          <label>Parent PIN, 4 to 8 numbers (to change settings later; don't tell the kids!)<input id="parentPin" type="password" inputmode="numeric" maxlength="8"></label>
+          <label>Type the PIN again<input id="parentPin2" type="password" inputmode="numeric" maxlength="8"></label>
+          <label><input id="parentAgree" type="checkbox"> I'm the parent or guardian, and I allow purchases up to the monthly limit ($50 to start).</label>
+          <button id="parentSave" type="button">👪 Set up purchases</button>
+        </div>`;
+    } else {
+      const left = Math.max(0, a.limitUsd - a.spentUsd);
+      html += `<p class="shopSpent">This month: $${a.spentUsd.toFixed(2).replace('.00', '')} of $${a.limitUsd} spent</p><div class="packGrid">`;
+      for (const p of a.packs) {
+        const over = p.usd > left;
+        html += `<button type="button" class="packBtn" data-pack="${p.id}" ${over ? 'disabled title="Over the monthly limit"' : ''}>
+          <span class="gems">💎 ${p.shards.toLocaleString()}</span><span class="usd">$${p.usd}</span>
+          ${p.bonus ? `<span class="bonus">+${p.bonus}% bonus</span>` : ''}</button>`;
+      }
+      html += `</div>
+        <div class="shopSection"><h3>👪 Parent settings</h3>
+          <p class="sub">Receipts go to ${esc(a.parentEmail)}. Change the monthly limit or the email with the parent PIN.</p>
+          <div class="parentForm">
+            <label>New monthly limit in $ (0 to ${a.maxLimitUsd})<input id="limitInput" type="number" min="0" max="${a.maxLimitUsd}" placeholder="${a.limitUsd}"></label>
+            <label>New parent email (optional)<input id="emailInput" type="email" maxlength="120"></label>
+            <label>Parent PIN<input id="pinInput" type="password" inputmode="numeric" maxlength="8"></label>
+            <button id="parentUpdate" type="button">Save</button>
+          </div></div>`;
+    }
+    if (a.purchases && a.purchases.length) {
+      html += '<div class="shopSection"><h3>🧾 Purchases</h3>' + a.purchases.map(p =>
+        `<div class="purchaseRow">${new Date(p.at).toLocaleDateString()} · $${p.usd} · 💎 ${p.shards.toLocaleString()}` +
+        (p.refunded ? ` <span class="refunded">(refunded${p.refunded < p.shards ? ` ${p.refunded}` : ''})</span>` : '') + '</div>').join('') + '</div>';
+    }
+    html += '<p class="sub"><a href="/policy" target="_blank">Shop, refunds &amp; contact</a></p>';
+    box.innerHTML = html;
+    const btn = id => box.querySelector('#' + id);
+    if (btn('parentSave')) btn('parentSave').addEventListener('click', () => {
+      const pin = btn('parentPin').value;
+      if (pin !== btn('parentPin2').value) return toast('The two PINs are different.');
+      send({ type: 'setParent', email: btn('parentEmail').value, pin, agree: btn('parentAgree').checked });
+    });
+    if (btn('parentUpdate')) btn('parentUpdate').addEventListener('click', () =>
+      send({ type: 'parentUpdate', pin: btn('pinInput').value, limitUsd: btn('limitInput').value, email: btn('emailInput').value }));
+    for (const b of box.querySelectorAll('.packBtn')) b.addEventListener('click', () => {
+      const p = a.packs.find(x => x.id === b.dataset.pack);
+      if (confirm(`Buy 💎 ${p.shards.toLocaleString()} shards for $${p.usd}? Ask a parent first! You'll go to Stripe's secure payment page.`)) {
+        b.disabled = true;
+        send({ type: 'buyShards', pack: p.id });
+      }
+    });
+  }
+  $('shardShopBtn').addEventListener('click', openShardShop);
+  $('shardShopClose').addEventListener('click', closeWindows);
 
   // ---------- 💰 Sell Shop ----------
   function openSell() {
@@ -4290,6 +4486,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       }
       case 'restock': return send({ type: 'testRestock' });
       case 'grow': return send({ type: 'testGrow' });
+      case 'resetpass': { // a player forgot their password: /resetpass bobby
+        if (!args.length) return toast('Try: /resetpass bobby');
+        return send({ type: 'adminResetPassword', name: args.join(' ') });
+      }
       default:
         return toast('Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow meteor · /mutation end · /restock · /grow');
     }

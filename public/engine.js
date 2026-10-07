@@ -1003,12 +1003,13 @@
         if (target) {
           for (const id of target.queue) { const c = customers.get(id); if (c) sendOffCustomer(c); }
           target.queue = [];
-          Object.assign(target, freshProgress());
+          const keepShards = target.shards; // shards may have been bought with real money, so a ban keeps them
+          Object.assign(target, freshProgress(), { shards: keepShards });
           if (target.admin) target.money = ADMIN_MONEY; // a banned admin starts over like a new admin
           target.conn.send({ type: 'banned', by: stand.name, self: target === stand });
         } else if (saves[key]) {
-          const { adminDevice, name } = saves[key];
-          saves[key] = { name, ...(adminDevice ? { adminDevice } : {}), ...freshProgress() };
+          const { adminDevice, name, shards } = saves[key];
+          saves[key] = { name, ...(adminDevice ? { adminDevice } : {}), ...freshProgress(), shards: shards || 0 };
         } else return err('No player with that name.');
         conn.send({ type: 'admin', text: target === stand ? '🚫 You banned yourself and started over.'
           : `🚫 ${target ? target.name : saves[key].name} was banned and has to start over.` });
@@ -1100,7 +1101,23 @@
     // send everyone their latest backup right now (the server calls this just before it shuts down)
     const sendBackups = () => { for (const s of stands.values()) sendBackup(s); };
 
-    return { handle, leave, tick, snapshotSaves, sendBackups };
+    // 💎 shards bought with real money (or taken back after a refund): works whether the player is online or not
+    function addShards(key, n) {
+      const s = [...stands.values()].find(st => st.key === key);
+      if (s) {
+        s.shards = Math.max(0, s.shards + n);
+        s.conn.send({ type: 'shardsChanged', amount: n });
+      } else if (saves[key]) saves[key].shards = Math.max(0, (saves[key].shards || 0) + n);
+      else return false;
+      return true;
+    }
+    // who's playing on this connection (the server uses it for accounts and the Shard Shop)
+    function whoIs(conn) {
+      const s = conn.standId && stands.get(conn.standId);
+      return s ? { key: s.key, name: s.name, admin: !!s.admin } : null;
+    }
+
+    return { handle, leave, tick, snapshotSaves, sendBackups, addShards, whoIs };
   }
 
   const Engine = { createGame, MAX_WORN, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, chestPos, tubPos };

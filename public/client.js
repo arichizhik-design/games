@@ -115,6 +115,16 @@
     try { return JSON.parse(localStorage.getItem('icecream-backup:' + nameKey(name))) || null; } catch (e) { return null; }
   }
 
+  // 🔑 a device that logged in once remembers it (a "remember me" token, not the password)
+  const tokenKey = name => 'icecream-token:' + nameKey(name);
+  const savedToken = name => { try { return localStorage.getItem(tokenKey(name)) || ''; } catch (e) { return ''; } };
+  function updatePasswordBox() {
+    if (window.SOLO) return;
+    const remembered = !!savedToken($('nameInput').value);
+    $('passwordInput').placeholder = remembered ? 'Password (remembered on this device)' : 'Password';
+  }
+  $('nameInput').addEventListener('input', updatePasswordBox);
+
   function join() {
     const name = $('nameInput').value.trim();
     if (!name) { $('joinError').textContent = 'Type your name first!'; return; }
@@ -124,6 +134,7 @@
     try { localStorage.setItem('icecream-name', name); } catch (e) {}
     connect(name);
   }
+  $('passwordInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
   $('adminCodeInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
   $('joinBtn').addEventListener('click', join);
   $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
@@ -132,6 +143,16 @@
   if (window.SOLO) {
     document.querySelector('.hint').textContent =
       'Single-player version: your progress is saved in this browser.';
+    $('passwordRow').classList.add('hidden');
+    document.querySelector('.policyLink').classList.add('hidden');
+  }
+  updatePasswordBox();
+  // back from Stripe's payment page: join again right away if this device is remembered
+  const backFromStripe = new URLSearchParams(location.search);
+  const stripeReturn = backFromStripe.has('paid') ? 'paid' : backFromStripe.has('cancelled') ? 'cancelled' : null;
+  if (stripeReturn) {
+    history.replaceState(null, '', location.pathname);
+    if (!window.SOLO && $('nameInput').value && savedToken($('nameInput').value)) setTimeout(join, 50);
   }
 
   // a random id saved on this device, so admin names stay locked to the device that first used them
@@ -151,7 +172,9 @@
     if (window.SOLO) return startSolo(name);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode, backup: loadBackup(name) });
+    const password = $('passwordInput').value;
+    ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode, backup: loadBackup(name),
+      password, token: password ? '' : savedToken(name) });
     ws.onmessage = e => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
@@ -217,6 +240,14 @@
         else {
           $('joinError').textContent = msg.text;
           joining = false;
+          if (msg.needPassword) {
+            // the remembered login didn't work (or there isn't one): ask for the password
+            try { localStorage.removeItem(tokenKey($('nameInput').value)); } catch (e) {}
+            updatePasswordBox();
+            $('passwordInput').value = '';
+            $('passwordInput').placeholder = msg.newAccount ? 'Pick a password' : 'Password';
+            $('passwordInput').focus();
+          }
           if (msg.needCode) {
             // the saved code didn't work (or there isn't one): ask for it
             try { localStorage.removeItem(codeKey()); } catch (e) {}
@@ -274,6 +305,29 @@
       }
       case 'petGot':
         revealPet(msg);
+        break;
+      case 'loggedIn':
+        try { localStorage.setItem(tokenKey(msg.key), msg.token); } catch (e) {}
+        $('passwordInput').value = '';
+        if (msg.newAccount) toast('🔑 Your password is set. Remember it! This device will remember you.');
+        if (stripeReturn === 'paid') toast('💎 Thank you! Your shards show up as soon as the payment goes through.');
+        if (stripeReturn === 'cancelled') toast('Purchase cancelled. Nothing was charged.');
+        break;
+      case 'account':
+        account = msg;
+        $('shardShopBtn').classList.toggle('hidden', !msg.shop);
+        if (openWindow === 'shardshop') renderShardShop();
+        break;
+      case 'checkout':
+        toast('Going to the secure payment page…');
+        location.href = msg.url;
+        break;
+      case 'shopNote':
+        toast(msg.text);
+        break;
+      case 'shardsChanged':
+        toast(msg.amount > 0 ? `💎 +${msg.amount.toLocaleString()} shards! Thank you!` : `💎 ${(-msg.amount).toLocaleString()} shards were taken back (refund).`);
+        if (msg.amount > 0) confetti(player.x, player.y - 30, 40);
         break;
       case 'shardsGift':
         toast(`🎁 ${msg.from} gave you 💎 ${msg.amount.toLocaleString()} shards!`);
@@ -651,6 +705,7 @@
     $('giftModal').classList.add('hidden');
     $('petShopModal').classList.add('hidden');
     $('sellModal').classList.add('hidden');
+    $('shardShopModal').classList.add('hidden');
     $('petsModal').classList.add('hidden');
     $('adminPetsModal').classList.add('hidden');
     $('passModal').classList.add('hidden');
@@ -1204,6 +1259,76 @@
     }, 1400);
   }
   $('revealOk').addEventListener('click', () => $('revealModal').classList.add('hidden'));
+
+  // ---------- 💎 Shard Shop (real money through Stripe; online game only) ----------
+  let account = null;
+  function openShardShop() {
+    closeWindows();
+    openWindow = 'shardshop';
+    $('shardShopModal').classList.remove('hidden');
+    renderShardShop();
+    send({ type: 'shopOpen' }); // get the newest numbers
+  }
+  function renderShardShop() {
+    const box = $('shardShopBody');
+    const a = account;
+    if (!a || !a.shop) { box.innerHTML = '<p class="sub">The Shard Shop isn\'t open yet.</p>'; return; }
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    let html = a.testMode ? `<div class="shopTest">🧪 <b>TEST MODE:</b> no real money. Pay with the test card
+      <b>4242 4242 4242 4242</b>, any future date, any 3 numbers.</div>` : '';
+    if (!a.hasParent) {
+      html += `<p><b>👪 Ask a parent!</b> Shards cost real money, so a parent has to set this up once.</p>
+        <div class="parentForm">
+          <label>Parent's email (receipts go here)<input id="parentEmail" type="email" maxlength="120" autocomplete="email"></label>
+          <label>Parent PIN, 4 to 8 numbers (to change settings later; don't tell the kids!)<input id="parentPin" type="password" inputmode="numeric" maxlength="8"></label>
+          <label>Type the PIN again<input id="parentPin2" type="password" inputmode="numeric" maxlength="8"></label>
+          <label><input id="parentAgree" type="checkbox"> I'm the parent or guardian, and I allow purchases up to the monthly limit ($50 to start).</label>
+          <button id="parentSave" type="button">👪 Set up purchases</button>
+        </div>`;
+    } else {
+      const left = Math.max(0, a.limitUsd - a.spentUsd);
+      html += `<p class="shopSpent">This month: $${a.spentUsd.toFixed(2).replace('.00', '')} of $${a.limitUsd} spent</p><div class="packGrid">`;
+      for (const p of a.packs) {
+        const over = p.usd > left;
+        html += `<button type="button" class="packBtn" data-pack="${p.id}" ${over ? 'disabled title="Over the monthly limit"' : ''}>
+          <span class="gems">💎 ${p.shards.toLocaleString()}</span><span class="usd">$${p.usd}</span>
+          ${p.bonus ? `<span class="bonus">+${p.bonus}% bonus</span>` : ''}</button>`;
+      }
+      html += `</div>
+        <div class="shopSection"><h3>👪 Parent settings</h3>
+          <p class="sub">Receipts go to ${esc(a.parentEmail)}. Change the monthly limit or the email with the parent PIN.</p>
+          <div class="parentForm">
+            <label>New monthly limit in $ (0 to ${a.maxLimitUsd})<input id="limitInput" type="number" min="0" max="${a.maxLimitUsd}" placeholder="${a.limitUsd}"></label>
+            <label>New parent email (optional)<input id="emailInput" type="email" maxlength="120"></label>
+            <label>Parent PIN<input id="pinInput" type="password" inputmode="numeric" maxlength="8"></label>
+            <button id="parentUpdate" type="button">Save</button>
+          </div></div>`;
+    }
+    if (a.purchases && a.purchases.length) {
+      html += '<div class="shopSection"><h3>🧾 Purchases</h3>' + a.purchases.map(p =>
+        `<div class="purchaseRow">${new Date(p.at).toLocaleDateString()} · $${p.usd} · 💎 ${p.shards.toLocaleString()}` +
+        (p.refunded ? ` <span class="refunded">(refunded${p.refunded < p.shards ? ` ${p.refunded}` : ''})</span>` : '') + '</div>').join('') + '</div>';
+    }
+    html += '<p class="sub"><a href="/policy" target="_blank">Shop, refunds &amp; contact</a></p>';
+    box.innerHTML = html;
+    const btn = id => box.querySelector('#' + id);
+    if (btn('parentSave')) btn('parentSave').addEventListener('click', () => {
+      const pin = btn('parentPin').value;
+      if (pin !== btn('parentPin2').value) return toast('The two PINs are different.');
+      send({ type: 'setParent', email: btn('parentEmail').value, pin, agree: btn('parentAgree').checked });
+    });
+    if (btn('parentUpdate')) btn('parentUpdate').addEventListener('click', () =>
+      send({ type: 'parentUpdate', pin: btn('pinInput').value, limitUsd: btn('limitInput').value, email: btn('emailInput').value }));
+    for (const b of box.querySelectorAll('.packBtn')) b.addEventListener('click', () => {
+      const p = a.packs.find(x => x.id === b.dataset.pack);
+      if (confirm(`Buy 💎 ${p.shards.toLocaleString()} shards for $${p.usd}? Ask a parent first! You'll go to Stripe's secure payment page.`)) {
+        b.disabled = true;
+        send({ type: 'buyShards', pack: p.id });
+      }
+    });
+  }
+  $('shardShopBtn').addEventListener('click', openShardShop);
+  $('shardShopClose').addEventListener('click', closeWindows);
 
   // ---------- 💰 Sell Shop ----------
   function openSell() {
@@ -1912,6 +2037,10 @@
       }
       case 'restock': return send({ type: 'testRestock' });
       case 'grow': return send({ type: 'testGrow' });
+      case 'resetpass': { // a player forgot their password: /resetpass bobby
+        if (!args.length) return toast('Try: /resetpass bobby');
+        return send({ type: 'adminResetPassword', name: args.join(' ') });
+      }
       default:
         return toast('Commands: /say hi · /money 5t · /give mint 10 · /spawn void 3 · /mutation rainbow meteor · /mutation end · /restock · /grow');
     }

@@ -645,3 +645,31 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .sellBtns { display: flex; flex-direction: column; gap: 4px; }
 .sellBtns button { background: #2f9e44; font-size: 13px; padding: 6px 10px; }
 .sellBtns button.all { background: #e8a200; }
+
+/* 🔑 password on the join screen */
+#passwordRow { margin-top: 8px; }
+#passwordRow.hidden { display: none; }
+.policyLink { font-size: 12px; margin-top: 4px; }
+.policyLink a { color: #b0899c; }
+/* 💎 Shard Shop */
+#shardShopBtn { position: absolute; right: 12px; top: 12px; z-index: 6; background: linear-gradient(135deg, #7048e8, #22b8cf);
+  color: #fff; font-size: 16px; padding: 8px 14px; box-shadow: 0 0 12px rgba(112,72,232,0.5); }
+#shardShopBtn.hidden { display: none; }
+#shardShopModal { width: min(560px, calc(100% - 24px)); border-color: #b197fc; }
+#shardShopModal .modalTitle { color: #7048e8; }
+.shopTest { background: #fff3bf; border: 1px dashed #f08c00; border-radius: 10px; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; }
+.shopSpent { font-weight: bold; color: #5f3dc4; margin: 6px 0 10px; }
+.packGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.packBtn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; border-radius: 12px;
+  background: linear-gradient(160deg, #f3f0ff, #e5dbff); color: #3b2a77; border: 2px solid #b197fc; box-shadow: none; }
+.packBtn .gems { font-size: 18px; font-weight: bold; }
+.packBtn .usd { font-size: 16px; font-weight: bold; color: #2b8a3e; }
+.packBtn .bonus { font-size: 11px; background: #ff6b6b; color: #fff; border-radius: 8px; padding: 1px 6px; }
+.packBtn:disabled { opacity: 0.45; }
+.parentForm { display: flex; flex-direction: column; gap: 8px; background: #f8f0fc; border-radius: 12px; padding: 10px; }
+.parentForm label { font-size: 13px; }
+.parentForm input[type=email], .parentForm input[type=password], .parentForm input[type=number] { width: 100%; box-sizing: border-box; }
+.shopSection { margin-top: 14px; }
+.shopSection h3 { margin: 0 0 6px; font-size: 15px; color: #5f3dc4; }
+.purchaseRow { font-size: 13px; padding: 3px 0; border-bottom: 1px solid #eee; }
+.purchaseRow .refunded { color: #c92a2a; }
