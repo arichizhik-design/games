@@ -633,3 +633,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #giftShardsList .row { display: flex; align-items: center; gap: 8px; }
 #giftShardsList .who { flex: 1; }
 #giftShardsList input { width: 90px; }
+
+/* 💰 Sell Shop */
+#sellModal { border-color: #8ce99a; }
+#sellModal .modalTitle { color: #2b8a3e; }
+.sellHead { margin: 12px 0 6px; color: #2b8a3e; font-size: 16px; }
+#sellModal .row { display: flex; align-items: center; gap: 10px; }
+#sellModal .info { flex: 1; }
+.sellIcon { font-size: 28px; width: 40px; text-align: center; }
+.sellEach { color: #2b8a3e; font-weight: bold; font-size: 12px; }
+.sellBtns { display: flex; flex-direction: column; gap: 4px; }
+.sellBtns button { background: #2f9e44; font-size: 13px; padding: 6px 10px; }
+.sellBtns button.all { background: #e8a200; }

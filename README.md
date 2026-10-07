@@ -90,6 +90,11 @@ A multiplayer browser game where every player runs their own ice cream stand in 
     🦈 Thunder Shark +800%), **Divine** (🕊️ Angel Dove +1,200%, 🐲 Dragon King +1,500%) and **Infinity**
     (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
   - Press **🐾 My Pets** to see every pet you have (each one gets its own card) and pick which ones follow you.
+- **💰 Sell Shop** (bottom of the park, below the Avatar Shop): sell ice cream tubs and toppings from your hotbar or
+  Inventory for half of what they cost in the shop, and pets for a set price by rarity (Common $200, Uncommon $800,
+  Rare $4,000, Epic $40K, Legendary $400K, Mythic $3M, Secret $15M, Celestial $40M, Divine $100M, Infinity $300M,
+  Cyber $600M). Selling a rare pet or one you're wearing asks first. Pets always sell for less than a lucky block
+  costs on average, so buying blocks just to sell pets doesn't make money.
   - You can have up to 200 pets. When you're full, the lucky block buttons say **Pets full**; tap **Let go** on a
     pet you don't want in My Pets to make room (it asks first, and the pet is gone for good).
     You can wear up to **3 pets at once**: they follow you in a little line and their money boosts add up.

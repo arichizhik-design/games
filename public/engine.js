@@ -7,14 +7,15 @@
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
     CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
-    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK } = GameData;
+    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice } = GameData;
 
   // ---------- park layout (shared with the browser for drawing and clicking) ----------
   // two columns of plots on each side, and a plaza with the shops down the middle
-  const WORLD = { width: 1800, height: 1070 };
+  const WORLD = { width: 1800, height: 1290 };
   const PET_SHOP = { x: 900, y: 230 };    // 🐾 Pet Shop (top of the plaza)
   const SHOP = { x: 900, y: 530 };        // 🛒 Supplies Shop, right in the middle of the park
-  const AVATAR_SHOP = { x: 900, y: 830 }; // 👕 Avatar Shop (bottom of the plaza)
+  const AVATAR_SHOP = { x: 900, y: 830 }; // 👕 Avatar Shop
+  const SELL_SHOP = { x: 900, y: 1120 };  // 💰 Sell Shop (bottom of the plaza)
   const REACH = 230;                 // how close you must stand to use something
   // admin names and their secret codes (only a scrambled version of each code is kept here).
   // Each admin needs their code once per device, and each name only works on the first device that used it.
@@ -884,6 +885,20 @@
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
         cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
+      } else if (msg.type === 'sell') {
+        // 💰 sell ice cream, toppings or pets at the Sell Shop
+        if (!near(SELL_SHOP)) return err('Walk to the Sell Shop to sell things.');
+        const pet = msg.kind === 'pet' && petById[msg.id], item = msg.kind === 'item' && itemById[msg.id];
+        if (!pet && !item) return;
+        const have = pet ? countOf(stand.pets, pet.id) : countItem(stand, item.id);
+        const n = Math.min(have, Math.max(1, Math.floor(Number(msg.count) || 1)));
+        if (n <= 0) return err(`You don't have any ${(pet || item).name}.`);
+        const each = pet ? PET_SELL[pet.rarity] || 0 : sellPrice(item);
+        takeBundle(stand, { money: 0, items: item ? { [item.id]: n } : {}, pets: pet ? { [pet.id]: n } : {} });
+        // pets you sold stop following you
+        if (pet) while (countOf(stand.worn, pet.id) > countOf(stand.pets, pet.id)) stand.worn.splice(stand.worn.indexOf(pet.id), 1);
+        stand.money += each * n;
+        conn.send({ type: 'sold', kind: msg.kind, id: (pet || item).id, count: n, money: each * n });
       } else if (msg.type === 'releasePet') {
         // let go of one pet you don't want (makes room for more); one you're not wearing goes first
         const id = msg.pet;
@@ -1088,7 +1103,7 @@
     return { handle, leave, tick, snapshotSaves, sendBackups };
   }
 
-  const Engine = { createGame, MAX_WORN, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, REACH, chestPos, tubPos };
+  const Engine = { createGame, MAX_WORN, WORLD, SLOTS, SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, chestPos, tubPos };
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   else root.Engine = Engine;
 })(this);

@@ -95,6 +95,10 @@
     { id: 'dragonking', name: 'Dragon King',  emoji: '🐲', rarity: 'divine',    boost: 15,   fx: 'king',    kind: 'fly' },
     { id: 'infinity', name: 'Infinity Dragon', emoji: '🐉', rarity: 'infinity', boost: 30,   fx: 'infinity', kind: 'fly' }, // the best pet of all!
   ];
+  // 💰 Sell Shop: what a pet sells for, by rarity. Always less than the lucky block costs on average,
+  // so buying blocks just to sell the pets never makes money.
+  const PET_SELL = { common: 200, uncommon: 800, rare: 4000, epic: 40000, legendary: 400000, mythic: 3e6, secret: 15e6,
+    celestial: 40e6, divine: 100e6, infinity: 300e6, cyber: 600e6 };
   const MAX_PETS = 200; // when you're full, let go of pets you don't want in My Pets
 
   // Lucky blocks at the Pet Shop: `odds` = chance of each rarity (they add up to 100)
@@ -203,6 +207,8 @@
   const START_MONEY = 20; // enough for a first tub of ice cream
   // what a tub costs in the Supplies Shop (admin ice creams are only there when an admin puts them in)
   const shopCost = f => f.adminOnly ? f.price * 1000 : f.cost;
+  // 💰 Sell Shop: ice cream and toppings sell for half of what they cost in the shop
+  const sellPrice = item => Math.floor((item.bonus !== undefined ? item.cost : shopCost(item)) / 2);
 
   // Flavor spaces on the stand: start with 5, each Extra Space adds 3
   const START_SPACES = 5;
@@ -258,7 +264,7 @@
 
   const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
-    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK,
+    RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
     CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };

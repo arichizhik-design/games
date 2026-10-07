@@ -1,8 +1,8 @@
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
-  const { SHOP, AVATAR_SHOP, PET_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
+    CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, PET_SELL, sellPrice, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
+  const { SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
   const toppingById = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
@@ -279,6 +279,12 @@
         toast(`🎁 ${msg.from} gave you 💎 ${msg.amount.toLocaleString()} shards!`);
         confetti(player.x, player.y - 30, 30);
         break;
+      case 'sold': {
+        const thing = msg.kind === 'pet' ? petById[msg.id] : itemById[msg.id];
+        toast(`💰 Sold ${msg.count} ${thing.name} for ${fmt(msg.money)}!`);
+        confetti(player.x, player.y - 30, 12);
+        break;
+      }
       case 'petReleased':
         toast(`👋 You let go of your ${petById[msg.pet].name}.`);
         break;
@@ -311,6 +317,7 @@
         updateHotbar();
         if (openWindow === 'shop') { updateShop(); updateToppings(); }
         if (openWindow === 'petshop') updatePetShop();
+        if (openWindow === 'sell') updateSell();
         if (openWindow === 'pets') updatePets();
         if (openWindow === 'inventory') updateInventory();
         if (openWindow === 'gift' && giftRefresh && giftTo !== null) { giftRefresh = false; showGiftItems(); }
@@ -643,6 +650,7 @@
     $('banModal').classList.add('hidden');
     $('giftModal').classList.add('hidden');
     $('petShopModal').classList.add('hidden');
+    $('sellModal').classList.add('hidden');
     $('petsModal').classList.add('hidden');
     $('adminPetsModal').classList.add('hidden');
     $('passModal').classList.add('hidden');
@@ -1197,6 +1205,65 @@
   }
   $('revealOk').addEventListener('click', () => $('revealModal').classList.add('hidden'));
 
+  // ---------- 💰 Sell Shop ----------
+  function openSell() {
+    closeWindows();
+    openWindow = 'sell';
+    sellKey = '';
+    $('sellModal').classList.remove('hidden');
+    updateSell();
+  }
+  let sellKey = '';
+  const countOf = (list, id) => list.filter(x => x === id).length;
+  function sellRow(icon, name, sub, each, have, send1, sendAll) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<div class="sellIcon">${icon}</div>
+      <div class="info"><div class="name"></div><div class="meta">${sub}</div>
+        <div class="sellEach">${fmt(each)} each · you have ${have}</div></div>
+      <div class="sellBtns"><button type="button">Sell 1</button>${have > 1 ? '<button type="button" class="all">Sell all</button>' : ''}</div>`;
+    row.querySelector('.name').textContent = name;
+    const [b1, ball] = row.querySelectorAll('button');
+    b1.addEventListener('click', send1);
+    if (ball) ball.addEventListener('click', sendAll);
+    return row;
+  }
+  function updateSell() {
+    const s = me();
+    if (!s) return;
+    const items = {};
+    for (const x of [...s.hotbar, ...s.storage]) if (x) items[x.flavor] = (items[x.flavor] || 0) + x.count;
+    const pets = {};
+    for (const id of s.pets) pets[id] = (pets[id] || 0) + 1;
+    const key = JSON.stringify([items, pets, s.worn]);
+    if (key === sellKey) return; // only redraw when something changed
+    sellKey = key;
+    const sellIt = (kind, id, count) => send({ type: 'sell', kind, id, count });
+    const il = $('sellItems');
+    il.innerHTML = '';
+    for (const [id, n] of Object.entries(items).sort((a, b) => sellPrice(itemById[b[0]]) - sellPrice(itemById[a[0]]))) {
+      const it = itemById[id];
+      const sub = toppingById[id] ? 'Topping' : `${RARITIES[it.rarity].name} ice cream`;
+      il.appendChild(sellRow(iconHtml(id), it.name, sub, sellPrice(it), n, () => sellIt('item', id, 1), () => sellIt('item', id, n)));
+    }
+    if (!il.children.length) il.innerHTML = '<p class="sub">No ice cream or toppings in your hotbar or Inventory. (Ice cream on your stand has to be taken off first.)</p>';
+    const pl = $('sellPets');
+    pl.innerHTML = '';
+    for (const [id, n] of Object.entries(pets).sort((a, b) => PET_SELL[petById[b[0]].rarity] - PET_SELL[petById[a[0]].rarity])) {
+      const p = petById[id], r = RARITIES[p.rarity];
+      const wearing = countOf(s.worn, id);
+      const ask = (count) => {
+        const rare = r.order >= 5;
+        if ((rare || wearing) && !confirm(`Sell ${count} ${p.name} for ${fmt(PET_SELL[p.rarity] * count)}?` + (wearing ? ' (You\'re wearing it!)' : '') + ' It will be gone for good.')) return;
+        sellIt('pet', id, count);
+      };
+      const sub = `<span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>` + (wearing ? ' · wearing' : '');
+      pl.appendChild(sellRow(petIcon(p), p.name, sub, PET_SELL[p.rarity], n, () => ask(1), () => ask(n)));
+    }
+    if (!pl.children.length) pl.innerHTML = '<p class="sub">You don\'t have any pets yet.</p>';
+  }
+  $('sellClose').addEventListener('click', closeWindows);
+
   // My Pets: wear the one you like
   let petsKey = '';
   function openPets() {
@@ -1443,6 +1510,9 @@
       text: `Open lucky blocks to get pets. You can wear <b>3 pets</b>: they follow you around and make every
         scoop worth more. The rarest pets are amazing!`,
       world: () => box(PET_SHOP, 300, 250, -20) },
+    { title: '💰 The Sell Shop',
+      text: `At the bottom of the park. Sell ice cream, toppings and pets you don't need for money.`,
+      world: () => box(SELL_SHOP, 260, 230, -10) },
     { title: '👕 The Avatar Shop',
       text: `Change your shirt, pants, hat and face, then press <b>Save</b>. You're ready:
         now go buy your first ice cream! (You can see this again with the 📖 Tutorial button.)`,
@@ -1916,6 +1986,10 @@
     if (inRect(wx, wy, { x: AVATAR_SHOP.x - 110, y: AVATAR_SHOP.y - 95, w: 220, h: 185 })) {
       return goDo({ x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }, 60, openAvatar);
     }
+    // the Sell Shop
+    if (inRect(wx, wy, { x: SELL_SHOP.x - 120, y: SELL_SHOP.y - 100, w: 240, h: 190 })) {
+      return goDo({ x: SELL_SHOP.x, y: SELL_SHOP.y + 90 }, 60, openSell);
+    }
     // the Pet Shop
     if (inRect(wx, wy, { x: PET_SHOP.x - 130, y: PET_SHOP.y - 100, w: 260, h: 190 })) {
       return goDo({ x: PET_SHOP.x, y: PET_SHOP.y + 90 }, 60, openPetShop);
@@ -1983,6 +2057,7 @@
     if (openWindow === 'shop' && dist(player, { x: SHOP.x, y: SHOP.y + 90 }) > REACH) closeWindows();
     if (openWindow === 'avatar' && dist(player, { x: AVATAR_SHOP.x, y: AVATAR_SHOP.y + 85 }) > REACH) closeWindows();
     if (openWindow === 'petshop' && dist(player, { x: PET_SHOP.x, y: PET_SHOP.y + 90 }) > REACH) closeWindows();
+    if (openWindow === 'sell' && dist(player, { x: SELL_SHOP.x, y: SELL_SHOP.y + 90 }) > REACH) closeWindows();
     if (openWindow === 'inventory' && s && !near(chestPos(slots[s.slot]), 40)) closeWindows();
   }
 
@@ -3797,6 +3872,52 @@
     }
   }
 
+  // 💰 the Sell Shop building at the bottom of the plaza
+  function drawSellShop(time) {
+    const { x, y } = SELL_SHOP;
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(x, y + 70, 125, 12, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ebfbee';
+    roundRect(x - 105, y - 35, 210, 105, 8); ctx.fill();
+    ctx.strokeStyle = '#2f9e44'; ctx.lineWidth = 3; ctx.stroke();
+    // door
+    ctx.fillStyle = '#2b8a3e';
+    roundRect(x - 18, y + 15, 36, 55, 6); ctx.fill();
+    ctx.fillStyle = '#ffd43b';
+    ctx.beginPath(); ctx.arc(x + 10, y + 44, 2.5, 0, Math.PI * 2); ctx.fill();
+    // windows: a pile of coins and a money bag
+    ctx.fillStyle = '#9ad7ff';
+    roundRect(x - 92, y - 15, 58, 45, 6); ctx.fill();
+    roundRect(x + 34, y - 15, 58, 45, 6); ctx.fill();
+    for (let k = 0; k < 5; k++) {
+      ctx.fillStyle = k % 2 ? '#fcc419' : '#ffd43b';
+      ctx.beginPath(); ctx.ellipse(x - 63, y + 24 - k * 4, 13, 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 1; ctx.stroke();
+    }
+    ctx.font = '28px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('💰', x + 63, y + 22 + Math.sin(time * 3) * 2);
+    // roof
+    ctx.fillStyle = '#2f9e44';
+    ctx.beginPath(); ctx.moveTo(x - 122, y - 33); ctx.lineTo(x, y - 88); ctx.lineTo(x + 122, y - 33); ctx.fill();
+    // a spinning coin on the roof
+    const sq = Math.abs(Math.cos(time * 2.5));
+    ctx.fillStyle = '#ffd43b';
+    ctx.beginPath(); ctx.ellipse(x, y - 102, 13 * sq + 1, 13, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 2; ctx.stroke();
+    if (sq > 0.4) { ctx.fillStyle = '#e8a200'; ctx.font = 'bold 15px Trebuchet MS'; ctx.fillText('$', x, y - 97); }
+    // sign
+    ctx.fillStyle = '#fff';
+    roundRect(x - 70, y - 62, 140, 26, 8); ctx.fill();
+    ctx.strokeStyle = '#2f9e44'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#2b8a3e';
+    ctx.font = 'bold 15px Trebuchet MS';
+    ctx.fillText('💰 SELL SHOP', x, y - 43);
+    if (dist(player, { x, y: y + 90 }) <= REACH && openWindow !== 'sell') {
+      drawBubbleButton(x, y + 98, '💰 Tap to sell your stuff', '#2f9e44', time);
+    }
+  }
+
   function drawPetShop(time) {
     const { x, y } = PET_SHOP;
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
@@ -4084,6 +4205,7 @@
     drawShop(time);
     drawAvatarShop(time);
     drawPetShop(time);
+    drawSellShop(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);
