@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pet Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=VT323&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" hidden>
+  <div id="quest"><div class="quest-label">Quest</div><div id="questText"></div><div id="rideInfo" hidden></div></div>
+  <div id="compass" hidden><span id="compassArrow">▲</span><span id="compassText"></span></div>
+  <div id="bossbar" hidden>
+    <div id="bossName">Crystal Golem</div>
+    <div class="bar"><div id="bossFill"></div></div>
+  </div>
+  <div id="prompt" hidden></div>
+  <div id="toast" hidden></div>
+  <div id="bottom">
+    <div id="statusRow">
+      <div id="hearts"></div>
+      <div id="armorIcon"></div>
+    </div>
+    <div id="hotbar"></div>
+    <div id="itemName"></div>
+  </div>
+  <div id="keys">
+    <b>WASD</b> move · <b>Mouse</b> look · <b>Click</b> swing / use · <b>Space</b> jump<br>
+    <b>E</b> talk / pick up · <b>R</b> ride pet · <b>1-9</b> hotbar · <b>P</b> pets
+  </div>
+  <button id="petsBtn" type="button">Pets</button>
+</div>
+
+<div id="touch" hidden>
+  <div id="stick"><div id="knob"></div></div>
+  <div id="tbtns">
+    <button type="button" data-t="interact">E</button>
+    <button type="button" data-t="ride">Ride</button>
+    <button type="button" data-t="jump">Jump</button>
+    <button type="button" data-t="attack" class="big">Swing</button>
+  </div>
+</div>
+
+<div id="dialog" hidden>
+  <div id="dialogName"></div>
+  <div id="dialogText"></div>
+  <div id="dialogMore">Press E or tap to continue ▸</div>
+</div>
+
+<div id="title" class="screen">
+  <div class="panel">
+    <h1>Pet Quest</h1>
+    <p class="sub">The Crystal Caves</p>
+    <p>Explore a blocky world with your pet. Ride it, find the Crystal Caves, sneak up on the sleeping Golem and win its magic egg.</p>
+    <button id="playBtn" type="button">Play</button>
+    <button id="resetBtn" type="button" class="ghost">Start over</button>
+    <p id="resetConfirm" hidden>Delete your pets and progress? <button id="resetYes" type="button" class="ghost small">Yes, start over</button></p>
+  </div>
+</div>
+
+<div id="pause" class="screen" hidden>
+  <div class="panel"><h2>Paused</h2><p>Click to keep playing</p></div>
+</div>
+
+<div id="death" class="screen" hidden>
+  <div class="panel">
+    <h2>Knocked out!</h2>
+    <p id="deathText">The Crystal Golem fell back asleep. Try again!</p>
+    <p class="tip" id="deathTip"></p>
+    <button id="respawnBtn" type="button">Try again</button>
+  </div>
+</div>
+
+<div id="chestUI" class="screen" hidden>
+  <div class="panel wide">
+    <h2>Treasure Chest!</h2>
+    <p>Pick one reward:</p>
+    <div id="chestChoices"></div>
+  </div>
+</div>
+
+<div id="hatchUI" class="screen" hidden>
+  <div class="panel">
+    <div id="hatchEgg"><div class="egg"></div></div>
+    <h2 id="hatchTitle">Hatching...</h2>
+    <p id="hatchText"></p>
+    <button id="hatchOk" type="button" hidden>Awesome!</button>
+  </div>
+</div>
+
+<div id="petsUI" class="screen" hidden>
+  <div class="panel wide">
+    <h2>Your Pets</h2>
+    <div id="petList"></div>
+    <button id="petsClose" type="button" class="ghost">Close</button>
+  </div>
+</div>
+
+<div id="fade"></div>
+
+<script src="three.min.js"></script>
+<script src="textures.js"></script>
+<script src="world.js"></script>
+<script src="models.js"></script>
+<script src="game.js"></script>
+<script src="boss.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
