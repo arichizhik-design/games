@@ -179,3 +179,8 @@ body.cinema #hud > :not(#toast):not(#bossbar) { opacity: 0; }
   .egg.wobble { animation-duration: 1.2s; }
   #fade { transition: none; }
 }
+
+.name-label { display: block; margin-top: 14px; font-family: var(--display); font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+#nameInput { display: block; width: 100%; box-sizing: border-box; margin: 6px 0 0; padding: 8px 12px; font-family: var(--body); font-size: 28px; text-align: center; color: var(--text); background: #15111f; border: 3px solid var(--panel-edge); user-select: text; -webkit-user-select: text; }
+#nameInput:focus { outline: none; border-color: var(--crystal); }
+#playBtn:disabled { filter: grayscale(.8); cursor: default; }

@@ -792,38 +792,68 @@ function checkPlaces(dt) {
 }
 
 // ---------- start ----------
-function boot() {
+function applySaveToWorld() {
+  player.model.setArmor(save.armor);
+  spawnPet(save.pets[save.active] || 'turtle');
+  placePetNearPlayer();
+  G.slot = Math.max(0, hotbarItems().findIndex(it => it && it.kind === 'weapon' && it.id === save.weapon));
+  updateHearts();
+  updateHotbar();
+  setNameTag();
+}
+function setNameTag() {
+  if (player.nameTag) { player.model.root.remove(player.nameTag); player.nameTag.material.map.dispose(); }
+  player.nameTag = null;
+  if (!playerName) return;
+  player.nameTag = textSprite(isAdmin() ? `★ ${playerName} (Admin)` : playerName, isAdmin() ? '#ffcf4a' : '#ffffff', 0.75);
+  player.nameTag.position.y = 2.25;
+  player.model.root.add(player.nameTag);
+}
+function refreshTitle() {
+  const name = $('nameInput').value.trim();
   const play = $('playBtn');
+  if (!G.levels.overworld) return;
+  play.disabled = !name;
+  const known = hasSave(name);
+  play.textContent = !name ? 'Type your name' : known ? `Continue as ${name}` : 'Play';
+  $('resetBtn').hidden = !known;
+  $('resetConfirm').hidden = true;
+  $('adminNote').hidden = name.toLowerCase() !== ADMIN_NAME;
+}
+function boot() {
+  const play = $('playBtn'), input = $('nameInput');
   play.disabled = true;
   play.textContent = 'Building the island...';
+  input.value = lastName();
   setTimeout(() => {
     buildLevels();
     setLevel('overworld');
     player.model = makePlayerModel();
-    player.model.setArmor(save.armor);
     scene.add(player.model.root);
     placeActors(OVER.spawn.x, null, OVER.spawn.z, Math.PI * 0.05);
-    spawnPet(save.pets[save.active] || 'turtle');
-    placePetNearPlayer();
-    updateHearts();
-    updateHotbar();
-    play.disabled = false;
-    play.textContent = save.step > 0 ? 'Continue' : 'Play';
-    $('resetBtn').hidden = save.step === 0 && save.pets.length === 1;
+    applySaveToWorld();
+    refreshTitle();
     requestAnimationFrame(frame);
   }, 30);
+  input.addEventListener('input', refreshTitle);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !play.disabled) start(); });
   play.addEventListener('click', start);
   $('resetBtn').addEventListener('click', () => { $('resetConfirm').hidden = false; });
   $('resetYes').addEventListener('click', () => {
-    save = defaultSave(); writeSave();
-    player.model.setArmor(0);
-    spawnPet('turtle'); placePetNearPlayer();
-    updateHearts(); updateHotbar();
-    $('resetConfirm').hidden = true; $('resetBtn').hidden = true;
-    play.textContent = 'Play';
+    const name = input.value.trim();
+    try { localStorage.removeItem(saveKey(name)); } catch (e) { /* storage blocked */ }
+    refreshTitle();
   });
 }
 function start() {
+  const name = $('nameInput').value.trim().slice(0, 16);
+  if (!name) { $('nameInput').focus(); return; }
+  playerName = name;
+  save = loadSave(name);
+  const newAdmin = isAdmin() && !save.admin;
+  if (isAdmin()) applyAdmin();
+  writeSave();
+  applySaveToWorld();
   initAudio();
   if (actx && actx.state === 'suspended') actx.resume();
   $('title').hidden = true;
@@ -832,7 +862,9 @@ function start() {
   G.running = true;
   last = performance.now();
   lockPointer();
-  if (save.step === 0) showToast('Welcome to MONSTER MASH!', 2.5);
+  if (newAdmin) showToast('ADMIN POWERS! Rainbow Ray, Crystal Armor and a Rainbow Crystal Spider!', 4);
+  else if (save.step === 0) showToast(`Welcome to MONSTER MASH, ${name}!`, 2.5);
+  else showToast(`Welcome back, ${name}!`, 2);
 }
 
 const hurtFlash = document.createElement('div');

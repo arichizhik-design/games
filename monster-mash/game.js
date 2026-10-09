@@ -7,22 +7,52 @@ const TAU = Math.PI * 2;
 const BLOCKS_PER_MILE = 100;
 
 // ---------- saved progress ----------
+// each player name has its own save on this device
 const SAVE_KEY = 'monster-mash-save-v1';
+const LAST_NAME_KEY = 'monster-mash-last-name';
+let playerName = '';
+function saveKey(name) { return SAVE_KEY + ':' + name.trim().toLowerCase(); }
 function defaultSave() {
   return {
     step: 0, radar: false, progress: 0, beaten: {}, weapons: ['bat'], weapon: 'bat', armor: 0,
     eggs: {}, pets: ['turtle'], active: 0, scuba: false, rocket: false, scrolls: [], dummyHits: 0,
   };
 }
-function loadSave() {
+function readSave(key) {
   try {
-    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    const s = JSON.parse(localStorage.getItem(key));
     if (s && Array.isArray(s.pets) && s.pets.length) return Object.assign(defaultSave(), s);
   } catch (e) { /* no saved game */ }
-  return defaultSave();
+  return null;
 }
-let save = loadSave();
-function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* storage blocked */ } }
+function loadSave(name) {
+  if (!name) return defaultSave();
+  let s = readSave(saveKey(name));
+  if (!s) {
+    // a game saved before names existed goes to the first name typed in
+    s = readSave(SAVE_KEY);
+    if (s) { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* storage blocked */ } }
+  }
+  return s || defaultSave();
+}
+function hasSave(name) { return !!(name && readSave(saveKey(name))); }
+function lastName() { try { return localStorage.getItem(LAST_NAME_KEY) || ''; } catch (e) { return ''; } }
+let save = defaultSave();
+function writeSave() {
+  if (!playerName) return;
+  try { localStorage.setItem(saveKey(playerName), JSON.stringify(save)); localStorage.setItem(LAST_NAME_KEY, playerName); } catch (e) { /* storage blocked */ }
+}
+// typing the name Ari gives admin powers: the best weapons, armor and pet
+const ADMIN_NAME = 'ari';
+function isAdmin() { return playerName.trim().toLowerCase() === ADMIN_NAME; }
+function applyAdmin() {
+  for (const id of ['diamond', 'rainbow']) if (!save.weapons.includes(id)) save.weapons.push(id);
+  save.weapon = 'rainbow';
+  save.armor = ARMORS.length - 1;
+  if (!save.pets.includes('spiderRainbow')) save.pets.push('spiderRainbow');
+  save.active = save.pets.indexOf('spiderRainbow');
+  save.admin = true;
+}
 function eggCount() { return Object.values(save.eggs).reduce((a, b) => a + b, 0); }
 
 // ---------- renderer ----------

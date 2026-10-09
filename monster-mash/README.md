@@ -64,7 +64,14 @@ switch pets.
 | Hotbar | 1-9 or mouse wheel | tap a slot |
 | Pets | P | Pets button |
 
-Progress (pets, gear, eggs, which bosses you've beaten) is saved in the browser.
+## Names, saves and admin
+
+You type your name on the title screen. Each name gets its own save on that device (pets, gear, eggs, which
+bosses you've beaten), and the game remembers the last name used. Saves stay on the device and browser they were
+made in.
+
+The name **Ari** gets admin powers: the Rainbow Ray and Diamond Sword, Crystal Armor and a Rainbow Crystal Spider.
+Anyone who types Ari gets them. The name is set in `game.js` (`ADMIN_NAME`).
 
 ## Files
 
