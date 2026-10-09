@@ -16,6 +16,7 @@ function defaultSave() {
   return {
     step: 0, radar: false, progress: 0, beaten: {}, weapons: ['bat'], weapon: 'bat', armor: 0,
     eggs: {}, pets: ['turtle'], active: 0, scuba: false, rocket: false, scrolls: [], dummyHits: 0,
+    coins: 0, decor: [], planet: 'island', planetData: {},
   };
 }
 function readSave(key) {
@@ -40,17 +41,35 @@ function lastName() { try { return localStorage.getItem(LAST_NAME_KEY) || ''; } 
 let save = defaultSave();
 function writeSave() {
   if (!playerName) return;
+  save.planetData[save.planet] = { progress: save.progress, beaten: save.beaten, scrolls: save.scrolls };
   try { localStorage.setItem(saveKey(playerName), JSON.stringify(save)); localStorage.setItem(LAST_NAME_KEY, playerName); } catch (e) { /* storage blocked */ }
 }
+// each planet has its own boss progress
+function loadPlanetState(pid) {
+  if (save.planet && save.planet !== pid) save.planetData[save.planet] = { progress: save.progress, beaten: save.beaten, scrolls: save.scrolls };
+  const pd = save.planetData[pid] || (pid === 'island' && !save.planetData.island ? { progress: save.progress, beaten: save.beaten, scrolls: save.scrolls } : {});
+  save.planet = pid;
+  save.progress = pd.progress || 0; save.beaten = pd.beaten || {}; save.scrolls = pd.scrolls || [];
+}
+function planetUnlocked(pid) {
+  const i = PLANET_ORDER.indexOf(pid);
+  if (i <= 0) return true;
+  const prev = PLANET_ORDER[i - 1];
+  const pd = prev === save.planet ? { progress: save.progress } : save.planetData[prev];
+  return !!(pd && pd.progress >= 4) || isAdmin();
+}
+function addCoins(n) { save.coins = (save.coins || 0) + n; writeSave(); if (typeof updateCoins === 'function') updateCoins(); }
+
 // typing the name Ari gives admin powers: the best weapons, armor and pet
 const ADMIN_NAME = 'ari';
 function isAdmin() { return playerName.trim().toLowerCase() === ADMIN_NAME; }
 function applyAdmin() {
-  for (const id of ['diamond', 'rainbow']) if (!save.weapons.includes(id)) save.weapons.push(id);
-  save.weapon = 'rainbow';
+  for (const id of ['magmaAxe', 'sunBeam']) if (!save.weapons.includes(id)) save.weapons.push(id);
+  save.weapon = 'sunBeam';
   save.armor = ARMORS.length - 1;
-  if (!save.pets.includes('spiderRainbow')) save.pets.push('spiderRainbow');
-  save.active = save.pets.indexOf('spiderRainbow');
+  if (!save.pets.includes('infernoSpiderRainbow')) save.pets.push('infernoSpiderRainbow');
+  save.active = save.pets.indexOf('infernoSpiderRainbow');
+  save.rocket = true;
   save.admin = true;
 }
 function eggCount() { return Object.values(save.eggs).reduce((a, b) => a + b, 0); }
@@ -148,10 +167,20 @@ function moveInput() {
 function frozen() { return G.modal || dialogState || G.transitioning || G.dead || G.paused || G.cutscene; }
 
 // ---------- levels ----------
-let gus, dummy, incubator, rocket, clouds, caveLight, buoy;
+let gus, dummy, incubator, shopkeeper, clouds, caveLight, buoy, decorGroup;
 const portalMats = [];
+const decorModels = {};
 
-function buildLevels() {
+// build every place on a planet (throws away the old planet's meshes first)
+function buildLevels(pid = 'island') {
+  for (const k in G.levels) {
+    G.levels[k].group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    if (G.level === G.levels[k]) scene.remove(G.level.group);
+  }
+  G.levels = {}; G.level = null; portalMats.length = 0;
+  PLANET = pid;
+  setupLayout(pid);
+  setPlanetBosses(pid);
   const over = generateOverworld();
   over.buildAll(blockMat, waterMat);
   G.levels.overworld = makeOverworldLevel(over);
@@ -166,9 +195,10 @@ function buildLevels() {
 }
 
 function makeOverworldLevel(over) {
-  const L = { world: over, group: new THREE.Group(), sky: 0x9ad0ff, fog: new THREE.Fog(0x9ad0ff, 55, 170) };
+  const LY = OVER.layout;
+  const L = { world: over, group: new THREE.Group(), sky: LY.sky, fog: new THREE.Fog(LY.sky, 55, 170) };
   L.group.add(over.group);
-  L.group.add(new THREE.HemisphereLight(0xdff0ff, 0x5a7a3a, 0.85));
+  L.group.add(new THREE.HemisphereLight(0xdff0ff, LY.ground, 0.85));
   const sun = new THREE.DirectionalLight(0xffffff, 0.65);
   sun.position.set(60, 120, 30);
   L.group.add(sun);
@@ -201,9 +231,27 @@ function makeOverworldLevel(over) {
   const incTag = textSprite('Egg Incubator', '#ffe9a0', 0.7);
   incTag.position.set(OVER.incubator.x, OVER.village.h + 2, OVER.incubator.z);
   L.group.add(incTag);
-  rocket = makeRocketModel();
-  rocket.position.set(OVER.rocketPad.x, OVER.village.h, OVER.rocketPad.z);
-  L.group.add(rocket);
+  // the shop at the end of the street
+  const S = OVER.shop;
+  const shopSign = textSprite('SHOP', '#7aff9a', 1.6);
+  shopSign.position.set(S.x0 - 0.4, OVER.village.h + 4.4, S.z0 + S.sz / 2);
+  L.group.add(shopSign);
+  shopkeeper = makeVillagerModel();
+  shopkeeper.root.position.set(OVER.shopkeeper.x, OVER.village.h, OVER.shopkeeper.z);
+  shopkeeper.root.rotation.y = -Math.PI / 2;
+  const skTag = textSprite('Shopkeeper Sue', '#7aff9a', 0.85);
+  skTag.position.y = 2.45; shopkeeper.root.add(skTag);
+  L.group.add(shopkeeper.root);
+  // decorations you've bought, inside your house
+  decorGroup = new THREE.Group();
+  L.group.add(decorGroup);
+  for (const d of DECOR) {
+    const m = makeDecorModel(d.id);
+    const [x, y, z, ry] = decorSpot(d.id);
+    m.position.set(x, y, z); m.rotation.y = ry;
+    decorGroup.add(m); decorModels[d.id] = m;
+  }
+  updateDecor();
   // doors: a sign over each, and a swirly portal at the end of each tunnel
   for (const id in DOORS) {
     const d = DOORS[id];
@@ -218,7 +266,7 @@ function makeOverworldLevel(over) {
     L.group.add(portal);
   }
   // a purple beam over the crystal mountain
-  const beamMat = new THREE.MeshBasicMaterial({ color: 0xb77bff, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const beamMat = new THREE.MeshBasicMaterial({ color: LY.beam, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
   const beam = new THREE.Mesh(new THREE.BoxGeometry(1.6, 160, 1.6), beamMat);
   beam.position.set(OVER.mountain.x, over.groundAt(OVER.mountain.x, OVER.mountain.z) + 80, OVER.mountain.z);
   L.group.add(beam);
@@ -247,7 +295,11 @@ function makeOverworldLevel(over) {
     dummy.wobbleV += (-dummy.wobble * 60 - dummy.wobbleV * 6) * dt;
     dummy.wobble += dummy.wobbleV * dt;
     dummy.body.rotation.z = dummy.wobble;
-    rocket.visible = save.rocket;
+    const fish = decorModels.fishTank && decorModels.fishTank.userData.fish;
+    if (fish) fish.forEach((f, i) => { f.position.x = Math.sin(G.time * (0.8 + i * 0.3) + i) * 0.45; f.rotation.y = Math.cos(G.time * (0.8 + i * 0.3) + i) > 0 ? 0 : Math.PI; });
+    if (decorModels.disco) decorModels.disco.userData.ball.rotation.y += dt * 1.5;
+    if (decorModels.tv) decorModels.tv.userData.screen.material.color.setHSL((G.time * 0.1) % 1, 0.6, 0.5);
+    shopkeeper.head.rotation.y = THREE.MathUtils.clamp(angleDiff(Math.atan2(player.pos.x - shopkeeper.root.position.x, player.pos.z - shopkeeper.root.position.z), shopkeeper.root.rotation.y), -0.9, 0.9);
     buoy.position.y = OVER.water - 0.3 + Math.sin(G.time * 1.5) * 0.12;
     buoy.rotation.z = Math.sin(G.time * 1.1) * 0.08;
     const showType = Object.keys(EGGS).find(k => save.eggs[k] > 0);
@@ -256,6 +308,18 @@ function makeOverworldLevel(over) {
   };
   return L;
 }
+
+// where each decoration goes in your house: [x, y, z, turn]
+function decorSpot(id) {
+  const H = OVER.home, f = OVER.village.h, x = H.x0, z = H.z0;
+  return {
+    flower: [x + 1.5, f, z + 7.5, 0], rug: [x + 7, f, z + 4.5, 0], lamp: [x + 11.4, f, z + 1.6, 0],
+    bookshelf: [x + 5.5, f, z + 1.35, 0], couch: [x + 7.5, f, z + 7.45, Math.PI], painting: [x + 8.8, f + 1.7, z + 1.06, 0],
+    fishTank: [x + 10.8, f, z + 7.4, Math.PI], tv: [x + 1.4, f, z + 4.5, Math.PI / 2], trophy: [x + 10, f, z + 1.4, 0],
+    rainbowBed: [x + 1.5, f - 0.5, z + 1.5, 0], statue: [x + 15, f, z + 1.5, -Math.PI / 2], disco: [x + 7, f + 2.6, z + 4.5, 0],
+  }[id];
+}
+function updateDecor() { for (const id in decorModels) decorModels[id].visible = (save.decor || []).includes(id); }
 
 function makeCaveLevel(w, id) {
   const st = w.style;
@@ -372,7 +436,7 @@ function placeActors(x, y, z, yaw) {
 
 function placePetNearPlayer() {
   const w = G.world;
-  const side = new THREE.Vector3(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)).multiplyScalar(1.8);
+  const side = new THREE.Vector3(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)).multiplyScalar(pet.model ? 1.3 + pet.model.halfW * 2 : 1.8);
   for (const k of [1, -1, 0.5, 0]) {
     const x = player.pos.x + side.x * k + (k === 0 ? 1.5 : 0), z = player.pos.z + side.z * k;
     const y = Math.max(player.pos.y, 0);
@@ -529,11 +593,12 @@ function updatePetFollow(dt) {
     return;
   }
   if (dist > 30 || Math.abs(player.pos.y - pet.pos.y) > 12) { placePetNearPlayer(); return; }
-  const sx = player.pos.x + Math.cos(cam.yaw) * 1.8 - Math.sin(cam.yaw) * 0.4 - pet.pos.x;
-  const sz = player.pos.z - Math.sin(cam.yaw) * 1.8 - Math.cos(cam.yaw) * 0.4 - pet.pos.z;
+  const off = 1.3 + pet.model.halfW * 2;
+  const sx = player.pos.x + Math.cos(cam.yaw) * off - Math.sin(cam.yaw) * 0.4 - pet.pos.x;
+  const sz = player.pos.z - Math.sin(cam.yaw) * off - Math.cos(cam.yaw) * 0.4 - pet.pos.z;
   const sd = Math.hypot(sx, sz);
   let tx = 0, tz = 0;
-  if (dist > 7) { tx = dx / dist * pet.speed * 1.2; tz = dz / dist * pet.speed * 1.2; }
+  if (dist > 7 + pet.model.halfW) { tx = dx / dist * pet.speed * 1.2; tz = dz / dist * pet.speed * 1.2; }
   else if (sd > 0.8) { const sp = Math.min(pet.speed, sd * 3); tx = sx / sd * sp; tz = sz / sd * sp; }
   const k = 1 - Math.exp(-(pet.onGround ? 10 : 4) * dt);
   pet.vel.x += (tx - pet.vel.x) * k;
@@ -605,7 +670,7 @@ function updateCamera(dt) {
   }
   const pitch = cam.pitchOverride ?? cam.pitch;
   camDir.set(Math.sin(cam.yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(cam.yaw) * Math.cos(pitch));
-  const want = G.cutscene && G.cutscene.camDist ? G.cutscene.camDist : (player.mounted ? 7 : 5.5);
+  const want = G.cutscene && G.cutscene.camDist ? G.cutscene.camDist : (player.mounted ? 5 + pet.model.saddleY * 0.9 : 5.5);
   const hit = G.world.raycast(camTarget, camDir, want + 0.3);
   const d = hit === null ? want : Math.max(0.5, hit - 0.35);
   camera.position.copy(camTarget).addScaledVector(camDir, d);
@@ -614,6 +679,7 @@ function updateCamera(dt) {
     camera.position.y += (Math.random() - 0.5) * G.shake;
     G.shake = Math.max(0, G.shake - dt * 2.2);
   }
+  if (G.cutscene && G.cutscene.camPos) camera.position.copy(G.cutscene.camPos);
   camera.lookAt(G.cutscene && G.cutscene.lookAt ? G.cutscene.lookAt : camTarget);
 }
 

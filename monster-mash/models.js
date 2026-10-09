@@ -121,7 +121,7 @@ function makePlayerModel() {
       if (id === heldId) return;
       if (held) hand.remove(held);
       heldId = id;
-      held = id ? weaponMesh(id) : null;
+      held = id === 'rocket' ? makeRocketItem() : id ? weaponMesh(id) : null;
       if (held) {
         if (id && WEAPONS[id] && WEAPONS[id].kind === 'gun') held.rotation.x = 0.5;
         hand.add(held);
@@ -419,23 +419,29 @@ function makePetModel(speciesId) {
 }
 
 // ---------- bosses ----------
-function makeBossModel(id) {
+const BOSS_COLORS = {
+  island: { deer: [0x8a5a2a, 0xe0c8a0, 0xfff4e0, 0xd8c8a0, 0x7aff7a], scorpion: [0xd9822b, 0x8a4a1a, 0xb4ff4a], squid: [0xc8345a, 0x7a1a3a, 0xfff4c0], spider: [0x2a2440, 0x3a3456, 0x5ff0e6, 0xff4a6a] },
+  frost: { deer: [0xe8f4ff, 0xbfd8ee, 0x9ad8ff, 0x9ae8ff, 0x5ff0e6], scorpion: [0x8ad0f0, 0x2a5a8a, 0xffffff], squid: [0x5a8ad8, 0x2a4a8a, 0xffffff], spider: [0xd8ecff, 0x9ac8f0, 0x5ff0e6, 0x2a5aff] },
+  lava: { deer: [0x2a1a14, 0x5a2a1a, 0xff7a2a, 0xff7a2a, 0xfff07a], scorpion: [0x2a1a1a, 0xc8341a, 0xfff07a], squid: [0xff6a2a, 0x8a2a10, 0xfff07a], spider: [0x2a1410, 0x5a2a1a, 0xff7a2a, 0xfff07a] },
+};
+function makeBossModel(id, pid = 'island') {
   const root = new THREE.Group();
   const inner = new THREE.Group();
   root.add(inner);
+  const c = BOSS_COLORS[pid][id];
   let P;
   if (id === 'deer') {
     inner.scale.setScalar(3.3);
-    P = buildDeer(inner, { body: 0x8a5a2a, belly: 0xe0c8a0, spot: 0xfff4e0, antler: 0xd8c8a0 }, { antlers: true, moss: true, eyeGlow: 0x7aff7a });
+    P = buildDeer(inner, { body: c[0], belly: c[1], spot: c[2], antler: c[3] }, { antlers: true, moss: pid === 'island', eyeGlow: c[4] });
   } else if (id === 'scorpion') {
     inner.scale.setScalar(3.2);
-    P = buildScorpion(inner, { body: 0xd9822b, dark: 0x8a4a1a, sting: 0xb4ff4a });
+    P = buildScorpion(inner, { body: c[0], dark: c[1], sting: c[2] });
   } else if (id === 'squid') {
     inner.scale.setScalar(3.0);
-    P = buildSquid(inner, { body: 0xc8345a, dark: 0x7a1a3a, eye: 0xfff4c0 }, { crown: true });
+    P = buildSquid(inner, { body: c[0], dark: c[1], eye: c[2] }, { crown: true });
   } else {
     inner.scale.setScalar(3.4);
-    P = buildSpider(inner, { c: { body: 0x2a2440, leg: 0x3a3456, gem: 0x5ff0e6, eye: 0xff4a6a } });
+    P = buildSpider(inner, { c: { body: c[0], leg: c[1], gem: c[2], eye: c[3] } });
   }
   const own = [];
   root.traverse(o => { if (o.isMesh && o.material.isMeshLambertMaterial && !own.includes(o.material)) own.push(o.material); });
@@ -569,5 +575,93 @@ function makeBuoyModel() {
   box(0.95, 0.25, 0.95, pixMat(0xf0f0f0), 0, 0.6, 0, g);
   box(0.12, 1.4, 0.12, pixMat(0x3a3a4a), 0, 1.3, 0, g);
   box(0.3, 0.3, 0.3, pixMat(0xffcf4a, { glow: true }), 0, 2.1, 0, g);
+  return g;
+}
+
+// a little rocket to hold in your hand
+function makeRocketItem() {
+  const g = makeRocketModel();
+  g.scale.setScalar(0.09);
+  g.rotation.x = Math.PI / 2;
+  g.position.set(0, 0, 0.3);
+  const w = new THREE.Group(); w.add(g);
+  return w;
+}
+
+// ---------- house decorations ----------
+function makeDecorModel(id) {
+  const g = new THREE.Group();
+  const m = (c, o) => pixMat(c, o);
+  switch (id) {
+    case 'flower':
+      box(0.45, 0.4, 0.45, m(0xa85a32), 0, 0.2, 0, g);
+      box(0.06, 0.4, 0.06, m(0x3f8a2a), 0, 0.6, 0, g);
+      [[0.12, 0], [-0.12, 0], [0, 0.12], [0, -0.12]].forEach(([x, z]) => box(0.14, 0.12, 0.14, m(0xff6a9a), x, 0.85, z, g));
+      box(0.12, 0.12, 0.12, m(0xffe95a, { glow: true }), 0, 0.86, 0, g);
+      break;
+    case 'rug':
+      box(3, 0.05, 2, m(0xc8344a), 0, 0.03, 0, g);
+      box(2.4, 0.06, 1.4, m(0xffcf4a), 0, 0.04, 0, g);
+      box(1.6, 0.07, 0.7, m(0x3a8ad8), 0, 0.05, 0, g);
+      break;
+    case 'lamp':
+      box(0.3, 0.1, 0.3, m(0x3a3a3a), 0, 0.05, 0, g);
+      box(0.08, 1.2, 0.08, m(0x3a3a3a), 0, 0.65, 0, g);
+      box(0.5, 0.35, 0.5, m(0xfff0b0, { glow: true }), 0, 1.35, 0, g);
+      break;
+    case 'bookshelf':
+      box(2, 2.2, 0.6, m(0x8a5a32), 0, 1.1, 0, g);
+      [0.5, 1.2, 1.9].forEach((y, r) => { for (let i = 0; i < 7; i++) box(0.2, 0.45, 0.4, m([0xd8343a, 0x3a8ad8, 0x4f9a3a, 0xffcf4a, 0x8a4ad8][(i + r) % 5]), -0.75 + i * 0.25, y, 0.12, g); });
+      break;
+    case 'couch':
+      box(2.4, 0.5, 0.9, m(0x5a7ad8), 0, 0.35, 0, g);
+      box(2.4, 0.7, 0.3, m(0x4a6ac8), 0, 0.85, -0.35, g);
+      [-1.1, 1.1].forEach(x => box(0.25, 0.75, 0.9, m(0x4a6ac8), x, 0.5, 0, g));
+      break;
+    case 'painting':
+      box(1.6, 1.1, 0.08, m(0x8a5a32), 0, 0, 0, g);
+      box(1.4, 0.9, 0.1, m(0x7ab8f0), 0, 0, 0.01, g);
+      box(1.4, 0.3, 0.12, m(0x4f9a3a), 0, -0.3, 0.01, g);
+      box(0.25, 0.25, 0.13, m(0xffe95a, { glow: true }), 0.4, 0.2, 0.01, g);
+      break;
+    case 'fishTank': {
+      box(1.4, 0.15, 0.7, m(0x3a3a3a), 0, 0.5, 0, g);
+      box(0.15, 0.5, 0.15, m(0x3a3a3a), -0.6, 0.25, 0, g); box(0.15, 0.5, 0.15, m(0x3a3a3a), 0.6, 0.25, 0, g);
+      const glass = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x5ab8ff, transparent: true, opacity: 0.45 }));
+      glass.position.y = 0.98; g.add(glass);
+      g.userData.fish = [box(0.18, 0.12, 0.06, m(0xff9a3a, { glow: true }), 0, 1.0, 0, g), box(0.15, 0.1, 0.06, m(0xffe95a, { glow: true }), 0.3, 0.85, 0.1, g)];
+      break;
+    }
+    case 'tv':
+      box(1.8, 0.5, 0.6, m(0x5a3a22), 0, 0.25, 0, g);
+      box(1.6, 1.0, 0.1, m(0x1a1a1a), 0, 1.05, 0, g);
+      g.userData.screen = box(1.45, 0.85, 0.11, new THREE.MeshBasicMaterial({ color: 0x3a8ad8 }), 0, 1.05, 0.01, g);
+      break;
+    case 'trophy':
+      box(1.6, 1.6, 0.6, m(0x8a5a32), 0, 0.8, 0, g);
+      [-0.45, 0, 0.45].forEach((x, i) => {
+        box(0.22, 0.08, 0.22, m(0xffcf4a, { glow: true }), x, 1.0, 0.05, g);
+        box(0.14, 0.3, 0.14, m(0xffcf4a, { glow: true }), x, 1.2, 0.05, g);
+        box(0.26, 0.12, 0.26, m(0xffcf4a, { glow: true }), x, 1.4, 0.05, g);
+      });
+      box(0.3, 0.3, 0.1, m([0x7aff7a][0], { glow: true }), 0, 0.5, 0.3, g);
+      break;
+    case 'rainbowBed':
+      RAINBOW.forEach((c, i) => box(2, 0.12, 0.14, m(c, { glow: true }), 0.5, 1.02, -0.43 + i * 0.145, g));
+      break;
+    case 'statue':
+      box(1.4, 0.6, 1.4, m(0xd8d8d8), 0, 0.3, 0, g);
+      { const t = new THREE.Group(); buildTurtle(t, { shell: 0xffcf4a, top: 0xffe07a, skin: 0xf0c040, belly: 0xffe9a0 }); t.scale.setScalar(1.5); t.position.y = 0.6; g.add(t);
+        t.traverse(o => { if (o.isMesh) o.material = pixMat(0xffcf4a, { glow: true }); }); }
+      break;
+    case 'disco': {
+      box(0.04, 0.6, 0.04, m(0x3a3a3a), 0, 0.3, 0, g);
+      const ball = new THREE.Group(); ball.position.y = -0.2; g.add(ball);
+      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; box(0.18, 0.18, 0.18, m(RAINBOW[i % 7], { glow: true }), Math.cos(a) * 0.3, (i % 3 - 1) * 0.2, Math.sin(a) * 0.3, ball); }
+      box(0.45, 0.45, 0.45, m(0xd8d8e8, { glow: true }), 0, 0, 0, ball);
+      g.userData.ball = ball;
+      break;
+    }
+  }
   return g;
 }

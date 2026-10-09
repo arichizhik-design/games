@@ -184,3 +184,26 @@ body.cinema #hud > :not(#toast):not(#bossbar) { opacity: 0; }
 #nameInput { display: block; width: 100%; box-sizing: border-box; margin: 6px 0 0; padding: 8px 12px; font-family: var(--body); font-size: 28px; text-align: center; color: var(--text); background: #15111f; border: 3px solid var(--panel-edge); user-select: text; -webkit-user-select: text; }
 #nameInput:focus { outline: none; border-color: var(--crystal); }
 #playBtn:disabled { filter: grayscale(.8); cursor: default; }
+
+#coins { display: flex; align-items: center; gap: 5px; font-family: var(--display); font-size: 17px; color: var(--gold); text-shadow: 2px 2px 0 #000; font-variant-numeric: tabular-nums; }
+.coin { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3a0, var(--gold) 55%, #b8860b); border: 2px solid #6b4a10; }
+#shopList { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 10px 0; text-align: left; }
+.shopitem { background: #1d1830; border: 3px solid var(--panel-edge); padding: 8px 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.shopitem .sname { font-family: var(--display); font-size: 17px; flex: 1 1 100%; }
+.shopitem .sprice { font-size: 20px; color: var(--gold); flex: 1; }
+.shopitem.owned { border-color: #3f8f5a; }
+.shopitem.owned .sprice { color: #7aff9a; }
+.panel .shopitem button { margin: 0; font-size: 15px; padding: 4px 14px; }
+.panel .shopitem button:disabled { filter: grayscale(1); opacity: .6; cursor: default; }
+#planetList { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 12px 0; }
+.panel .planetcard { margin: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; text-align: left; padding: 14px; border: 3px solid #000; box-shadow: none; font-family: var(--body); color: #fff; min-width: 0; }
+.planetcard.island { background: linear-gradient(160deg, #2f7a4a, #1f4a6a); }
+.planetcard.frost { background: linear-gradient(160deg, #6a9ac8, #2a4a7a); }
+.planetcard.lava { background: linear-gradient(160deg, #a8401a, #3a1410); }
+.planetcard.locked { filter: grayscale(.85) brightness(.7); cursor: default; }
+.planetcard .pworld { font-family: var(--display); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
+.planetcard .pname { font-family: var(--display); font-size: 22px; }
+.planetcard .pblurb { font-size: 19px; line-height: 1.05; }
+.planetcard .pstat { font-size: 17px; color: var(--gold); }
+#fade { display: grid; place-items: center; z-index: 6; }
+#fadeText { font-family: var(--display); font-size: clamp(22px, 4vw, 36px); color: var(--crystal); text-shadow: 3px 3px 0 #000; text-align: center; padding: 0 16px; }

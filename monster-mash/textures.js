@@ -13,13 +13,14 @@ function makeRng(seed) {
 }
 
 const TILE = 16;
-const ATLAS_SLOTS = 40;
+const ATLAS_SLOTS = 48;
 const T = {
   GRASS_TOP: 0, GRASS_SIDE: 1, DIRT: 2, STONE: 3, SAND: 4, LOG_SIDE: 5, LOG_TOP: 6, LEAVES: 7, WATER: 8,
   CAVE: 9, CRYSTAL: 10, AMETHYST: 11, PLANKS: 12, COBBLE: 13, PATH: 14, HAY: 15, ORE: 16, BEDROCK: 17,
   ROOF: 18, MOSS: 19, WINDOW: 20, SANDSTONE: 21, SANDSTONE_TOP: 22, CACTUS_SIDE: 23, CACTUS_TOP: 24,
   CORAL_PINK: 25, CORAL_ORANGE: 26, CORAL_BLUE: 27, SEA_LANTERN: 28, GOLD: 29, GLOWSHROOM: 30, MUD: 31, ROOTS: 32,
   KELP: 33, LANTERN: 34, WOOL_RED: 35, WOOL_WHITE: 36,
+  SNOW_TOP: 37, SNOW_SIDE: 38, ICE: 39, PINE: 40, ASH_TOP: 41, ASH_SIDE: 42, BASALT: 43, MAGMA: 44, RED_SAND: 45,
 };
 
 function shade(hex, f) {
@@ -177,6 +178,22 @@ function drawAtlas() {
     const frame = x < 3 || x > 12 || y < 2 || y > 13;
     px(at(T.LANTERN), x, y, frame ? shade(0x4a3a2a, 0.9 + rng() * 0.2) : shade(0xffb84a, 0.9 + rng() * 0.2));
   }
+  noiseTile(ctx, at(T.SNOW_TOP), 0xf4f8ff, 0.06, rng);
+  noiseTile(ctx, at(T.SNOW_SIDE), 0x8a5a36, 0.35, rng);
+  for (let x = 0; x < TILE; x++) { const h = 3 + Math.floor(rng() * 3); for (let y = 0; y < h; y++) px(at(T.SNOW_SIDE), x, y, shade(0xf4f8ff, 0.94 + rng() * 0.06)); }
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) px(at(T.ICE), x, y, shade(0x9ad8f8, ((x * 3 + y) % 11 === 0 ? 1.18 : 0.96) + rng() * 0.05));
+  noiseTile(ctx, at(T.PINE), 0x2a5a3a, 0.5, rng);
+  for (let i = 0; i < 18; i++) px(at(T.PINE), Math.floor(rng() * 16), Math.floor(rng() * 6), '#eef6ff');
+  noiseTile(ctx, at(T.ASH_TOP), 0x4a4446, 0.35, rng);
+  noiseTile(ctx, at(T.ASH_SIDE), 0x3a2a24, 0.35, rng);
+  for (let x = 0; x < TILE; x++) { const h = 2 + Math.floor(rng() * 3); for (let y = 0; y < h; y++) px(at(T.ASH_SIDE), x, y, shade(0x4a4446, 0.9 + rng() * 0.2)); }
+  noiseTile(ctx, at(T.BASALT), 0x2e2a30, 0.3, rng);
+  for (let y = 0; y < TILE; y += 4) for (let x = 0; x < TILE; x++) px(at(T.BASALT), x, y, shade(0x2e2a30, 0.7));
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    const crack = ((x + Math.floor(y / 3)) % 5 === 0) || ((y + Math.floor(x / 4)) % 6 === 0);
+    px(at(T.MAGMA), x, y, crack ? shade(0xffd04a, 0.9 + rng() * 0.2) : shade(0xc8341a, 0.85 + rng() * 0.25));
+  }
+  noiseTile(ctx, at(T.RED_SAND), 0xc8643a, 0.2, rng);
   noiseTile(ctx, at(T.WOOL_RED), 0xd8343a, 0.15, rng);
   noiseTile(ctx, at(T.WOOL_WHITE), 0xf0f0f0, 0.08, rng);
 

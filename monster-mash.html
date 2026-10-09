@@ -193,6 +193,29 @@ body.cinema #hud > :not(#toast):not(#bossbar) { opacity: 0; }
 #nameInput { display: block; width: 100%; box-sizing: border-box; margin: 6px 0 0; padding: 8px 12px; font-family: var(--body); font-size: 28px; text-align: center; color: var(--text); background: #15111f; border: 3px solid var(--panel-edge); user-select: text; -webkit-user-select: text; }
 #nameInput:focus { outline: none; border-color: var(--crystal); }
 #playBtn:disabled { filter: grayscale(.8); cursor: default; }
+
+#coins { display: flex; align-items: center; gap: 5px; font-family: var(--display); font-size: 17px; color: var(--gold); text-shadow: 2px 2px 0 #000; font-variant-numeric: tabular-nums; }
+.coin { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3a0, var(--gold) 55%, #b8860b); border: 2px solid #6b4a10; }
+#shopList { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 10px 0; text-align: left; }
+.shopitem { background: #1d1830; border: 3px solid var(--panel-edge); padding: 8px 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.shopitem .sname { font-family: var(--display); font-size: 17px; flex: 1 1 100%; }
+.shopitem .sprice { font-size: 20px; color: var(--gold); flex: 1; }
+.shopitem.owned { border-color: #3f8f5a; }
+.shopitem.owned .sprice { color: #7aff9a; }
+.panel .shopitem button { margin: 0; font-size: 15px; padding: 4px 14px; }
+.panel .shopitem button:disabled { filter: grayscale(1); opacity: .6; cursor: default; }
+#planetList { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 12px 0; }
+.panel .planetcard { margin: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; text-align: left; padding: 14px; border: 3px solid #000; box-shadow: none; font-family: var(--body); color: #fff; min-width: 0; }
+.planetcard.island { background: linear-gradient(160deg, #2f7a4a, #1f4a6a); }
+.planetcard.frost { background: linear-gradient(160deg, #6a9ac8, #2a4a7a); }
+.planetcard.lava { background: linear-gradient(160deg, #a8401a, #3a1410); }
+.planetcard.locked { filter: grayscale(.85) brightness(.7); cursor: default; }
+.planetcard .pworld { font-family: var(--display); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
+.planetcard .pname { font-family: var(--display); font-size: 22px; }
+.planetcard .pblurb { font-size: 19px; line-height: 1.05; }
+.planetcard .pstat { font-size: 17px; color: var(--gold); }
+#fade { display: grid; place-items: center; z-index: 6; }
+#fadeText { font-family: var(--display); font-size: clamp(22px, 4vw, 36px); color: var(--crystal); text-shadow: 3px 3px 0 #000; text-align: center; padding: 0 16px; }
 </style>
 </head>
 <body>
@@ -210,6 +233,7 @@ body.cinema #hud > :not(#toast):not(#bossbar) { opacity: 0; }
   <div id="bottom">
     <div id="statusRow">
       <div id="hearts"></div>
+      <div id="coins"><span class="coin"></span><span id="coinCount">0</span></div>
       <div id="armorIcon"></div>
     </div>
     <div id="hotbar"></div>
@@ -314,10 +338,28 @@ body.cinema #hud > :not(#toast):not(#bossbar) { opacity: 0; }
   </div>
 </div>
 
+<div id="shopUI" class="screen" hidden>
+  <div class="panel wide">
+    <h2>Sue's Decoration Shop</h2>
+    <p id="shopCoins"></p>
+    <div id="shopList"></div>
+    <p class="tip">Things you buy show up inside your house. Beat bosses to earn more coins.</p>
+    <button id="shopClose" type="button" class="ghost">Close</button>
+  </div>
+</div>
+
+<div id="planetUI" class="screen" hidden>
+  <div class="panel wide">
+    <h2>Pick a planet</h2>
+    <div id="planetList"></div>
+    <button id="planetClose" type="button" class="ghost">Stay here</button>
+  </div>
+</div>
+
 <div id="ink"></div>
 <div id="cinemaTop" class="cinema-bar"></div>
 <div id="cinemaBottom" class="cinema-bar"></div>
-<div id="fade"></div>
+<div id="fade"><div id="fadeText"></div></div>
 
 <script>
 /**
@@ -343,13 +385,14 @@ function makeRng(seed) {
 }
 
 const TILE = 16;
-const ATLAS_SLOTS = 40;
+const ATLAS_SLOTS = 48;
 const T = {
   GRASS_TOP: 0, GRASS_SIDE: 1, DIRT: 2, STONE: 3, SAND: 4, LOG_SIDE: 5, LOG_TOP: 6, LEAVES: 7, WATER: 8,
   CAVE: 9, CRYSTAL: 10, AMETHYST: 11, PLANKS: 12, COBBLE: 13, PATH: 14, HAY: 15, ORE: 16, BEDROCK: 17,
   ROOF: 18, MOSS: 19, WINDOW: 20, SANDSTONE: 21, SANDSTONE_TOP: 22, CACTUS_SIDE: 23, CACTUS_TOP: 24,
   CORAL_PINK: 25, CORAL_ORANGE: 26, CORAL_BLUE: 27, SEA_LANTERN: 28, GOLD: 29, GLOWSHROOM: 30, MUD: 31, ROOTS: 32,
   KELP: 33, LANTERN: 34, WOOL_RED: 35, WOOL_WHITE: 36,
+  SNOW_TOP: 37, SNOW_SIDE: 38, ICE: 39, PINE: 40, ASH_TOP: 41, ASH_SIDE: 42, BASALT: 43, MAGMA: 44, RED_SAND: 45,
 };
 
 function shade(hex, f) {
@@ -507,6 +550,22 @@ function drawAtlas() {
     const frame = x < 3 || x > 12 || y < 2 || y > 13;
     px(at(T.LANTERN), x, y, frame ? shade(0x4a3a2a, 0.9 + rng() * 0.2) : shade(0xffb84a, 0.9 + rng() * 0.2));
   }
+  noiseTile(ctx, at(T.SNOW_TOP), 0xf4f8ff, 0.06, rng);
+  noiseTile(ctx, at(T.SNOW_SIDE), 0x8a5a36, 0.35, rng);
+  for (let x = 0; x < TILE; x++) { const h = 3 + Math.floor(rng() * 3); for (let y = 0; y < h; y++) px(at(T.SNOW_SIDE), x, y, shade(0xf4f8ff, 0.94 + rng() * 0.06)); }
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) px(at(T.ICE), x, y, shade(0x9ad8f8, ((x * 3 + y) % 11 === 0 ? 1.18 : 0.96) + rng() * 0.05));
+  noiseTile(ctx, at(T.PINE), 0x2a5a3a, 0.5, rng);
+  for (let i = 0; i < 18; i++) px(at(T.PINE), Math.floor(rng() * 16), Math.floor(rng() * 6), '#eef6ff');
+  noiseTile(ctx, at(T.ASH_TOP), 0x4a4446, 0.35, rng);
+  noiseTile(ctx, at(T.ASH_SIDE), 0x3a2a24, 0.35, rng);
+  for (let x = 0; x < TILE; x++) { const h = 2 + Math.floor(rng() * 3); for (let y = 0; y < h; y++) px(at(T.ASH_SIDE), x, y, shade(0x4a4446, 0.9 + rng() * 0.2)); }
+  noiseTile(ctx, at(T.BASALT), 0x2e2a30, 0.3, rng);
+  for (let y = 0; y < TILE; y += 4) for (let x = 0; x < TILE; x++) px(at(T.BASALT), x, y, shade(0x2e2a30, 0.7));
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    const crack = ((x + Math.floor(y / 3)) % 5 === 0) || ((y + Math.floor(x / 4)) % 6 === 0);
+    px(at(T.MAGMA), x, y, crack ? shade(0xffd04a, 0.9 + rng() * 0.2) : shade(0xc8341a, 0.85 + rng() * 0.25));
+  }
+  noiseTile(ctx, at(T.RED_SAND), 0xc8643a, 0.2, rng);
   noiseTile(ctx, at(T.WOOL_RED), 0xd8343a, 0.15, rng);
   noiseTile(ctx, at(T.WOOL_WHITE), 0xf0f0f0, 0.08, rng);
 
@@ -696,10 +755,10 @@ const PET_SPECIES = {
   dolphin:  { name: 'Dolphin',           rarity: 'Uncommon', speed: 13,   shape: 'fish',   scale: 1.2,  c: { body: 0x7aa8d8, belly: 0xe8f2ff, fin: 0x5a88b8 } },
   shark:    { name: 'Shark',             rarity: 'Rare',     speed: 15,   shape: 'fish',   scale: 1.4,  shark: true, c: { body: 0x7a8a9a, belly: 0xf0f0f0, fin: 0x5a6a7a } },
   squidlet: { name: 'Baby Squid',        rarity: 'Epic',     speed: 16,   shape: 'squid',  scale: 0.45, c: { body: 0xd84a7a, dark: 0x8a2a5a, eye: 0xffffff } },
-  spider:   { name: 'Crystal Spider',    rarity: 'Epic',     speed: 18,   shape: 'spider', scale: 0.5, c: { body: 0x2a2440, leg: 0x3a3456, gem: 0x5ff0e6, eye: 0xff4a6a } },
-  spiderGold:    { name: 'Gold Crystal Spider',    rarity: 'Legendary', speed: 20, shape: 'spider', scale: 0.52, mutation: 'Gold', c: { body: 0xc9961a, leg: 0xe0b030, gem: 0xfff07a, eye: 0xff4a6a } },
-  spiderDiamond: { name: 'Diamond Crystal Spider', rarity: 'Legendary', speed: 22, shape: 'spider', scale: 0.54, mutation: 'Diamond', c: { body: 0x5ac8d8, leg: 0x8ff7ff, gem: 0xffffff, eye: 0x2a5aff } },
-  spiderRainbow: { name: 'Rainbow Crystal Spider', rarity: 'Mythic',    speed: 25, shape: 'spider', scale: 0.56, mutation: 'Rainbow', rainbow: true, c: { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff } },
+  spider:   { name: 'Crystal Spider',    rarity: 'Epic',     speed: 18,   shape: 'spider', scale: 3.4, c: { body: 0x2a2440, leg: 0x3a3456, gem: 0x5ff0e6, eye: 0xff4a6a } },
+  spiderGold:    { name: 'Gold Crystal Spider',    rarity: 'Legendary', speed: 20, shape: 'spider', scale: 3.4, mutation: 'Gold', c: { body: 0xc9961a, leg: 0xe0b030, gem: 0xfff07a, eye: 0xff4a6a } },
+  spiderDiamond: { name: 'Diamond Crystal Spider', rarity: 'Legendary', speed: 22, shape: 'spider', scale: 3.4, mutation: 'Diamond', c: { body: 0x5ac8d8, leg: 0x8ff7ff, gem: 0xffffff, eye: 0x2a5aff } },
+  spiderRainbow: { name: 'Rainbow Crystal Spider', rarity: 'Mythic',    speed: 25, shape: 'spider', scale: 3.4, mutation: 'Rainbow', rainbow: true, c: { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff } },
 };
 
 // each boss drops a better egg than the last
@@ -720,7 +779,7 @@ const CHESTS = {
 };
 
 // the four bosses of World 1, in order
-const BOSSES = {
+const BOSS_BASE = {
   deer: {
     name: 'Giant Deer', cave: 'rabbit', egg: 'forest', chest: 'forest', hp: 160, mult: 1, speed: 3.2, radius: 2.3, height: 6,
     attacks: { charge: 3, stomp: 2, leap: 1 }, phase2: { leap: 2, rain: 2 }, rainColor: 0x6b4a2b, rainLabel: 'Acorns',
@@ -757,6 +816,144 @@ function oddsText(list) {
   const total = list.reduce((s, [, w]) => s + w, 0);
   return list.map(([v, w]) => [v, Math.round(w / total * 1000) / 10]);
 }
+
+// ---------- more loot for the other planets ----------
+Object.assign(WEAPONS, {
+  frostBlade:   { name: 'Frost Blade',    kind: 'melee', dmg: 30, cd: 0.34, reach: 3.1, rarity: 'Epic',      icon: ['#3a5a7a', '#bfeeff'] },
+  iceHammer:    { name: 'Ice Hammer',     kind: 'melee', dmg: 38, cd: 0.46, reach: 3.3, rarity: 'Legendary', icon: ['#3a5a7a', '#7ad8ff'] },
+  iceCannon:    { name: 'Ice Cannon',     kind: 'gun', dmg: 34, cd: 0.32, speed: 36, rarity: 'Legendary', color: 0x9ae8ff, icon: ['#446', '#9ae8ff'] },
+  blizzard:     { name: 'Blizzard Ray',   kind: 'gun', dmg: 46, cd: 0.18, speed: 55, rarity: 'Mythic',    color: 0xe8fbff, icon: ['#335', '#e8fbff'] },
+  lavaSword:    { name: 'Lava Sword',     kind: 'melee', dmg: 55, cd: 0.34, reach: 3.1, rarity: 'Legendary', icon: ['#3a1a10', '#ff7a2a'] },
+  magmaAxe:     { name: 'Magma Axe',      kind: 'melee', dmg: 72, cd: 0.44, reach: 3.4, rarity: 'Mythic',    icon: ['#3a1a10', '#ffb02a'] },
+  lavaLauncher: { name: 'Lava Launcher',  kind: 'gun', dmg: 66, cd: 0.3, speed: 34, rarity: 'Legendary', color: 0xff6a2a, icon: ['#432', '#ff6a2a'] },
+  sunBeam:      { name: 'Sun Beam',       kind: 'gun', dmg: 92, cd: 0.16, speed: 60, rarity: 'Mythic',    color: 0xfff07a, icon: ['#432', '#fff07a'] },
+});
+WEAPON_ORDER.push('frostBlade', 'iceHammer', 'lavaSword', 'magmaAxe', 'iceCannon', 'blizzard', 'lavaLauncher', 'sunBeam');
+ARMORS.push(
+  { name: 'Frost Armor', block: 0.75, color: 0xbfeeff, rarity: 'Legendary' },
+  { name: 'Lava Armor',  block: 0.82, color: 0xff6a2a, rarity: 'Mythic' },
+);
+
+// pets for the other planets: same shapes, new colours, much faster
+const PLANET_PETS = {
+  snowBunny:   ['Snow Bunny', 'Common', 20, 'bunny', 1.25, { body: 0xf4f8ff, ear: 0x9ad8ff, nose: 0xff9ab0 }],
+  arcticFox:   ['Arctic Fox', 'Uncommon', 22, 'quad', 1.15, { body: 0xf0f4f8, belly: 0xffffff, ear: 0xc8d8e8, tip: 0xffffff }],
+  iceFawn:     ['Ice Fawn', 'Rare', 24, 'deer', 1.0, { body: 0xbfd8ee, belly: 0xffffff, spot: 0x7ad8ff, antler: 0x9ae8ff }],
+  polarBear:   ['Polar Bear', 'Common', 23, 'quad', 1.6, { body: 0xf4f4ee, belly: 0xe8e8e0, ear: 0xd8d8d0, tip: 0xf4f4ee }],
+  snowFennec:  ['Snow Fennec', 'Uncommon', 25, 'quad', 1.05, { body: 0xffffff, belly: 0xf4f8ff, ear: 0xbfe0f0, tip: 0x9ad8ff }, { bigEars: true }],
+  iceScorplet: ['Ice Scorpion', 'Rare', 27, 'scorpion', 0.55, { body: 0x8ad0f0, dark: 0x3a7ab0, sting: 0xffffff }],
+  narwhal:     ['Narwhal', 'Uncommon', 26, 'fish', 1.3, { body: 0x8a9aaa, belly: 0xe8eef4, fin: 0x6a7a8a }],
+  orca:        ['Orca', 'Rare', 28, 'fish', 1.5, { body: 0x1a1a22, belly: 0xffffff, fin: 0x1a1a22 }, { shark: true }],
+  iceSquidlet: ['Ice Squid', 'Epic', 30, 'squid', 0.5, { body: 0x7ab8f0, dark: 0x3a6ab0, eye: 0xffffff }],
+  frostSpider:        ['Frost Spider', 'Epic', 32, 'spider', 3.4, { body: 0xd8ecff, leg: 0x9ac8f0, gem: 0x5ff0e6, eye: 0x2a5aff }],
+  frostSpiderGold:    ['Gold Frost Spider', 'Legendary', 35, 'spider', 3.45, { body: 0xc9961a, leg: 0xf0d070, gem: 0xbfeeff, eye: 0x2a5aff }, { mutation: 'Gold' }],
+  frostSpiderDiamond: ['Diamond Frost Spider', 'Legendary', 38, 'spider', 3.5, { body: 0x8ff7ff, leg: 0xffffff, gem: 0xffffff, eye: 0x2a5aff }, { mutation: 'Diamond' }],
+  frostSpiderRainbow: ['Rainbow Frost Spider', 'Mythic', 42, 'spider', 3.55, { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff }, { mutation: 'Rainbow', rainbow: true }],
+  lavaBunny:   ['Ember Bunny', 'Common', 30, 'bunny', 1.25, { body: 0x3a2a2a, ear: 0xff7a2a, nose: 0xff7a2a }],
+  fireFox:     ['Fire Fox', 'Uncommon', 32, 'quad', 1.15, { body: 0xff4a1a, belly: 0xffb02a, ear: 0x3a1a10, tip: 0xfff07a, eye: 0xfff07a }],
+  fireFawn:    ['Fire Fawn', 'Rare', 34, 'deer', 1.0, { body: 0x5a2a1a, belly: 0xff9a4a, spot: 0xffd04a, antler: 0xff7a2a }],
+  magmaCamel:  ['Magma Camel', 'Common', 33, 'quad', 1.35, { body: 0x8a3a1a, belly: 0xc85a2a, ear: 0x5a2a1a, tip: 0xff7a2a }, { hump: true }],
+  emberFennec: ['Ember Fennec', 'Uncommon', 36, 'quad', 1.05, { body: 0xffb04a, belly: 0xfff0c0, ear: 0xff6a2a, tip: 0x3a1a10 }, { bigEars: true }],
+  magmaScorplet: ['Magma Scorpion', 'Rare', 38, 'scorpion', 0.55, { body: 0x2a1a1a, dark: 0xff5a1a, sting: 0xfff07a }],
+  lavaDolphin: ['Lava Dolphin', 'Uncommon', 37, 'fish', 1.3, { body: 0xff7a2a, belly: 0xfff0c0, fin: 0xc84a1a }],
+  lavaShark:   ['Lava Shark', 'Rare', 40, 'fish', 1.5, { body: 0x3a2a2a, belly: 0xff9a4a, fin: 0xff5a1a }, { shark: true }],
+  magmaSquidlet: ['Magma Squid', 'Epic', 42, 'squid', 0.5, { body: 0xff6a2a, dark: 0x8a2a10, eye: 0xfff07a }],
+  infernoSpider:        ['Inferno Spider', 'Epic', 45, 'spider', 3.4, { body: 0x2a1410, leg: 0x5a2a1a, gem: 0xff7a2a, eye: 0xfff07a }],
+  infernoSpiderGold:    ['Gold Inferno Spider', 'Legendary', 48, 'spider', 3.45, { body: 0xc9961a, leg: 0xffd04a, gem: 0xff7a2a, eye: 0xff2a2a }, { mutation: 'Gold' }],
+  infernoSpiderDiamond: ['Diamond Inferno Spider', 'Legendary', 52, 'spider', 3.5, { body: 0x8ff7ff, leg: 0xffffff, gem: 0xff7a2a, eye: 0xff2a2a }, { mutation: 'Diamond' }],
+  infernoSpiderRainbow: ['Rainbow Inferno Spider', 'Mythic', 58, 'spider', 3.55, { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff }, { mutation: 'Rainbow', rainbow: true }],
+};
+for (const [id, [name, rarity, speed, shape, scale, c, extra]] of Object.entries(PLANET_PETS))
+  PET_SPECIES[id] = Object.assign({ name, rarity, speed, shape, scale, c }, extra || {});
+
+Object.assign(EGGS, {
+  forest2:  { name: 'Snow Egg',      shell: 0xf4f8ff, spotA: 0x9ad8ff, spotB: 0xc8d8e8, odds: [['snowBunny', 50], ['arcticFox', 35], ['iceFawn', 15]] },
+  desert2:  { name: 'Glacier Egg',   shell: 0xd8f0ff, spotA: 0x3a7ab0, spotB: 0xffffff, odds: [['polarBear', 45], ['snowFennec', 35], ['iceScorplet', 20]] },
+  ocean2:   { name: 'Frozen Sea Egg', shell: 0xbfe0f8, spotA: 0x1a1a22, spotB: 0x7ab8f0, odds: [['narwhal', 45], ['orca', 35], ['iceSquidlet', 20]] },
+  crystal2: { name: 'Frost Crystal Egg', shell: 0xe8f4ff, spotA: 0x5ff0e6, spotB: 0x2a5aff, odds: [['frostSpider', 80], ['frostSpiderGold', 13], ['frostSpiderDiamond', 6], ['frostSpiderRainbow', 1]] },
+  forest3:  { name: 'Ember Egg',     shell: 0x5a3a2a, spotA: 0xff7a2a, spotB: 0xffd04a, odds: [['lavaBunny', 50], ['fireFox', 35], ['fireFawn', 15]] },
+  desert3:  { name: 'Magma Egg',     shell: 0x8a3a1a, spotA: 0xff5a1a, spotB: 0xfff07a, odds: [['magmaCamel', 45], ['emberFennec', 35], ['magmaScorplet', 20]] },
+  ocean3:   { name: 'Boiling Sea Egg', shell: 0xffb04a, spotA: 0xc84a1a, spotB: 0x3a2a2a, odds: [['lavaDolphin', 45], ['lavaShark', 35], ['magmaSquidlet', 20]] },
+  crystal3: { name: 'Inferno Egg',   shell: 0x2a1410, spotA: 0xff7a2a, spotB: 0xfff07a, odds: [['infernoSpider', 80], ['infernoSpiderGold', 13], ['infernoSpiderDiamond', 6], ['infernoSpiderRainbow', 1]] },
+});
+Object.assign(CHESTS, {
+  forest2:  { name: 'Ice Chest',      color: 0xbfe0f8, prizes: [[['weapon', 'diamond'], 35], [['armor', 4], 35], [['weapon', 'frostBlade'], 20], [['armor', 5], 10]] },
+  desert2:  { name: 'Glacier Chest',  color: 0x8ad0f0, prizes: [[['weapon', 'frostBlade'], 30], [['armor', 5], 30], [['weapon', 'laser'], 20], [['weapon', 'iceHammer'], 12], [['armor', 6], 8]] },
+  ocean2:   { name: 'Frozen Chest',   color: 0x7ab8f0, prizes: [[['weapon', 'iceHammer'], 25], [['armor', 6], 25], [['weapon', 'plasma'], 20], [['weapon', 'iceCannon'], 20], [['weapon', 'rainbow'], 10]] },
+  crystal2: { name: 'Snow Queen Chest', color: 0xe8f4ff, prizes: [[['weapon', 'iceCannon'], 55], [['weapon', 'rainbow'], 28], [['weapon', 'blizzard'], 17]] },
+  forest3:  { name: 'Ember Chest',    color: 0x5a3a2a, prizes: [[['weapon', 'iceHammer'], 35], [['armor', 6], 35], [['weapon', 'lavaSword'], 20], [['armor', 7], 10]] },
+  desert3:  { name: 'Magma Chest',    color: 0x8a3a1a, prizes: [[['weapon', 'lavaSword'], 30], [['armor', 7], 30], [['weapon', 'blizzard'], 20], [['weapon', 'magmaAxe'], 20]] },
+  ocean3:   { name: 'Boiling Chest',  color: 0xc84a1a, prizes: [[['weapon', 'magmaAxe'], 35], [['weapon', 'blizzard'], 25], [['weapon', 'lavaLauncher'], 30], [['weapon', 'sunBeam'], 10]] },
+  crystal3: { name: 'Inferno Chest',  color: 0xff7a2a, prizes: [[['weapon', 'lavaLauncher'], 60], [['weapon', 'sunBeam'], 40]] },
+});
+
+// ---------- planets ----------
+// each planet has the same kinds of places (a village, woods, a desert, a sea and crystal caves) in new spots,
+// with tougher bosses and better loot. hp/dmg multiply the base boss numbers.
+const PLANETS = {
+  island: {
+    name: 'The Island', world: 1, blurb: 'Grassy forests, a sandy desert, the ocean and the Crystal Caves.',
+    hp: 1, dmg: 1, coins: 1, suffix: '',
+    places: { rabbit: 'Forest', sand: 'Desert', dive: 'Ocean', crystal: 'Crystal Caves' },
+    bossNames: { deer: 'Giant Deer', scorpion: 'Sand Scorpion', squid: 'King Squid', spider: 'Crystal Spider' },
+  },
+  frost: {
+    name: 'Frost Planet', world: 2, blurb: 'Snowy pine woods, an ice field, a frozen sea and the Ice Caves.',
+    hp: 3, dmg: 1.8, coins: 2.5, suffix: '2',
+    places: { rabbit: 'Pine Woods', sand: 'Ice Field', dive: 'Frozen Sea', crystal: 'Ice Caves' },
+    bossNames: { deer: 'Frost Stag', scorpion: 'Glacier Scorpion', squid: 'Ice Kraken', spider: 'Snow Queen Spider' },
+    scrolls: {
+      deer: 'Out where the snow turns to sheets of ice,\na cave hides a beast that isn\'t nice.\nYou\'ll find an egg and no one there...\nbut pick it up, and then beware!',
+      scorpion: 'Dive through the cold where the frozen sea ends,\nsink thirty seconds with your whale friends.\nA kraken sleeps on a throne of gold,\nso grab its egg and be brave and bold.',
+      squid: 'Ice Caves glitter under a hole in the sky,\nthe Snow Queen waits on her web up high.\nShe\'s the strongest of all on this frozen land,\nso bring your best weapon in your hand!',
+    },
+  },
+  lava: {
+    name: 'Lava Planet', world: 3, blurb: 'Burnt ash woods, a red desert, a boiling sea and the Fire Caves.',
+    hp: 7, dmg: 3, coins: 5, suffix: '3',
+    places: { rabbit: 'Ash Woods', sand: 'Red Desert', dive: 'Boiling Sea', crystal: 'Fire Caves' },
+    bossNames: { deer: 'Fire Stag', scorpion: 'Magma Scorpion', squid: 'Lava Kraken', spider: 'Inferno Spider' },
+    scrolls: {
+      deer: 'Where red sand burns and the hot wind blows,\na lava tube hides what nobody knows.\nTake the egg, then walk away...\nthe ground will shake and ruin your day!',
+      scorpion: 'The sea out here is bubbling hot,\ndive down deep, it\'s your only shot.\nPast the whales a kraken sleeps,\non a golden throne way down deep.',
+      squid: 'The Fire Caves burn with a hole in the roof,\nthe Inferno Spider waits, and that\'s the truth.\nThe toughest boss in all the stars,\nbeat it and the galaxy\'s yours!',
+    },
+  },
+};
+const PLANET_ORDER = ['island', 'frost', 'lava'];
+let PLANET = 'island';
+
+// bosses for a planet: same moves, new names, much tougher
+let BOSSES = {};
+function setPlanetBosses(pid) {
+  const pl = PLANETS[pid];
+  BOSSES = {};
+  for (const id of BOSS_ORDER) {
+    const base = BOSS_BASE[id];
+    BOSSES[id] = Object.assign({}, base, {
+      name: pl.bossNames[id], hp: Math.round(base.hp * pl.hp), mult: base.mult * pl.dmg,
+      egg: base.egg + pl.suffix, chest: base.chest + pl.suffix, coins: Math.round([50, 100, 175, 300][BOSS_ORDER.indexOf(id)] * pl.coins),
+      scroll: id === 'spider' ? null : (pl.scrolls ? pl.scrolls[id] : base.scroll),
+    });
+  }
+}
+setPlanetBosses('island');
+
+// ---------- decorations for your house (sold in the village shop) ----------
+const DECOR = [
+  { id: 'flower', name: 'Flower Pot', price: 20 },
+  { id: 'rug', name: 'Cozy Rug', price: 30 },
+  { id: 'lamp', name: 'Lamp', price: 40 },
+  { id: 'bookshelf', name: 'Bookshelf', price: 60 },
+  { id: 'couch', name: 'Couch', price: 80 },
+  { id: 'painting', name: 'Painting', price: 100 },
+  { id: 'fishTank', name: 'Fish Tank', price: 150 },
+  { id: 'tv', name: 'TV', price: 200 },
+  { id: 'trophy', name: 'Trophy Case', price: 250 },
+  { id: 'rainbowBed', name: 'Rainbow Bed', price: 300 },
+  { id: 'statue', name: 'Gold Pet Statue', price: 400 },
+  { id: 'disco', name: 'Disco Ball', price: 500 },
+];
 </script>
 <script>
 // Block worlds: the island (overworld), the four boss caves and the deep ocean.
@@ -767,6 +964,7 @@ const B = {
   AMETHYST: 10, PLANKS: 11, COBBLE: 12, PATH: 13, HAY: 14, ORE: 15, BEDROCK: 16, ROOF: 17, MOSS: 18, WINDOW: 19,
   SANDSTONE: 20, CACTUS: 21, CORAL_PINK: 22, CORAL_ORANGE: 23, CORAL_BLUE: 24, SEA_LANTERN: 25, GOLD: 26,
   GLOWSHROOM: 27, MUD: 28, ROOTS: 29, KELP: 30, LANTERN: 31, WOOL_RED: 32, WOOL_WHITE: 33,
+  SNOW: 34, ICE: 35, PINE: 36, ASH: 37, BASALT: 38, MAGMA: 39, RED_SAND: 40,
 };
 // [top, side, bottom] tiles for each block
 const BLOCK_TILES = {
@@ -786,8 +984,11 @@ const BLOCK_TILES = {
   [B.MUD]: [T.MUD, T.MUD, T.MUD], [B.ROOTS]: [T.ROOTS, T.ROOTS, T.ROOTS], [B.KELP]: [T.KELP, T.KELP, T.KELP],
   [B.LANTERN]: [T.LANTERN, T.LANTERN, T.LANTERN], [B.WOOL_RED]: [T.WOOL_RED, T.WOOL_RED, T.WOOL_RED],
   [B.WOOL_WHITE]: [T.WOOL_WHITE, T.WOOL_WHITE, T.WOOL_WHITE],
+  [B.SNOW]: [T.SNOW_TOP, T.SNOW_SIDE, T.DIRT], [B.ICE]: [T.ICE, T.ICE, T.ICE], [B.PINE]: [T.PINE, T.PINE, T.PINE],
+  [B.ASH]: [T.ASH_TOP, T.ASH_SIDE, T.BASALT], [B.BASALT]: [T.BASALT, T.BASALT, T.BASALT], [B.MAGMA]: [T.MAGMA, T.MAGMA, T.MAGMA],
+  [B.RED_SAND]: [T.RED_SAND, T.RED_SAND, T.RED_SAND],
 };
-const GLOWS = new Set([B.CRYSTAL, B.AMETHYST, B.SEA_LANTERN, B.GOLD, B.GLOWSHROOM, B.LANTERN]);
+const GLOWS = new Set([B.CRYSTAL, B.AMETHYST, B.SEA_LANTERN, B.GOLD, B.GLOWSHROOM, B.LANTERN, B.MAGMA]);
 
 // face table: direction, the 4 corners and their uvs (two triangles: 0 1 2, 2 1 3)
 const FACES = [
@@ -951,49 +1152,93 @@ function valueNoise2D(seed) {
   };
 }
 
-// ---------- the island ----------
-const OVER = {
-  W: 208, H: 56, D: 208, water: 13,
-  village: { x: 104, z: 116, r: 17, h: 16 },
-  spawn: { x: 104.5, z: 124.5 },
-  guide: { x: 100.5, z: 117.5 },
-  dummy: { x: 112.5, z: 111.5 },
-  home: { x0: 88, z0: 99, sx: 9, sz: 7 },
-  incubator: { x: 90.5, z: 101.5 },
-  bed: { x: 95, z: 100 },
-  rocketPad: { x: 119.5, z: 117.5 },
-  forest: { x: 100, z: 44, r: 38 },
-  desert: { x: 168, z: 168, r: 44 },
-  oceanX: 50,
-  diveSpot: { x: 22.5, z: 116.5 },
-  beach: { x: 60.5, z: 116.5 },
-  mountain: { x: 172, z: 46, r: 30 },
+// ---------- the planets' overworlds ----------
+// every planet has a village, woods, a desert, a sea and a crystal mountain, in different far-apart spots
+const MAP = { W: 288, H: 50, D: 288, water: 13 };
+const LAYOUTS = {
+  island: {
+    village: { x: 128, z: 164 }, forest: { x: 120, z: 50, r: 46 }, desert: { x: 222, z: 244, r: 50 }, mountain: { x: 258, z: 110, r: 30 },
+    ocean: 'west', dive: { x: 22, z: 164 },
+    doors: { rabbit: { x: 120, z: 36, dir: [0, -1], mound: { x: 120, z: 27 } }, sand: { x: 208, z: 250, dir: [1, 0], mound: { x: 220, z: 250 } }, crystal: { x: 232, z: 110, dir: [1, 0] } },
+    sky: 0x9ad0ff, ground: 0x5a7a3a, beam: 0xb77bff, seed: 77,
+    pal: { grass: 'GRASS', dirt: 'DIRT', beach: 'SAND', desertTop: 'SAND', desertSub: 'SANDSTONE', stone: 'STONE', leaves: 'LEAVES', cactus: 'CACTUS', desertPath: 'SANDSTONE', palms: true },
+    doorLook: { rabbit: ['ROOTS', 'DIRT', 'RABBIT HOLE', '#c9955a'], sand: ['SANDSTONE', 'SANDSTONE', 'SAND CAVE', '#ffcf4a'], crystal: ['AMETHYST', 'CAVE', 'CRYSTAL CAVES', '#5ff0e6'] },
+  },
+  frost: {
+    village: { x: 160, z: 124 }, forest: { x: 168, z: 238, r: 46 }, desert: { x: 66, z: 48, r: 50 }, mountain: { x: 30, z: 200, r: 30 },
+    ocean: 'east', dive: { x: 266, z: 124 },
+    doors: { rabbit: { x: 168, z: 252, dir: [0, 1], mound: { x: 168, z: 261 } }, sand: { x: 80, z: 40, dir: [-1, 0], mound: { x: 68, z: 40 } }, crystal: { x: 56, z: 200, dir: [-1, 0] } },
+    sky: 0xcfe6f6, ground: 0xe8f0f8, beam: 0x9ae8ff, seed: 131,
+    pal: { grass: 'SNOW', dirt: 'DIRT', beach: 'SNOW', desertTop: 'ICE', desertSub: 'SNOW', stone: 'STONE', leaves: 'PINE', cactus: 'ICE', desertPath: 'SNOW', palms: false },
+    doorLook: { rabbit: ['ICE', 'SNOW', 'SNOW BURROW', '#bfeeff'], sand: ['ICE', 'ICE', 'ICE CAVE', '#9ae8ff'], crystal: ['CRYSTAL', 'STONE', 'ICE CAVES', '#5ff0e6'] },
+  },
+  lava: {
+    village: { x: 144, z: 110 }, forest: { x: 44, z: 64, r: 44 }, desert: { x: 240, z: 70, r: 48 }, mountain: { x: 244, z: 208, r: 30 },
+    ocean: 'south', dive: { x: 144, z: 266 },
+    doors: { rabbit: { x: 44, z: 76, dir: [0, -1], mound: { x: 44, z: 67 } }, sand: { x: 228, z: 70, dir: [1, 0], mound: { x: 240, z: 70 } }, crystal: { x: 218, z: 208, dir: [1, 0] } },
+    sky: 0x7a3a2a, ground: 0x3a2a24, beam: 0xff7a2a, seed: 211,
+    pal: { grass: 'ASH', dirt: 'BASALT', beach: 'RED_SAND', desertTop: 'RED_SAND', desertSub: 'SANDSTONE', stone: 'BASALT', leaves: null, cactus: 'MAGMA', desertPath: 'BASALT', palms: false },
+    doorLook: { rabbit: ['MAGMA', 'BASALT', 'ASH BURROW', '#ff9a4a'], sand: ['MAGMA', 'RED_SAND', 'LAVA TUBE', '#ffcf4a'], crystal: ['MAGMA', 'BASALT', 'FIRE CAVES', '#ff7a2a'] },
+  },
 };
-// doors into the boss caves: the tunnel runs from (x, z) in direction dir; walking to the end takes you inside
-const DOORS = {
-  rabbit:  { x: 100, z: 38, dir: [0, -1], floor: 17, len: 9, w: 3, h: 4, frame: B.ROOTS, wall: B.DIRT, mound: { x: 100, z: 29, r: 13, h: 12 }, label: 'RABBIT HOLE', color: '#c9955a' },
-  sand:    { x: 160, z: 170, dir: [1, 0], floor: 17, len: 11, w: 5, h: 5, frame: B.SANDSTONE, wall: B.SANDSTONE, mound: { x: 171, z: 170, r: 15, h: 13 }, label: 'SAND CAVE', color: '#ffcf4a' },
-  crystal: { x: 146, z: 46, dir: [1, 0], floor: 17, len: 13, w: 5, h: 5, frame: B.AMETHYST, wall: B.CAVE, label: 'CRYSTAL CAVES', color: '#5ff0e6' },
-};
+const DOOR_SIZE = { rabbit: { len: 9, w: 3, h: 4, mr: 13, mh: 12 }, sand: { len: 11, w: 5, h: 5, mr: 15, mh: 13 }, crystal: { len: 13, w: 5, h: 5 } };
+
+let OVER = null, DOORS = null;
+// fill OVER and DOORS for a planet (positions of everything on its overworld)
+function setupLayout(pid) {
+  const L = LAYOUTS[pid], V = L.village;
+  const pal = {};
+  for (const k in L.pal) pal[k] = typeof L.pal[k] === 'string' ? B[L.pal[k]] : L.pal[k];
+  const home = { x0: V.x - 24, z0: V.z - 5, sx: 13, sz: 9 };
+  OVER = Object.assign({}, MAP, {
+    pid, layout: L, pal,
+    village: { x: V.x, z: V.z, h: 16 },
+    spawn: { x: V.x + 0.5, z: V.z + 8.5 },
+    guide: { x: V.x - 4.5, z: V.z + 3.5 },
+    dummy: { x: V.x + 2.5, z: V.z + 11.5 },
+    home, incubator: { x: home.x0 + 3.5, z: home.z0 + 4.5 }, bed: { x: home.x0 + 1, z: home.z0 + 1 },
+    shop: { x0: V.x + 30, z0: V.z - 5, sx: 9, sz: 9 }, shopkeeper: { x: V.x + 32.5, z: V.z + 0.5 },
+    forest: L.forest, desert: L.desert, mountain: L.mountain, ocean: L.ocean,
+    diveSpot: { x: L.dive.x + 0.5, z: L.dive.z + 0.5 },
+  });
+  // where you come back out of the coral cave: on the shore between the village and the dive spot
+  const dvx = V.x - L.dive.x, dvz = V.z - L.dive.z, dl = Math.hypot(dvx, dvz);
+  OVER.beach = { x: L.dive.x + dvx / dl * 46 + 0.5, z: L.dive.z + dvz / dl * 46 + 0.5 };
+  DOORS = {};
+  for (const id in L.doors) {
+    const d = L.doors[id], sz = DOOR_SIZE[id], look = L.doorLook[id];
+    DOORS[id] = { x: d.x, z: d.z, dir: d.dir, floor: 17, len: sz.len, w: sz.w, h: sz.h, frame: B[look[0]], wall: B[look[1]],
+      mound: d.mound ? { x: d.mound.x, z: d.mound.z, r: sz.mr, h: sz.mh } : null, label: look[2], color: look[3] };
+  }
+}
+// how far into the sea a spot is (0 or less means on land)
+function oceanDepth(x, z) {
+  if (OVER.ocean === 'west') return 60 - x;
+  if (OVER.ocean === 'east') return x - (MAP.W - 60);
+  return z - (MAP.D - 60);
+}
 
 function smooth01(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 
 function generateOverworld() {
   const w = new World('overworld', OVER.W, OVER.H, OVER.D);
-  const noise = valueNoise2D(77), noise2 = valueNoise2D(91);
-  const rng = makeRng(4242);
+  const L = OVER.layout, pal = OVER.pal;
+  const noise = valueNoise2D(L.seed), noise2 = valueNoise2D(L.seed + 14);
+  const rng = makeRng(L.seed * 55);
   const heights = new Int16Array(w.W * w.D);
-  const biome = new Uint8Array(w.W * w.D); // 0 grass, 1 forest, 2 desert, 3 ocean
+  const biome = new Uint8Array(w.W * w.D); // 0 plains, 1 woods, 2 desert, 3 sea
   const V = OVER.village, M = OVER.mountain, Dz = OVER.desert, Fo = OVER.forest;
+  const vx0 = V.x - 28, vx1 = V.x + 42, vzr = 16;
   for (let z = 0; z < w.D; z++) for (let x = 0; x < w.W; x++) {
     let h = 15 + (noise(x / 40, z / 40) - 0.5) * 14 + (noise2(x / 12, z / 12) - 0.5) * 3;
     const dw = smooth01((Dz.r - Math.hypot(x - Dz.x, z - Dz.z)) / 14);
     h = lerp(h, 16 + (noise2(x / 16, z / 8) - 0.5) * 7, dw);
-    const ow = smooth01((OVER.oceanX - x) / 16);
+    const ow = smooth01(oceanDepth(x, z) / 16);
     h = lerp(h, 4 + noise2(x / 9, z / 9) * 2.5, ow);
-    const dv = Math.hypot(x - V.x, z - V.z);
-    if (dv < V.r + 10) h = lerp(V.h, h, smooth01((dv - V.r) / 10));
+    // the village is a long flat strip: your house, the square, the street and the shop
+    const vdx = Math.max(vx0 - x, 0, x - vx1), vdz = Math.max(Math.abs(z - V.z) - vzr, 0), dv = Math.hypot(vdx, vdz);
+    if (dv < 10) h = lerp(V.h, h, smooth01(dv / 10));
     const dm = Math.hypot(x - M.x, z - M.z);
     if (dm < M.r) h += Math.pow(1 - dm / M.r, 1.15) * 26 + (noise2(x / 6, z / 6) - 0.5) * 4;
     for (const id in DOORS) {
@@ -1006,7 +1251,7 @@ function generateOverworld() {
       const dc = Math.hypot(x - fx, z - fz);
       if (dc < 11) h = lerp(d.floor, h, smooth01((dc - 6) / 5));
     }
-    const edge = Math.min(z, w.W - 1 - x, w.D - 1 - z);
+    const edge = Math.min(x, z, w.W - 1 - x, w.D - 1 - z);
     if (edge < 8 && ow < 0.5) h += (8 - edge) * 1.6;
     heights[z * w.W + x] = Math.max(3, Math.min(w.H - 6, Math.round(h)));
     biome[z * w.W + x] = ow > 0.5 ? 3 : dw > 0.45 ? 2 : Math.hypot(x - Fo.x, z - Fo.z) < Fo.r ? 1 : 0;
@@ -1015,12 +1260,12 @@ function generateOverworld() {
     const h = heights[z * w.W + x], bi = biome[z * w.W + x];
     const dm = Math.hypot(x - M.x, z - M.z);
     const rocky = dm < M.r * 0.78 && h > 22;
-    const sandy = bi >= 2 || h <= OVER.water + 1;
+    const shore = bi === 3 || h <= OVER.water + 1;
     for (let y = 0; y < h; y++) {
-      let b = B.STONE;
+      let b = pal.stone;
       if (y === 0) b = B.BEDROCK;
-      else if (y >= h - 1) b = rocky ? (rng() < 0.08 ? B.ORE : B.STONE) : sandy ? B.SAND : B.GRASS;
-      else if (y >= h - 4) b = rocky ? B.STONE : sandy ? (bi === 2 && y < h - 2 ? B.SANDSTONE : B.SAND) : B.DIRT;
+      else if (y >= h - 1) b = rocky ? (rng() < 0.08 ? B.ORE : pal.stone) : bi === 2 ? pal.desertTop : shore ? pal.beach : pal.grass;
+      else if (y >= h - 4) b = rocky ? pal.stone : bi === 2 ? (y < h - 2 ? pal.desertSub : pal.desertTop) : shore ? pal.beach : pal.dirt;
       else if (rocky && rng() < 0.05) b = B.ORE;
       w.set(x, y, z, b);
     }
@@ -1028,13 +1273,14 @@ function generateOverworld() {
     if (h > 34 && dm < 10 && rng() < 0.18) w.set(x, h, z, rng() < 0.5 ? B.CRYSTAL : B.AMETHYST);
   }
 
-  // gravel paths from the village to every place
+  // gravel paths from the village to every place (a wooden pier over the water to the dive spot)
   const pathCells = new Set();
+  const out = id => [DOORS[id].x - DOORS[id].dir[0] * 4, DOORS[id].z - DOORS[id].dir[1] * 4];
   const paths = [
-    [[V.x - 2, V.z - 10], [102, 70], [DOORS.rabbit.x, DOORS.rabbit.z + 4]],
-    [[V.x + 10, V.z + 6], [140, 140], [DOORS.sand.x - 6, DOORS.sand.z]],
-    [[V.x - 12, V.z], [76, 118], [OVER.beach.x - 2, OVER.beach.z]],
-    [[V.x + 8, V.z - 10], [128, 80], [DOORS.crystal.x - 6, DOORS.crystal.z]],
+    [[V.x, V.z], [(V.x + out('rabbit')[0]) / 2 + 6, (V.z + out('rabbit')[1]) / 2], out('rabbit')],
+    [[V.x, V.z], [(V.x + out('sand')[0]) / 2, (V.z + out('sand')[1]) / 2 + 6], out('sand')],
+    [[V.x, V.z], [(V.x + out('crystal')[0]) / 2 - 5, (V.z + out('crystal')[1]) / 2], out('crystal')],
+    [[V.x, V.z], [(V.x + OVER.diveSpot.x) / 2, (V.z + OVER.diveSpot.z) / 2 + 4], [OVER.diveSpot.x + Math.sign(V.x - OVER.diveSpot.x) * 3, OVER.diveSpot.z + Math.sign(V.z - OVER.diveSpot.z) * 3]],
   ];
   for (const pts of paths) for (let i = 0; i < pts.length - 1; i++) {
     const [ax, az] = pts[i], [bx, bz] = pts[i + 1];
@@ -1050,55 +1296,63 @@ function generateOverworld() {
     if (!w.inside(x, 0, z)) continue;
     const h = heights[z * w.W + x];
     if (h <= OVER.water) { w.set(x, OVER.water - 1, z, B.PLANKS); if (h < OVER.water - 1) w.set(x, OVER.water - 2, z, B.LOG); }
-    else if (biome[z * w.W + x] === 2) w.set(x, h - 1, z, B.SANDSTONE);
+    else if (biome[z * w.W + x] === 2) w.set(x, h - 1, z, pal.desertPath);
     else w.set(x, h - 1, z, B.PATH);
   }
 
-  // the village: square, well, houses and your own house
+  // the village: square and well, your house to the west, a street of houses to the east, and the shop at the end
   for (let z = V.z - 5; z <= V.z + 5; z++) for (let x = V.x - 5; x <= V.x + 5; x++) w.set(x, V.h - 1, z, B.COBBLE);
+  for (let x = V.x - 12; x <= V.x + 30; x++) for (let z = V.z - 1; z <= V.z + 1; z++) w.set(x, V.h - 1, z, B.COBBLE);
   for (let z = V.z - 1; z <= V.z + 1; z++) for (let x = V.x - 1; x <= V.x + 1; x++) {
     if (x === V.x && z === V.z) { w.set(x, V.h - 1, z, B.WATER); continue; }
     w.set(x, V.h, z, B.COBBLE);
   }
   const H = OVER.home;
-  buildHouse(w, H.x0, H.z0, H.sx, H.sz, V.h);
+  buildHouse(w, H.x0, H.z0, H.sx, H.sz, V.h, 'x+');
   w.set(OVER.bed.x, V.h, OVER.bed.z, B.WOOL_RED); w.set(OVER.bed.x + 1, V.h, OVER.bed.z, B.WOOL_WHITE);
-  buildHouse(w, V.x + 8, V.z - 14, 6, 7, V.h);
-  buildHouse(w, V.x - 13, V.z + 7, 6, 6, V.h);
-  buildHouse(w, V.x + 9, V.z + 8, 7, 6, V.h);
-  buildHouse(w, V.x - 3, V.z - 16, 6, 6, V.h);
-  for (let z = -2; z <= 2; z++) for (let x = -2; x <= 2; x++) w.set(Math.floor(OVER.rocketPad.x) + x, V.h - 1, Math.floor(OVER.rocketPad.z) + z, (x + z) % 2 ? B.COBBLE : B.STONE);
-  for (let i = -3; i <= 3; i++) w.set(OVER.dummy.x - 3 | 0, V.h, (OVER.dummy.z | 0) + i, i % 3 === 0 ? B.LOG : B.AIR);
+  buildHouse(w, V.x + 8, V.z - 10, 6, 7, V.h, 'z+');
+  buildHouse(w, V.x + 18, V.z - 10, 7, 7, V.h, 'z+');
+  buildHouse(w, V.x + 8, V.z + 4, 7, 6, V.h, 'z-');
+  buildHouse(w, V.x + 19, V.z + 4, 6, 6, V.h, 'z-');
+  const S = OVER.shop;
+  buildHouse(w, S.x0, S.z0, S.sx, S.sz, V.h, 'x-');
+  for (let i = -3; i <= 3; i++) w.set(Math.floor(OVER.dummy.x) - 3, V.h, Math.floor(OVER.dummy.z) + i, i % 3 === 0 ? B.LOG : B.AIR);
 
-  // doors into the boss caves
   for (const id in DOORS) carveDoor(w, DOORS[id]);
 
-  // trees: thick in the forest, a few on the grass, palms on the beach, cacti in the desert
+  // trees: thick in the woods, a few on the plains, palms on island beaches, cacti (or ice spikes, or magma) in the desert
   const trees = [];
   const free = (x, z, r) => !trees.some(t => Math.abs(t[0] - x) < r && Math.abs(t[1] - z) < r);
   const nearPath = (x, z) => { for (let ox = -2; ox <= 2; ox++) for (let oz = -2; oz <= 2; oz++) if (pathCells.has((x + ox) + ',' + (z + oz))) return true; return false; };
   const nearDoor = (x, z) => Object.values(DOORS).some(d => Math.hypot(x - d.x, z - d.z) < 10 || (d.mound && Math.hypot(x - d.mound.x, z - d.mound.z) < d.mound.r + 2));
-  for (let tries = 0; tries < 9000; tries++) {
+  const inVillage = (x, z) => x > vx0 - 4 && x < vx1 + 4 && Math.abs(z - V.z) < vzr + 4;
+  for (let tries = 0; tries < 16000; tries++) {
     const x = 6 + Math.floor(rng() * (w.W - 12)), z = 6 + Math.floor(rng() * (w.D - 12));
     const bi = biome[z * w.W + x], h = heights[z * w.W + x];
-    if (Math.hypot(x - V.x, z - V.z) < V.r + 3 || Math.hypot(x - M.x, z - M.z) < M.r - 4 || nearDoor(x, z) || nearPath(x, z)) continue;
-    if (bi === 1 || (bi === 0 && rng() < 0.18)) {
-      if (h <= OVER.water + 1 || w.get(x, h - 1, z) !== B.GRASS || !free(x, z, bi === 1 ? 3.6 : 5)) continue;
+    if (inVillage(x, z) || Math.hypot(x - M.x, z - M.z) < M.r - 4 || nearDoor(x, z) || nearPath(x, z)) continue;
+    if (bi === 1 || (bi === 0 && rng() < 0.15)) {
+      if (h <= OVER.water + 1 || w.get(x, h - 1, z) !== pal.grass || !free(x, z, bi === 1 ? 3.6 : 5)) continue;
       trees.push([x, z]);
       const th = (bi === 1 ? 5 : 4) + Math.floor(rng() * 3);
       for (let y = h; y < h + th; y++) w.set(x, y, z, B.LOG);
-      for (let y = h + th - 2; y <= h + th + 1; y++) {
-        const r = y >= h + th ? 1 : 2;
+      if (!pal.leaves) {
+        // burnt trees: bare branches with glowing tips
+        for (const [ox, oz] of [[1, 0], [-1, 0], [0, 1]]) { w.set(x + ox, h + th - 2, z + oz, B.LOG); if (rng() < 0.5) w.set(x + ox * 2, h + th - 1, z + oz * 2, B.MAGMA); }
+        continue;
+      }
+      const pine = pal.leaves === B.PINE;
+      for (let y = h + th - (pine ? 4 : 2); y <= h + th + 1; y++) {
+        const r = pine ? Math.max(0, Math.min(2, Math.floor((h + th + 1 - y) / 1.5))) : (y >= h + th ? 1 : 2);
         for (let ox = -r; ox <= r; ox++) for (let oz = -r; oz <= r; oz++) {
-          if (Math.abs(ox) === r && Math.abs(oz) === r && (y === h + th + 1 || rng() < 0.5)) continue;
-          if (w.get(x + ox, y, z + oz) === B.AIR) w.set(x + ox, y, z + oz, B.LEAVES);
+          if (Math.abs(ox) === r && Math.abs(oz) === r && r > 0 && (y === h + th + 1 || rng() < 0.5)) continue;
+          if (w.get(x + ox, y, z + oz) === B.AIR) w.set(x + ox, y, z + oz, pal.leaves);
         }
       }
     } else if (bi === 2 && rng() < 0.12 && free(x, z, 6)) {
       trees.push([x, z]);
       const ch = 2 + Math.floor(rng() * 3);
-      for (let y = h; y < h + ch; y++) w.set(x, y, z, B.CACTUS);
-    } else if (bi === 3 && h > OVER.water && h <= OVER.water + 2 && rng() < 0.3 && free(x, z, 7)) {
+      for (let y = h; y < h + ch; y++) w.set(x, y, z, pal.cactus);
+    } else if (pal.palms && bi === 3 && h > OVER.water && h <= OVER.water + 2 && rng() < 0.3 && free(x, z, 7)) {
       trees.push([x, z]);
       const th = 5 + Math.floor(rng() * 2);
       for (let y = h; y < h + th; y++) w.set(x + (y - h > 3 ? 1 : 0), y, z, B.LOG);
@@ -1131,7 +1385,7 @@ function carveDoor(w, d) {
   d.outside = { x: d.x - dx * 4 + 0.5, z: d.z - dz * 4 + 0.5 };
 }
 
-function buildHouse(w, x0, z0, sx, sz, floor) {
+function buildHouse(w, x0, z0, sx, sz, floor, door = 'z+') {
   for (let x = x0; x < x0 + sx; x++) for (let z = z0; z < z0 + sz; z++) {
     w.set(x, floor - 1, z, B.PLANKS);
     for (let y = floor; y < floor + 3; y++) {
@@ -1142,8 +1396,9 @@ function buildHouse(w, x0, z0, sx, sz, floor) {
       w.set(x, y, z, b);
     }
   }
-  const dx = x0 + Math.floor(sx / 2);
-  w.set(dx, floor, z0 + sz - 1, B.AIR); w.set(dx, floor + 1, z0 + sz - 1, B.AIR);
+  const mx = x0 + Math.floor(sx / 2), mz = z0 + Math.floor(sz / 2);
+  const [dx, dz] = door === 'z+' ? [mx, z0 + sz - 1] : door === 'z-' ? [mx, z0] : door === 'x-' ? [x0, mz] : [x0 + sx - 1, mz];
+  w.set(dx, floor, dz, B.AIR); w.set(dx, floor + 1, dz, B.AIR);
   for (let layer = 0; ; layer++) {
     const za = z0 - 1 + layer, zb = z0 + sz - layer, y = floor + 3 + layer;
     if (za > zb) break;
@@ -1193,7 +1448,7 @@ const CAVE_STYLES = {
 };
 
 function generateBossCave(id) {
-  const st = CAVE_STYLES[id];
+  const st = Object.assign({}, CAVE_STYLES[id], (CAVE_PLANET_STYLES[OVER.pid] || {})[id] || {});
   const w = new World(id, CAVE.W, CAVE.H, CAVE.D);
   w.ambient = st.ambient;
   w.style = st;
@@ -1287,7 +1542,7 @@ function generateBossCave(id) {
     w.lights.push({ x: tx + 0.5, y: F + 4, z: tz - 1, r: 0.7, g: 0.6, b: 0.25, radius: 12 });
   }
   // vines hanging from the roof (drawn as models, you can walk through them)
-  if (st.vines) {
+  if (st.vines !== false && st.vines) {
     for (let z = 3; z < w.D - 3; z += 1) for (let x = 3; x < w.W - 3; x += 1) {
       if (rng() > (z < CAVE.roomDoorZ ? 0.22 : 0.05)) continue;
       let y = F + 1; while (y < w.H - 2 && w.get(x, y, z) === B.AIR) y++;
@@ -1301,6 +1556,22 @@ function generateBossCave(id) {
   return w;
 }
 
+// the other planets' caves use their own blocks and lights
+const CAVE_PLANET_STYLES = {
+  frost: {
+    rabbit: { walls: [[B.ICE, 4], [B.STONE, 3], [B.SNOW, 2]], floor: [[B.SNOW, 4], [B.ICE, 1]], glow: [B.SEA_LANTERN, B.CRYSTAL], light: [[0.35, 0.6, 0.8], [0.25, 0.7, 0.75]], ambient: [0.26, 0.3, 0.38], barrier: B.ICE, sky: 0x0c1824, fog: [0x0c1824, 14, 60] },
+    sand: { walls: [[B.ICE, 6], [B.SNOW, 2]], floor: [[B.SNOW, 1]], glow: [B.SEA_LANTERN, B.SEA_LANTERN], light: [[0.4, 0.6, 0.8], [0.4, 0.55, 0.8]], ambient: [0.3, 0.34, 0.42], barrier: B.ICE, sky: 0x0c1824, fog: [0x0c1824, 14, 60] },
+    coral: { walls: [[B.CORAL_BLUE, 4], [B.ICE, 3], [B.CORAL_PINK, 1]], floor: [[B.SNOW, 4], [B.ICE, 1]], barrier: B.ICE },
+    crystal: { walls: [[B.ICE, 10], [B.STONE, 10], [B.ORE, 1]], floor: [[B.SNOW, 2], [B.ICE, 1]], glow: [B.CRYSTAL, B.SEA_LANTERN], light: [[0.3, 0.7, 0.8], [0.4, 0.55, 0.8]], ambient: [0.22, 0.26, 0.34], barrier: B.ICE },
+  },
+  lava: {
+    rabbit: { walls: [[B.BASALT, 5], [B.ASH, 3], [B.MAGMA, 1]], floor: [[B.ASH, 3], [B.BASALT, 2]], glow: [B.MAGMA, B.LANTERN], light: [[0.8, 0.35, 0.15], [0.75, 0.5, 0.2]], ambient: [0.3, 0.18, 0.14], vines: false, barrier: B.BASALT, sky: 0x1a0806, fog: [0x1a0806, 14, 60] },
+    sand: { walls: [[B.RED_SAND, 4], [B.SANDSTONE, 3], [B.BASALT, 2]], floor: [[B.RED_SAND, 1]], glow: [B.MAGMA, B.LANTERN], light: [[0.8, 0.35, 0.15], [0.75, 0.5, 0.2]], ambient: [0.32, 0.2, 0.14], barrier: B.BASALT, sky: 0x1a0806, fog: [0x1a0806, 14, 60] },
+    coral: { walls: [[B.BASALT, 4], [B.CORAL_ORANGE, 3], [B.MAGMA, 1]], floor: [[B.BASALT, 3], [B.RED_SAND, 2]], glow: [B.MAGMA, B.SEA_LANTERN], light: [[0.8, 0.4, 0.2], [0.5, 0.45, 0.6]], ambient: [0.28, 0.2, 0.2], barrier: B.BASALT },
+    crystal: { walls: [[B.BASALT, 20], [B.ORE, 1]], floor: [[B.BASALT, 3], [B.ASH, 1]], glow: [B.MAGMA, B.AMETHYST], light: [[0.85, 0.35, 0.15], [0.55, 0.3, 0.8]], ambient: [0.24, 0.16, 0.16], barrier: B.BASALT, sky: 0x140606, fog: [0x140606, 14, 60] },
+  },
+};
+
 // ---------- the deep ocean: a tall column of water with a sandy floor ----------
 const DEEP = { W: 64, H: 140, D: 64, top: 130, floorY: 6, cutsceneY: 30, diveSeconds: 30 };
 
@@ -1312,7 +1583,7 @@ function generateDeep() {
   const noise = valueNoise2D(55);
   for (let z = 0; z < w.D; z++) for (let x = 0; x < w.W; x++) {
     const h = DEEP.floorY - 2 + Math.round(noise(x / 8, z / 8) * 4);
-    for (let y = 0; y < w.H; y++) w.set(x, y, z, y === 0 ? B.BEDROCK : y < h ? B.SAND : B.WATER);
+    for (let y = 0; y < w.H; y++) w.set(x, y, z, y === 0 ? B.BEDROCK : y < h ? (OVER.pid === 'frost' ? B.SNOW : OVER.pid === 'lava' ? B.BASALT : B.SAND) : B.WATER);
     if (rng() < 0.03) { const kh = 3 + Math.floor(rng() * 8); for (let y = h; y < h + kh; y++) w.set(x, y, z, B.KELP); }
     else if (rng() < 0.02) { const c = [B.CORAL_PINK, B.CORAL_ORANGE, B.CORAL_BLUE][Math.floor(rng() * 3)]; w.set(x, h, z, c); if (rng() < 0.5) w.set(x, h + 1, z, c); }
     else if (rng() < 0.004) { w.set(x, h, z, B.SEA_LANTERN); w.lights.push({ x: x + 0.5, y: h + 1, z: z + 0.5, r: 0.3, g: 0.5, b: 0.6, radius: 10 }); }
@@ -1444,7 +1715,7 @@ function makePlayerModel() {
       if (id === heldId) return;
       if (held) hand.remove(held);
       heldId = id;
-      held = id ? weaponMesh(id) : null;
+      held = id === 'rocket' ? makeRocketItem() : id ? weaponMesh(id) : null;
       if (held) {
         if (id && WEAPONS[id] && WEAPONS[id].kind === 'gun') held.rotation.x = 0.5;
         hand.add(held);
@@ -1742,23 +2013,29 @@ function makePetModel(speciesId) {
 }
 
 // ---------- bosses ----------
-function makeBossModel(id) {
+const BOSS_COLORS = {
+  island: { deer: [0x8a5a2a, 0xe0c8a0, 0xfff4e0, 0xd8c8a0, 0x7aff7a], scorpion: [0xd9822b, 0x8a4a1a, 0xb4ff4a], squid: [0xc8345a, 0x7a1a3a, 0xfff4c0], spider: [0x2a2440, 0x3a3456, 0x5ff0e6, 0xff4a6a] },
+  frost: { deer: [0xe8f4ff, 0xbfd8ee, 0x9ad8ff, 0x9ae8ff, 0x5ff0e6], scorpion: [0x8ad0f0, 0x2a5a8a, 0xffffff], squid: [0x5a8ad8, 0x2a4a8a, 0xffffff], spider: [0xd8ecff, 0x9ac8f0, 0x5ff0e6, 0x2a5aff] },
+  lava: { deer: [0x2a1a14, 0x5a2a1a, 0xff7a2a, 0xff7a2a, 0xfff07a], scorpion: [0x2a1a1a, 0xc8341a, 0xfff07a], squid: [0xff6a2a, 0x8a2a10, 0xfff07a], spider: [0x2a1410, 0x5a2a1a, 0xff7a2a, 0xfff07a] },
+};
+function makeBossModel(id, pid = 'island') {
   const root = new THREE.Group();
   const inner = new THREE.Group();
   root.add(inner);
+  const c = BOSS_COLORS[pid][id];
   let P;
   if (id === 'deer') {
     inner.scale.setScalar(3.3);
-    P = buildDeer(inner, { body: 0x8a5a2a, belly: 0xe0c8a0, spot: 0xfff4e0, antler: 0xd8c8a0 }, { antlers: true, moss: true, eyeGlow: 0x7aff7a });
+    P = buildDeer(inner, { body: c[0], belly: c[1], spot: c[2], antler: c[3] }, { antlers: true, moss: pid === 'island', eyeGlow: c[4] });
   } else if (id === 'scorpion') {
     inner.scale.setScalar(3.2);
-    P = buildScorpion(inner, { body: 0xd9822b, dark: 0x8a4a1a, sting: 0xb4ff4a });
+    P = buildScorpion(inner, { body: c[0], dark: c[1], sting: c[2] });
   } else if (id === 'squid') {
     inner.scale.setScalar(3.0);
-    P = buildSquid(inner, { body: 0xc8345a, dark: 0x7a1a3a, eye: 0xfff4c0 }, { crown: true });
+    P = buildSquid(inner, { body: c[0], dark: c[1], eye: c[2] }, { crown: true });
   } else {
     inner.scale.setScalar(3.4);
-    P = buildSpider(inner, { c: { body: 0x2a2440, leg: 0x3a3456, gem: 0x5ff0e6, eye: 0xff4a6a } });
+    P = buildSpider(inner, { c: { body: c[0], leg: c[1], gem: c[2], eye: c[3] } });
   }
   const own = [];
   root.traverse(o => { if (o.isMesh && o.material.isMeshLambertMaterial && !own.includes(o.material)) own.push(o.material); });
@@ -1894,6 +2171,94 @@ function makeBuoyModel() {
   box(0.3, 0.3, 0.3, pixMat(0xffcf4a, { glow: true }), 0, 2.1, 0, g);
   return g;
 }
+
+// a little rocket to hold in your hand
+function makeRocketItem() {
+  const g = makeRocketModel();
+  g.scale.setScalar(0.09);
+  g.rotation.x = Math.PI / 2;
+  g.position.set(0, 0, 0.3);
+  const w = new THREE.Group(); w.add(g);
+  return w;
+}
+
+// ---------- house decorations ----------
+function makeDecorModel(id) {
+  const g = new THREE.Group();
+  const m = (c, o) => pixMat(c, o);
+  switch (id) {
+    case 'flower':
+      box(0.45, 0.4, 0.45, m(0xa85a32), 0, 0.2, 0, g);
+      box(0.06, 0.4, 0.06, m(0x3f8a2a), 0, 0.6, 0, g);
+      [[0.12, 0], [-0.12, 0], [0, 0.12], [0, -0.12]].forEach(([x, z]) => box(0.14, 0.12, 0.14, m(0xff6a9a), x, 0.85, z, g));
+      box(0.12, 0.12, 0.12, m(0xffe95a, { glow: true }), 0, 0.86, 0, g);
+      break;
+    case 'rug':
+      box(3, 0.05, 2, m(0xc8344a), 0, 0.03, 0, g);
+      box(2.4, 0.06, 1.4, m(0xffcf4a), 0, 0.04, 0, g);
+      box(1.6, 0.07, 0.7, m(0x3a8ad8), 0, 0.05, 0, g);
+      break;
+    case 'lamp':
+      box(0.3, 0.1, 0.3, m(0x3a3a3a), 0, 0.05, 0, g);
+      box(0.08, 1.2, 0.08, m(0x3a3a3a), 0, 0.65, 0, g);
+      box(0.5, 0.35, 0.5, m(0xfff0b0, { glow: true }), 0, 1.35, 0, g);
+      break;
+    case 'bookshelf':
+      box(2, 2.2, 0.6, m(0x8a5a32), 0, 1.1, 0, g);
+      [0.5, 1.2, 1.9].forEach((y, r) => { for (let i = 0; i < 7; i++) box(0.2, 0.45, 0.4, m([0xd8343a, 0x3a8ad8, 0x4f9a3a, 0xffcf4a, 0x8a4ad8][(i + r) % 5]), -0.75 + i * 0.25, y, 0.12, g); });
+      break;
+    case 'couch':
+      box(2.4, 0.5, 0.9, m(0x5a7ad8), 0, 0.35, 0, g);
+      box(2.4, 0.7, 0.3, m(0x4a6ac8), 0, 0.85, -0.35, g);
+      [-1.1, 1.1].forEach(x => box(0.25, 0.75, 0.9, m(0x4a6ac8), x, 0.5, 0, g));
+      break;
+    case 'painting':
+      box(1.6, 1.1, 0.08, m(0x8a5a32), 0, 0, 0, g);
+      box(1.4, 0.9, 0.1, m(0x7ab8f0), 0, 0, 0.01, g);
+      box(1.4, 0.3, 0.12, m(0x4f9a3a), 0, -0.3, 0.01, g);
+      box(0.25, 0.25, 0.13, m(0xffe95a, { glow: true }), 0.4, 0.2, 0.01, g);
+      break;
+    case 'fishTank': {
+      box(1.4, 0.15, 0.7, m(0x3a3a3a), 0, 0.5, 0, g);
+      box(0.15, 0.5, 0.15, m(0x3a3a3a), -0.6, 0.25, 0, g); box(0.15, 0.5, 0.15, m(0x3a3a3a), 0.6, 0.25, 0, g);
+      const glass = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x5ab8ff, transparent: true, opacity: 0.45 }));
+      glass.position.y = 0.98; g.add(glass);
+      g.userData.fish = [box(0.18, 0.12, 0.06, m(0xff9a3a, { glow: true }), 0, 1.0, 0, g), box(0.15, 0.1, 0.06, m(0xffe95a, { glow: true }), 0.3, 0.85, 0.1, g)];
+      break;
+    }
+    case 'tv':
+      box(1.8, 0.5, 0.6, m(0x5a3a22), 0, 0.25, 0, g);
+      box(1.6, 1.0, 0.1, m(0x1a1a1a), 0, 1.05, 0, g);
+      g.userData.screen = box(1.45, 0.85, 0.11, new THREE.MeshBasicMaterial({ color: 0x3a8ad8 }), 0, 1.05, 0.01, g);
+      break;
+    case 'trophy':
+      box(1.6, 1.6, 0.6, m(0x8a5a32), 0, 0.8, 0, g);
+      [-0.45, 0, 0.45].forEach((x, i) => {
+        box(0.22, 0.08, 0.22, m(0xffcf4a, { glow: true }), x, 1.0, 0.05, g);
+        box(0.14, 0.3, 0.14, m(0xffcf4a, { glow: true }), x, 1.2, 0.05, g);
+        box(0.26, 0.12, 0.26, m(0xffcf4a, { glow: true }), x, 1.4, 0.05, g);
+      });
+      box(0.3, 0.3, 0.1, m([0x7aff7a][0], { glow: true }), 0, 0.5, 0.3, g);
+      break;
+    case 'rainbowBed':
+      RAINBOW.forEach((c, i) => box(2, 0.12, 0.14, m(c, { glow: true }), 0.5, 1.02, -0.43 + i * 0.145, g));
+      break;
+    case 'statue':
+      box(1.4, 0.6, 1.4, m(0xd8d8d8), 0, 0.3, 0, g);
+      { const t = new THREE.Group(); buildTurtle(t, { shell: 0xffcf4a, top: 0xffe07a, skin: 0xf0c040, belly: 0xffe9a0 }); t.scale.setScalar(1.5); t.position.y = 0.6; g.add(t);
+        t.traverse(o => { if (o.isMesh) o.material = pixMat(0xffcf4a, { glow: true }); }); }
+      break;
+    case 'disco': {
+      box(0.04, 0.6, 0.04, m(0x3a3a3a), 0, 0.3, 0, g);
+      const ball = new THREE.Group(); ball.position.y = -0.2; g.add(ball);
+      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; box(0.18, 0.18, 0.18, m(RAINBOW[i % 7], { glow: true }), Math.cos(a) * 0.3, (i % 3 - 1) * 0.2, Math.sin(a) * 0.3, ball); }
+      box(0.45, 0.45, 0.45, m(0xd8d8e8, { glow: true }), 0, 0, 0, ball);
+      g.userData.ball = ball;
+      break;
+    }
+  }
+  return g;
+}
 </script>
 <script>
 // Core game: renderer, levels, travel, input, physics, the player, the pet, bullets, particles and sounds.
@@ -1914,6 +2279,7 @@ function defaultSave() {
   return {
     step: 0, radar: false, progress: 0, beaten: {}, weapons: ['bat'], weapon: 'bat', armor: 0,
     eggs: {}, pets: ['turtle'], active: 0, scuba: false, rocket: false, scrolls: [], dummyHits: 0,
+    coins: 0, decor: [], planet: 'island', planetData: {},
   };
 }
 function readSave(key) {
@@ -1938,17 +2304,35 @@ function lastName() { try { return localStorage.getItem(LAST_NAME_KEY) || ''; } 
 let save = defaultSave();
 function writeSave() {
   if (!playerName) return;
+  save.planetData[save.planet] = { progress: save.progress, beaten: save.beaten, scrolls: save.scrolls };
   try { localStorage.setItem(saveKey(playerName), JSON.stringify(save)); localStorage.setItem(LAST_NAME_KEY, playerName); } catch (e) { /* storage blocked */ }
 }
+// each planet has its own boss progress
+function loadPlanetState(pid) {
+  if (save.planet && save.planet !== pid) save.planetData[save.planet] = { progress: save.progress, beaten: save.beaten, scrolls: save.scrolls };
+  const pd = save.planetData[pid] || (pid === 'island' && !save.planetData.island ? { progress: save.progress, beaten: save.beaten, scrolls: save.scrolls } : {});
+  save.planet = pid;
+  save.progress = pd.progress || 0; save.beaten = pd.beaten || {}; save.scrolls = pd.scrolls || [];
+}
+function planetUnlocked(pid) {
+  const i = PLANET_ORDER.indexOf(pid);
+  if (i <= 0) return true;
+  const prev = PLANET_ORDER[i - 1];
+  const pd = prev === save.planet ? { progress: save.progress } : save.planetData[prev];
+  return !!(pd && pd.progress >= 4) || isAdmin();
+}
+function addCoins(n) { save.coins = (save.coins || 0) + n; writeSave(); if (typeof updateCoins === 'function') updateCoins(); }
+
 // typing the name Ari gives admin powers: the best weapons, armor and pet
 const ADMIN_NAME = 'ari';
 function isAdmin() { return playerName.trim().toLowerCase() === ADMIN_NAME; }
 function applyAdmin() {
-  for (const id of ['diamond', 'rainbow']) if (!save.weapons.includes(id)) save.weapons.push(id);
-  save.weapon = 'rainbow';
+  for (const id of ['magmaAxe', 'sunBeam']) if (!save.weapons.includes(id)) save.weapons.push(id);
+  save.weapon = 'sunBeam';
   save.armor = ARMORS.length - 1;
-  if (!save.pets.includes('spiderRainbow')) save.pets.push('spiderRainbow');
-  save.active = save.pets.indexOf('spiderRainbow');
+  if (!save.pets.includes('infernoSpiderRainbow')) save.pets.push('infernoSpiderRainbow');
+  save.active = save.pets.indexOf('infernoSpiderRainbow');
+  save.rocket = true;
   save.admin = true;
 }
 function eggCount() { return Object.values(save.eggs).reduce((a, b) => a + b, 0); }
@@ -2046,10 +2430,20 @@ function moveInput() {
 function frozen() { return G.modal || dialogState || G.transitioning || G.dead || G.paused || G.cutscene; }
 
 // ---------- levels ----------
-let gus, dummy, incubator, rocket, clouds, caveLight, buoy;
+let gus, dummy, incubator, shopkeeper, clouds, caveLight, buoy, decorGroup;
 const portalMats = [];
+const decorModels = {};
 
-function buildLevels() {
+// build every place on a planet (throws away the old planet's meshes first)
+function buildLevels(pid = 'island') {
+  for (const k in G.levels) {
+    G.levels[k].group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    if (G.level === G.levels[k]) scene.remove(G.level.group);
+  }
+  G.levels = {}; G.level = null; portalMats.length = 0;
+  PLANET = pid;
+  setupLayout(pid);
+  setPlanetBosses(pid);
   const over = generateOverworld();
   over.buildAll(blockMat, waterMat);
   G.levels.overworld = makeOverworldLevel(over);
@@ -2064,9 +2458,10 @@ function buildLevels() {
 }
 
 function makeOverworldLevel(over) {
-  const L = { world: over, group: new THREE.Group(), sky: 0x9ad0ff, fog: new THREE.Fog(0x9ad0ff, 55, 170) };
+  const LY = OVER.layout;
+  const L = { world: over, group: new THREE.Group(), sky: LY.sky, fog: new THREE.Fog(LY.sky, 55, 170) };
   L.group.add(over.group);
-  L.group.add(new THREE.HemisphereLight(0xdff0ff, 0x5a7a3a, 0.85));
+  L.group.add(new THREE.HemisphereLight(0xdff0ff, LY.ground, 0.85));
   const sun = new THREE.DirectionalLight(0xffffff, 0.65);
   sun.position.set(60, 120, 30);
   L.group.add(sun);
@@ -2099,9 +2494,27 @@ function makeOverworldLevel(over) {
   const incTag = textSprite('Egg Incubator', '#ffe9a0', 0.7);
   incTag.position.set(OVER.incubator.x, OVER.village.h + 2, OVER.incubator.z);
   L.group.add(incTag);
-  rocket = makeRocketModel();
-  rocket.position.set(OVER.rocketPad.x, OVER.village.h, OVER.rocketPad.z);
-  L.group.add(rocket);
+  // the shop at the end of the street
+  const S = OVER.shop;
+  const shopSign = textSprite('SHOP', '#7aff9a', 1.6);
+  shopSign.position.set(S.x0 - 0.4, OVER.village.h + 4.4, S.z0 + S.sz / 2);
+  L.group.add(shopSign);
+  shopkeeper = makeVillagerModel();
+  shopkeeper.root.position.set(OVER.shopkeeper.x, OVER.village.h, OVER.shopkeeper.z);
+  shopkeeper.root.rotation.y = -Math.PI / 2;
+  const skTag = textSprite('Shopkeeper Sue', '#7aff9a', 0.85);
+  skTag.position.y = 2.45; shopkeeper.root.add(skTag);
+  L.group.add(shopkeeper.root);
+  // decorations you've bought, inside your house
+  decorGroup = new THREE.Group();
+  L.group.add(decorGroup);
+  for (const d of DECOR) {
+    const m = makeDecorModel(d.id);
+    const [x, y, z, ry] = decorSpot(d.id);
+    m.position.set(x, y, z); m.rotation.y = ry;
+    decorGroup.add(m); decorModels[d.id] = m;
+  }
+  updateDecor();
   // doors: a sign over each, and a swirly portal at the end of each tunnel
   for (const id in DOORS) {
     const d = DOORS[id];
@@ -2116,7 +2529,7 @@ function makeOverworldLevel(over) {
     L.group.add(portal);
   }
   // a purple beam over the crystal mountain
-  const beamMat = new THREE.MeshBasicMaterial({ color: 0xb77bff, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const beamMat = new THREE.MeshBasicMaterial({ color: LY.beam, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
   const beam = new THREE.Mesh(new THREE.BoxGeometry(1.6, 160, 1.6), beamMat);
   beam.position.set(OVER.mountain.x, over.groundAt(OVER.mountain.x, OVER.mountain.z) + 80, OVER.mountain.z);
   L.group.add(beam);
@@ -2145,7 +2558,11 @@ function makeOverworldLevel(over) {
     dummy.wobbleV += (-dummy.wobble * 60 - dummy.wobbleV * 6) * dt;
     dummy.wobble += dummy.wobbleV * dt;
     dummy.body.rotation.z = dummy.wobble;
-    rocket.visible = save.rocket;
+    const fish = decorModels.fishTank && decorModels.fishTank.userData.fish;
+    if (fish) fish.forEach((f, i) => { f.position.x = Math.sin(G.time * (0.8 + i * 0.3) + i) * 0.45; f.rotation.y = Math.cos(G.time * (0.8 + i * 0.3) + i) > 0 ? 0 : Math.PI; });
+    if (decorModels.disco) decorModels.disco.userData.ball.rotation.y += dt * 1.5;
+    if (decorModels.tv) decorModels.tv.userData.screen.material.color.setHSL((G.time * 0.1) % 1, 0.6, 0.5);
+    shopkeeper.head.rotation.y = THREE.MathUtils.clamp(angleDiff(Math.atan2(player.pos.x - shopkeeper.root.position.x, player.pos.z - shopkeeper.root.position.z), shopkeeper.root.rotation.y), -0.9, 0.9);
     buoy.position.y = OVER.water - 0.3 + Math.sin(G.time * 1.5) * 0.12;
     buoy.rotation.z = Math.sin(G.time * 1.1) * 0.08;
     const showType = Object.keys(EGGS).find(k => save.eggs[k] > 0);
@@ -2154,6 +2571,18 @@ function makeOverworldLevel(over) {
   };
   return L;
 }
+
+// where each decoration goes in your house: [x, y, z, turn]
+function decorSpot(id) {
+  const H = OVER.home, f = OVER.village.h, x = H.x0, z = H.z0;
+  return {
+    flower: [x + 1.5, f, z + 7.5, 0], rug: [x + 7, f, z + 4.5, 0], lamp: [x + 11.4, f, z + 1.6, 0],
+    bookshelf: [x + 5.5, f, z + 1.35, 0], couch: [x + 7.5, f, z + 7.45, Math.PI], painting: [x + 8.8, f + 1.7, z + 1.06, 0],
+    fishTank: [x + 10.8, f, z + 7.4, Math.PI], tv: [x + 1.4, f, z + 4.5, Math.PI / 2], trophy: [x + 10, f, z + 1.4, 0],
+    rainbowBed: [x + 1.5, f - 0.5, z + 1.5, 0], statue: [x + 15, f, z + 1.5, -Math.PI / 2], disco: [x + 7, f + 2.6, z + 4.5, 0],
+  }[id];
+}
+function updateDecor() { for (const id in decorModels) decorModels[id].visible = (save.decor || []).includes(id); }
 
 function makeCaveLevel(w, id) {
   const st = w.style;
@@ -2270,7 +2699,7 @@ function placeActors(x, y, z, yaw) {
 
 function placePetNearPlayer() {
   const w = G.world;
-  const side = new THREE.Vector3(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)).multiplyScalar(1.8);
+  const side = new THREE.Vector3(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)).multiplyScalar(pet.model ? 1.3 + pet.model.halfW * 2 : 1.8);
   for (const k of [1, -1, 0.5, 0]) {
     const x = player.pos.x + side.x * k + (k === 0 ? 1.5 : 0), z = player.pos.z + side.z * k;
     const y = Math.max(player.pos.y, 0);
@@ -2427,11 +2856,12 @@ function updatePetFollow(dt) {
     return;
   }
   if (dist > 30 || Math.abs(player.pos.y - pet.pos.y) > 12) { placePetNearPlayer(); return; }
-  const sx = player.pos.x + Math.cos(cam.yaw) * 1.8 - Math.sin(cam.yaw) * 0.4 - pet.pos.x;
-  const sz = player.pos.z - Math.sin(cam.yaw) * 1.8 - Math.cos(cam.yaw) * 0.4 - pet.pos.z;
+  const off = 1.3 + pet.model.halfW * 2;
+  const sx = player.pos.x + Math.cos(cam.yaw) * off - Math.sin(cam.yaw) * 0.4 - pet.pos.x;
+  const sz = player.pos.z - Math.sin(cam.yaw) * off - Math.cos(cam.yaw) * 0.4 - pet.pos.z;
   const sd = Math.hypot(sx, sz);
   let tx = 0, tz = 0;
-  if (dist > 7) { tx = dx / dist * pet.speed * 1.2; tz = dz / dist * pet.speed * 1.2; }
+  if (dist > 7 + pet.model.halfW) { tx = dx / dist * pet.speed * 1.2; tz = dz / dist * pet.speed * 1.2; }
   else if (sd > 0.8) { const sp = Math.min(pet.speed, sd * 3); tx = sx / sd * sp; tz = sz / sd * sp; }
   const k = 1 - Math.exp(-(pet.onGround ? 10 : 4) * dt);
   pet.vel.x += (tx - pet.vel.x) * k;
@@ -2503,7 +2933,7 @@ function updateCamera(dt) {
   }
   const pitch = cam.pitchOverride ?? cam.pitch;
   camDir.set(Math.sin(cam.yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(cam.yaw) * Math.cos(pitch));
-  const want = G.cutscene && G.cutscene.camDist ? G.cutscene.camDist : (player.mounted ? 7 : 5.5);
+  const want = G.cutscene && G.cutscene.camDist ? G.cutscene.camDist : (player.mounted ? 5 + pet.model.saddleY * 0.9 : 5.5);
   const hit = G.world.raycast(camTarget, camDir, want + 0.3);
   const d = hit === null ? want : Math.max(0.5, hit - 0.35);
   camera.position.copy(camTarget).addScaledVector(camDir, d);
@@ -2512,6 +2942,7 @@ function updateCamera(dt) {
     camera.position.y += (Math.random() - 0.5) * G.shake;
     G.shake = Math.max(0, G.shake - dt * 2.2);
   }
+  if (G.cutscene && G.cutscene.camPos) camera.position.copy(G.cutscene.camPos);
   camera.lookAt(G.cutscene && G.cutscene.lookAt ? G.cutscene.lookAt : camTarget);
 }
 
@@ -2694,7 +3125,7 @@ function createArena(L, caveId) {
   const cfg = BOSSES[bossId];
   const A = {
     L, caveId, bossId, cfg, group: L.group,
-    boss: { model: makeBossModel(bossId), pos: new THREE.Vector3(), yaw: Math.PI, state: 'sleep', t: 0, hp: 1, maxHp: 1, cooldown: 2, attack: null, phase2: false, flashT: 0, zzzT: 0, walk: 0, hitPlayer: false, chargeDir: new THREE.Vector3(), lastAttack: '', leapFrom: new THREE.Vector3(), leapTo: new THREE.Vector3() },
+    boss: { model: makeBossModel(bossId, PLANET), pos: new THREE.Vector3(), yaw: Math.PI, state: 'sleep', t: 0, hp: 1, maxHp: 1, cooldown: 2, attack: null, phase2: false, flashT: 0, zzzT: 0, walk: 0, hitPlayer: false, chargeDir: new THREE.Vector3(), lastAttack: '', leapFrom: new THREE.Vector3(), leapTo: new THREE.Vector3() },
     egg: eggMesh(1, cfg.egg), eggHome: new THREE.Vector3(CAVE.pedestal.x, CAVE.floor + 1, CAVE.pedestal.z), eggState: 'pedestal', eggFly: null,
     chest: makeChestModel(CHESTS[cfg.chest].color), chestState: 'hidden',
     scroll: makeScrollModel(), scrollState: 'hidden',
@@ -2794,7 +3225,7 @@ function pickUpEgg(A) {
   sfx('pickup');
   if (A.bossId === 'deer') {
     showToast('You picked up the egg...');
-    setTimeout(() => { wakeBoss(A); setTimeout(() => dropEgg(A, 'The egg falls out of your hands! Beat the Deer to win it!'), 900); }, 600);
+    setTimeout(() => { wakeBoss(A); setTimeout(() => dropEgg(A, `The egg falls out of your hands! Beat the ${A.cfg.name} to win it!`), 900); }, 600);
   } else {
     A.armed = { x: player.pos.x, z: player.pos.z };
     showToast(A.bossId === 'scorpion' ? 'You got the egg! There\'s no boss here... is there?' : A.bossId === 'squid' ? 'Shhh... don\'t wake the King.' : 'Got it! Now get out of here...', 2.5);
@@ -2837,8 +3268,8 @@ function scorpionCutscene(A) {
       [1.4, cs => { G.shake = 0.8; }],
       [2.3, cs => { cs.turnTo(faceAngleToward(b.pos.x, b.pos.z), 1.0); }],
       [3.3, cs => { sfx('rumble'); G.shake = 1.2; b.state = 'emerge'; b.t = 0; b.model.root.visible = true; }],
-      [4.6, cs => { sfx('roar'); G.shake = 1; showToast('A GIANT SCORPION!!!', 2); }],
-      [5.6, cs => { dropEgg(A, 'You dropped the egg! Beat the Scorpion to win it!'); }],
+      [4.6, cs => { sfx('roar'); G.shake = 1; showToast(`A ${A.cfg.name.toUpperCase()}!!!`, 2); }],
+      [5.6, cs => { dropEgg(A, `You dropped the egg! Beat the ${A.cfg.name} to win it!`); }],
     ],
     onEnd: () => startFight(A),
   });
@@ -2850,8 +3281,8 @@ function squidCutscene(A) {
     events: [
       [0, cs => { sfx('rumble'); G.shake = 0.4; }],
       [0.6, cs => { cs.turnTo(faceAngleToward(b.pos.x, b.pos.z), 1.0); }],
-      [1.8, cs => { b.state = 'wake'; b.t = 0; sfx('roar'); G.shake = 0.8; showToast('The King Squid wakes up!!!', 2); }],
-      [4.0, cs => { dropEgg(A, 'The egg slips away! Beat the King Squid to win it!'); }],
+      [1.8, cs => { b.state = 'wake'; b.t = 0; sfx('roar'); G.shake = 0.8; showToast(`The ${A.cfg.name} wakes up!!!`, 2); }],
+      [4.0, cs => { dropEgg(A, `The egg slips away! Beat the ${A.cfg.name} to win it!`); }],
     ],
     onEnd: () => startFight(A),
   });
@@ -2868,7 +3299,7 @@ function spiderCutscene(A) {
       [3.0, cs => { b.state = 'emerge'; b.t = 0; b.model.root.visible = true; cs.lookAt = b.pos; cs.pitch = 0.05; }],
       [3.1, cs => { cs.walk = { dx: 0, dz: 1, speed: 2.5 }; }],
       [5.0, cs => { cs.walk = null; }],
-      [6.0, cs => { sfx('screech'); sfx('roar'); G.shake = 1.2; showToast('THE CRYSTAL SPIDER!!!', 2); cs.lookAt = null; cs.pitch = null; }],
+      [6.0, cs => { sfx('screech'); sfx('roar'); G.shake = 1.2; showToast(`THE ${A.cfg.name.toUpperCase()}!!!`, 2); cs.lookAt = null; cs.pitch = null; }],
       [7.6, cs => { dropEgg(A, 'You dropped the egg! This is the final boss. Good luck!'); }],
     ],
     onEnd: () => startFight(A),
@@ -3408,6 +3839,10 @@ function bossDefeated(A) {
   A.defeated = true;
   const first = !save.beaten[A.bossId];
   save.beaten[A.bossId] = (save.beaten[A.bossId] || 0) + 1;
+  const coins = first ? A.cfg.coins : Math.round(A.cfg.coins * 0.6);
+  addCoins(coins);
+  damageNumber(`+${coins} coins`, new THREE.Vector3(b.pos.x, b.pos.y + 4, b.pos.z), 'crit');
+  setTimeout(() => showToast(`+${coins} COINS! Spend them at the village shop.`, 2.6), 3900);
   const idx = BOSS_ORDER.indexOf(A.bossId);
   if (save.progress === idx) save.progress = idx + 1;
   writeSave();
@@ -3419,7 +3854,8 @@ function bossDefeated(A) {
     if (A.scuba && !save.scuba) { A.scubaState = 'ready'; A.scuba.visible = true; }
     if (A.bossId === 'spider' && !save.rocket) {
       save.rocket = true; writeSave();
-      setTimeout(() => showToast('A ROCKET SHIP just landed in the village!', 3.5), 2600);
+      updateHotbar();
+      setTimeout(() => showToast('You got a ROCKET SHIP! It\'s in your hotbar. Hold it outside and tap to fly to another planet!', 4.5), 6800);
     }
     showToast('A treasure chest appeared! Grab the egg too!', 2.6);
   }, 1200);
@@ -3471,6 +3907,7 @@ function showToast(text, secs = 2.5) {
 // ---------- hearts and armour ----------
 const heartImgs = { 1: ICONS.heart(1).toDataURL(), 0.5: ICONS.heart(0.5).toDataURL(), 0: ICONS.heart(0).toDataURL() };
 function updateHearts() {
+  updateCoins();
   const el = $('hearts');
   if (!el.children.length) for (let i = 0; i < 10; i++) { const im = document.createElement('img'); im.width = 18; im.height = 18; im.alt = ''; el.appendChild(im); }
   for (let i = 0; i < 10; i++) {
@@ -3496,15 +3933,37 @@ function weaponIconUrl(id) { return iconUrl('w:' + id, () => weaponIcon(id)); }
 function eggIconUrl(type) { return iconUrl('e:' + type, () => ICONS.egg(type)); }
 function armorIconUrl(tier) { return iconUrl('a:' + tier, () => ICONS.armor(hex(ARMORS[tier].color))); }
 function hotbarItems() {
-  const items = WEAPON_ORDER.filter(id => save.weapons.includes(id)).map(id => ({ kind: 'weapon', id, name: WEAPONS[id].name, icon: weaponIconUrl(id) }));
-  for (const type of Object.keys(EGGS)) if (save.eggs[type] > 0) items.push({ kind: 'egg', type, name: `${EGGS[type].name} (hatch it at home)`, icon: eggIconUrl(type), count: save.eggs[type] });
+  const extras = [];
+  for (const type of Object.keys(EGGS)) if (save.eggs[type] > 0) extras.push({ kind: 'egg', type, name: `${EGGS[type].name} (hatch it at home)`, icon: eggIconUrl(type), count: save.eggs[type] });
+  if (save.rocket) extras.push({ kind: 'rocket', name: 'Rocket Ship (hold it outside and tap to fly)', icon: iconUrl('rocket', rocketIcon) });
+  // your best weapons first, leaving room for eggs and the rocket
+  const room = Math.max(2, 9 - extras.length);
+  let weapons = save.weapons.filter(id => WEAPONS[id]).sort((a, b) => WEAPONS[b].dmg - WEAPONS[a].dmg);
+  if (weapons.length > room) {
+    const melee = weapons.filter(id => WEAPONS[id].kind === 'melee'), guns = weapons.filter(id => WEAPONS[id].kind === 'gun');
+    weapons = [...melee.slice(0, Math.ceil(room / 2)), ...guns.slice(0, Math.floor(room / 2))];
+    if (weapons.length < room) weapons = save.weapons.slice().sort((a, b) => WEAPONS[b].dmg - WEAPONS[a].dmg).slice(0, room);
+    if (!weapons.includes(save.weapon) && save.weapons.includes(save.weapon)) weapons[weapons.length - 1] = save.weapon;
+  }
+  const items = weapons.map(id => ({ kind: 'weapon', id, name: WEAPONS[id].name, icon: weaponIconUrl(id) })).concat(extras);
   while (items.length < 9) items.push(null);
   return items.slice(0, 9);
+}
+function rocketIcon() {
+  return iconCanvas(p => {
+    for (let y = 3; y < 12; y++) for (let x = 6; x < 10; x++) p(x, y, '#f0f0f4');
+    for (let x = 7; x < 9; x++) { p(x, 1, '#d8343a'); p(x, 2, '#d8343a'); }
+    p(6, 2, '#d8343a'); p(9, 2, '#d8343a');
+    p(7, 6, '#7ad8ff'); p(8, 6, '#7ad8ff');
+    for (let y = 9; y < 13; y++) { p(5, y, '#d8343a'); p(10, y, '#d8343a'); }
+    p(7, 12, '#ffa94a'); p(8, 12, '#ffa94a'); p(7, 13, '#ff5a3c'); p(8, 14, '#ffe95a');
+  });
 }
 function selectedItem() {
   const it = hotbarItems()[G.slot];
   if (!it) return null;
   if (it.kind === 'weapon') { save.weapon = it.id; return 'weapon'; }
+  if (it.kind === 'rocket') return 'rocket';
   return 'egg:' + it.type;
 }
 let itemNameTimer = null;
@@ -3561,13 +4020,14 @@ function questInfo() {
     if (A.defeated) {
       if (A.eggState === 'pedestal') return { text: 'You won! Pick up the egg (E).', target: { world: where, x: A.eggHome.x, z: A.eggHome.z, label: 'Egg' } };
       if (A.chestState === 'ready') return { text: 'Open the treasure chest (E) and spin for a prize!', target: { world: where, x: CAVE.chest.x, z: CAVE.chest.z, label: 'Chest' } };
-      if (A.scubaState === 'ready') return { text: 'The Scorpion dropped SCUBA GEAR! Pick it up (E).', target: { world: where, x: A.scuba.position.x, z: A.scuba.position.z, label: 'Scuba gear' } };
+      if (A.scubaState === 'ready') return { text: `The ${A.cfg.name} dropped SCUBA GEAR! Pick it up (E).`, target: { world: where, x: A.scuba.position.x, z: A.scuba.position.z, label: 'Scuba gear' } };
       if (A.scrollState === 'ready') return { text: 'There\'s a scroll! Pick it up and read the riddle (E).', target: { world: where, x: CAVE.scroll.x, z: CAVE.scroll.z, label: 'Scroll' } };
       return { text: 'All done here! Head back outside and take your egg home.', target: { world: where, x: CAVE.start.x, z: 1, label: 'Way out' } };
     }
     if (player.eggHeld) return { text: A.bossId === 'spider' ? 'Quick, carry the egg back into the tunnel!' : 'You have the egg! Walk back toward the way out...' };
     if (player.pos.z < CAVE.roomDoorZ) return { text: `Follow the tunnel deep into the cave${A.bossId === 'rabbit' ? '' : ''}.`, target: { world: where, x: CAVE.start.x, z: CAVE.roomDoorZ + 4, label: 'Big room' } };
-    const hint = { deer: 'A giant deer is sleeping next to an egg. Sneak up and pick up the egg (E).', scorpion: 'An egg, and no boss anywhere... Pick up the egg (E).', squid: 'The King Squid is asleep on his golden throne. Pick up the egg (E).', spider: 'An egg, sitting in the sunlight. Pick it up (E).' }[A.bossId];
+    const nm = A.cfg.name;
+    const hint = { deer: `The ${nm} is sleeping next to an egg. Sneak up and pick up the egg (E).`, scorpion: 'An egg, and no boss anywhere... Pick up the egg (E).', squid: `The ${nm} is asleep on a golden throne. Pick up the egg (E).`, spider: 'An egg, sitting in the sunlight. Pick it up (E).' }[A.bossId];
     return { text: hint, target: { world: where, x: A.eggHome.x, z: A.eggHome.z, label: 'Egg' } };
   }
   if (where === 'deep') {
@@ -3576,12 +4036,14 @@ function questInfo() {
     return { text: 'A coral cave appeared! Swim down into it.', target: { world: 'deep', x: c.x, z: c.z, label: 'Coral cave' } };
   }
   if (eggCount() > 0) return { text: 'Take your egg home! Walk into your house and use the Egg Incubator (E).', target: { world: 'overworld', x: OVER.incubator.x, z: OVER.incubator.z, label: 'Home' } };
+  const pl = PLANETS[PLANET], P = pl.places;
   const next = BOSS_ORDER[save.progress];
-  if (next === 'deer') return { text: 'Follow the radar into the forest. Find the giant rabbit hole!', target: doorTarget('rabbit', 'Forest') };
-  if (next === 'scorpion') return { text: 'The scroll\'s riddle points to the DESERT. Find the sand cave! (Scroll button to read it again)', target: doorTarget('sand', 'Desert') };
-  if (next === 'squid') return { text: `Go to the ocean dive spot. Swim out and ${t ? 'hold Down' : 'hold Shift'} to dive with your scuba gear!`, target: { world: 'overworld', x: OVER.diveSpot.x, z: OVER.diveSpot.z, label: 'Ocean' } };
-  if (next === 'spider') return { text: 'The riddle points to the CRYSTAL CAVES under the purple light. The final boss waits there!', target: doorTarget('crystal', 'Crystal Caves') };
-  return { text: 'You beat World 1! Climb into the rocket ship in the village (E). Or replay any boss for more eggs.', target: { world: 'overworld', x: OVER.rocketPad.x, z: OVER.rocketPad.z, label: 'Rocket' } };
+  if (next === 'deer') return { text: save.planet === 'island' ? `Follow the radar into the ${P.rabbit.toLowerCase()}. Find the giant ${DOORS.rabbit.label.toLowerCase()}!` : `Welcome to the ${pl.name}! Follow the radar to the ${P.rabbit} and find the ${DOORS.rabbit.label.toLowerCase()}.`, target: doorTarget('rabbit', P.rabbit) };
+  if (next === 'scorpion') return { text: `The scroll's riddle points to the ${P.sand.toUpperCase()}. Find the ${DOORS.sand.label.toLowerCase()}! (Scroll button to read it again)`, target: doorTarget('sand', P.sand) };
+  if (next === 'squid') return { text: `Go to the ${P.dive} dive spot. Swim out and ${t ? 'hold Down' : 'hold Shift'} to dive with your scuba gear!`, target: { world: 'overworld', x: OVER.diveSpot.x, z: OVER.diveSpot.z, label: P.dive } };
+  if (next === 'spider') return { text: `The riddle points to the ${P.crystal.toUpperCase()}. The final boss of this planet waits there!`, target: doorTarget('crystal', P.crystal) };
+  const nextPlanet = PLANET_ORDER[PLANET_ORDER.indexOf(PLANET) + 1];
+  return { text: nextPlanet ? `You beat ${pl.name.startsWith('The') ? pl.name : 'the ' + pl.name}! Hold your ROCKET SHIP outside and ${t ? 'tap the screen' : 'click'} to fly to the ${PLANETS[nextPlanet].name}.` : `You beat every planet! You're a Monster Mash champion. Replay bosses for more eggs, or decorate your house.` };
 }
 
 let lastQuest = '';
@@ -3683,7 +4145,7 @@ function interactTarget() {
   if (G.world.name === 'overworld') {
     if (near(gus.root.position.x, gus.root.position.z, 3.2)) return { text: 'Talk to Guide Gus', go: () => { if (player.mounted) dismount(); talkToGus(); } };
     if (near(OVER.incubator.x, OVER.incubator.z, 2.6)) return eggCount() ? { text: 'Hatch an egg in the incubator', go: openHatch } : { text: 'The incubator is empty', go: () => showToast('Beat a monster to win an egg, then bring it here.') };
-    if (save.rocket && near(OVER.rocketPad.x, OVER.rocketPad.z, 3.4)) return { text: 'Climb into the rocket ship', go: rocketLaunch };
+    if (near(shopkeeper.root.position.x, shopkeeper.root.position.z, 3.4)) return { text: 'Shop for house decorations', go: openShop };
   }
   if (A) {
     if (A.eggState === 'pedestal' && !A.eggFly && nearEggSpot(A) && !fightArena && !G.cutscene && A.boss.state !== 'dying') {
@@ -3707,7 +4169,7 @@ function updatePrompt() {
     const t = interactTarget();
     if (t) text = (touch.active ? 'Tap E: ' : '[E] ') + t.text;
     else if (!player.mounted && pet.model && G.world.name !== 'deep' && Math.hypot(pet.pos.x - player.pos.x, pet.pos.z - player.pos.z) < 3.2 && save.step >= 3) text = (touch.active ? 'Tap Ride: ' : '[R] ') + `Ride ${petShortName()}`;
-    else if (G.world.name === 'overworld' && player.inWater && player.pos.x < OVER.oceanX) text = save.scuba ? (touch.active ? 'Hold Down to dive' : 'Hold Shift to dive') : 'You need scuba gear to dive';
+    else if (G.world.name === 'overworld' && player.inWater && oceanDepth(player.pos.x, player.pos.z) > 0) text = save.scuba ? (touch.active ? 'Hold Down to dive' : 'Hold Shift to dive') : 'You need scuba gear to dive';
   }
   const el = $('prompt');
   if (text) { el.textContent = text; el.hidden = false; } else el.hidden = true;
@@ -3721,6 +4183,7 @@ function updatePrompt() {
 function attack() {
   if (frozen() || !G.running) return;
   const item = selectedItem();
+  if (item === 'rocket') { rocketLaunch(); return; }
   if (item && item.startsWith('egg:')) {
     if (G.world.name === 'overworld' && near(OVER.incubator.x, OVER.incubator.z, 2.6)) openHatch();
     else showToast('Take the egg home and put it in the Egg Incubator to hatch it!');
@@ -3920,38 +4383,119 @@ function openPets() {
 $('petsClose').addEventListener('click', () => closeModal());
 $('petsBtn').addEventListener('pointerdown', e => { e.stopPropagation(); openPets(); });
 
-// ---------- the rocket ship ----------
+// ---------- the rocket ship: ride it up, then pick a planet ----------
+let flyingRocket = null;
 function rocketLaunch() {
+  if (G.world.name !== 'overworld') { showToast('Go outside to launch your rocket ship!'); return; }
   if (player.mounted) dismount();
-  const start = rocket.position.clone();
-  // watch from the middle of the village square
-  player.pos.set(OVER.village.x + 2, OVER.village.h, start.z);
-  player.vel.set(0, 0, 0);
-  cam.yaw = Math.atan2(-(start.x - player.pos.x), -(start.z - player.pos.z));
+  const start = player.pos.clone();
+  if (flyingRocket) flyingRocket.parent?.remove(flyingRocket);
+  flyingRocket = makeRocketModel();
+  flyingRocket.position.copy(start);
+  scene.add(flyingRocket);
+  const back = new THREE.Vector3(Math.sin(cam.yaw), 0, Math.cos(cam.yaw));
+  const camPos = start.clone().addScaledVector(back, 14).add(new THREE.Vector3(0, 5, 0));
   playCutscene({
-    dur: 5.5, camDist: 4,
+    dur: 5.2,
     events: [
-      [0, cs => { G.hidePlayer = true; pet.model.root.visible = false; cs.lookAt = rocket.position; cs.pitch = 0.2; sfx('blastoff'); }],
-      [0.6, cs => { cs.rocketUp = true; }],
-      [4.6, () => { $('fade').classList.add('on'); }],
+      [0, cs => { cs.camPos = camPos; cs.lookAt = flyingRocket.position.clone().add(new THREE.Vector3(0, 4, 0)); burst(start.clone().add(new THREE.Vector3(0, 2, 0)), 0xffffff, 20, 4, 0.3, 0.8); }],
+      [0.5, cs => { G.hidePlayer = true; pet.model.root.visible = false; sfx('blastoff'); showToast('3... 2... 1... BLAST OFF!', 2); }],
+      [1.1, cs => { cs.rocketUp = true; }],
+      [4.4, () => { $('fade').classList.add('on'); }],
     ],
     tick: (cs, dt) => {
       if (cs.rocketUp) {
-        cs.v = (cs.v || 0) + dt * 9;
-        rocket.position.y += cs.v * dt;
+        cs.v = (cs.v || 0) + dt * 10;
+        flyingRocket.position.y += cs.v * dt;
+        flyingRocket.rotation.y += dt * 0.6;
+        cs.lookAt.lerp(flyingRocket.position.clone().add(new THREE.Vector3(0, 4, 0)), 0.15);
         G.shake = 0.3;
-        burst(rocket.position.clone(), Math.random() < 0.5 ? 0xffa94a : 0xff5a3c, 3, 4, 0.35, 0.8, -6);
-      } else if (Math.random() < 0.5) burst(rocket.position.clone(), 0xdddddd, 2, 3, 0.4, 1, 1);
+        burst(flyingRocket.position.clone(), Math.random() < 0.5 ? 0xffa94a : 0xff5a3c, 3, 4, 0.35, 0.8, -6);
+      } else if (cs.t > 0.5 && Math.random() < 0.5) burst(start.clone(), 0xdddddd, 2, 3, 0.4, 1, 1);
     },
     onEnd: () => {
-      rocket.position.copy(start);
+      scene.remove(flyingRocket); flyingRocket = null;
       G.hidePlayer = false; pet.model.root.visible = true;
-      openModal('endUI');
+      openPlanetPicker();
       setTimeout(() => $('fade').classList.remove('on'), 300);
     },
   });
 }
-$('endOk').addEventListener('click', () => closeModal());
+function openPlanetPicker() {
+  const list = $('planetList');
+  list.innerHTML = '';
+  PLANET_ORDER.forEach(pid => {
+    const pl = PLANETS[pid], open = planetUnlocked(pid), here = pid === PLANET;
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'planetcard ' + pid + (open ? '' : ' locked');
+    card.disabled = !open;
+    card.innerHTML = '<span class="pworld"></span><span class="pname"></span><span class="pblurb"></span><span class="pstat"></span>';
+    card.querySelector('.pworld').textContent = `World ${pl.world}`;
+    card.querySelector('.pname').textContent = pl.name;
+    card.querySelector('.pblurb').textContent = pl.blurb;
+    const prog = pid === save.planet ? save.progress : ((save.planetData[pid] || {}).progress || 0);
+    card.querySelector('.pstat').textContent = here ? 'You are here · fly back down' : !open ? `Locked: beat the final boss of World ${pl.world - 1} first` : `Bosses beaten: ${prog}/4 · loot up to ${pl.world}x better`;
+    card.addEventListener('click', () => { closeModal(); flyToPlanet(pid); });
+    list.appendChild(card);
+  });
+  openModal('planetUI');
+}
+function flyToPlanet(pid) {
+  const pl = PLANETS[pid];
+  $('fadeText').textContent = `Flying to the ${pl.name}...`;
+  $('fade').classList.add('on');
+  G.transitioning = true;
+  setTimeout(() => {
+    loadPlanetState(pid);
+    buildLevels(pid);
+    setLevel('overworld');
+    placeActors(OVER.spawn.x, null, OVER.spawn.z, Math.PI * 0.05);
+    resetDeep();
+    writeSave();
+    updateHotbar();
+    $('fadeText').textContent = '';
+    $('fade').classList.remove('on');
+    setTimeout(() => { G.transitioning = false; }, 250);
+    showToast(pid === 'island' ? 'Back on the Island!' : `Welcome to the ${pl.name}! New bosses, better loot.`, 3);
+  }, 600);
+}
+
+// ---------- the village shop ----------
+function updateCoins() { $('coinCount').textContent = save.coins || 0; }
+function openShop() {
+  const list = $('shopList');
+  list.innerHTML = '';
+  $('shopCoins').textContent = `You have ${save.coins || 0} coins`;
+  DECOR.forEach(d => {
+    const owned = (save.decor || []).includes(d.id);
+    const row = document.createElement('div');
+    row.className = 'shopitem' + (owned ? ' owned' : '');
+    row.innerHTML = '<span class="sname"></span><span class="sprice"></span>';
+    row.querySelector('.sname').textContent = d.name;
+    row.querySelector('.sprice').textContent = owned ? 'In your house' : `${d.price} coins`;
+    if (!owned) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = 'Buy';
+      b.disabled = (save.coins || 0) < d.price;
+      b.addEventListener('click', () => {
+        if ((save.coins || 0) < d.price) return;
+        save.coins -= d.price;
+        save.decor = (save.decor || []).concat(d.id);
+        writeSave(); updateCoins(); updateDecor(); sfx('prize');
+        showToast(`You bought the ${d.name}! Go home to see it.`, 2.5);
+        openShopRefresh();
+      });
+      row.appendChild(b);
+    }
+    list.appendChild(row);
+  });
+  if (G.modal !== 'shopUI') openModal('shopUI');
+}
+function openShopRefresh() { openShop(); }
+$('shopClose').addEventListener('click', () => closeModal());
+
+$('planetClose').addEventListener('click', () => closeModal());
 
 // ---------- cutscenes ----------
 function playCutscene(def) {
@@ -4233,7 +4777,7 @@ function checkPlaces(dt) {
       const d = DOORS[id];
       if (Math.hypot(a.pos.x - d.trigger.x, a.pos.z - d.trigger.z) < 1.8 && Math.abs(a.pos.y - d.floor) < 3) { travel(id); return; }
     }
-    if (a.inWater && a.pos.x < OVER.oceanX - 10) {
+    if (a.inWater && oceanDepth(a.pos.x, a.pos.z) > 10) {
       if (save.scuba && a.pos.y < OVER.water - 2.6) { travel('deep'); return; }
       noScubaHintT -= dt;
       if (!save.scuba && noScubaHintT <= 0 && Math.hypot(a.pos.x - OVER.diveSpot.x, a.pos.z - OVER.diveSpot.z) < 8) {
@@ -4307,6 +4851,14 @@ function start() {
   if (!name) { $('nameInput').focus(); return; }
   playerName = name;
   save = loadSave(name);
+  const pid = PLANETS[save.planet] ? save.planet : 'island';
+  save.planet = null;
+  loadPlanetState(pid);
+  if (pid !== PLANET) {
+    buildLevels(pid);
+    setLevel('overworld');
+    placeActors(OVER.spawn.x, null, OVER.spawn.z, Math.PI * 0.05);
+  }
   const newAdmin = isAdmin() && !save.admin;
   if (isAdmin()) applyAdmin();
   writeSave();

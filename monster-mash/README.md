@@ -1,4 +1,4 @@
-# 👾 Monster Mash · World 1: The Island
+# 👾 Monster Mash
 
 A blocky 3D boss-fighting adventure that runs in the browser. You start in a village with a pet turtle and a
 baseball bat. Four monsters each guard a magic egg somewhere on the island. Beat them for treasure, eggs, riddles
@@ -25,6 +25,22 @@ and faster pets.
 Each boss has more health and hits harder than the one before. Red circles and stripes on the floor show where an
 attack will land, and floating hearts appear during fights so you can heal. You can fight any boss again for
 another egg; it gets 30% tougher each time.
+
+## Planets, coins and your house
+
+- The cave openings are far apart, each at a different edge of the map, well away from the village.
+- **Coins:** every boss win gives coins (more on later planets; a rematch gives 60%). Spend them at **Sue's
+  Decoration Shop** at the end of the village street. What you buy shows up inside your house: a flower pot, rug,
+  lamp, bookshelf, couch, painting, fish tank, TV, trophy case, rainbow bed, gold pet statue and a disco ball.
+- **Rocket ship:** beating the final spider puts a rocket in your hotbar. Hold it outside and click or tap: you ride it
+  up in a cutscene, then pick a planet. Each planet unlocks after beating the one before it.
+- **World 2, the Frost Planet:** snowy pine woods, an ice field, a frozen sea and the Ice Caves. Bosses: Frost Stag,
+  Glacier Scorpion, Ice Kraken, Snow Queen Spider (3x health, 1.8x damage).
+- **World 3, the Lava Planet:** ash woods, a red desert, a boiling sea and the Fire Caves. Bosses: Fire Stag, Magma
+  Scorpion, Lava Kraken, Inferno Spider (7x health, 3x damage).
+- Each planet has its own boss progress, places in new spots, and better chests (Frost Blade, Ice Hammer, Ice Cannon,
+  Blizzard Ray, Lava Sword, Magma Axe, Lava Launcher, Sun Beam; Frost and Lava armor) and faster pets.
+- Every crystal spider pet is as big as the boss.
 
 ## Rewards
 
@@ -70,15 +86,15 @@ You type your name on the title screen. Each name gets its own save on that devi
 bosses you've beaten), and the game remembers the last name used. Saves stay on the device and browser they were
 made in.
 
-The name **Ari** gets admin powers: the Rainbow Ray and Diamond Sword, Crystal Armor and a Rainbow Crystal Spider.
+The name **Ari** gets admin powers: the best weapons (Sun Beam and Magma Axe), Lava Armor, a Rainbow Inferno Spider, the rocket ship and every planet unlocked.
 Anyone who types Ari gets them. The name is set in `game.js` (`ADMIN_NAME`).
 
 ## Files
 
 - `index.html`, `style.css`: the page, HUD, radar, chest spinner and scroll
-- `data.js`: weapons, armor, pets, eggs, chests, bosses and riddles (change chances and stats here)
+- `data.js`: weapons, armor, pets, eggs, chests, bosses, planets, shop decorations and riddles (change chances and stats here)
 - `textures.js`: block and item pictures, drawn in code
-- `world.js`: the island (village, forest, desert, ocean, crystal mountain), the four boss caves and the deep ocean
+- `world.js`: each planet's map (village, woods, desert, sea, crystal mountain), the four boss caves and the deep ocean
 - `models.js`: the player, pets, bosses, Guide Gus, chests, eggs, whales, the rocket and other models
 - `game.js`: levels, travel between them, movement, swimming, pets, bullets, particles and sounds
 - `boss.js`: the boss fights, cutscene triggers and rewards

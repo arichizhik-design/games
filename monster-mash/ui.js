@@ -14,6 +14,7 @@ function showToast(text, secs = 2.5) {
 // ---------- hearts and armour ----------
 const heartImgs = { 1: ICONS.heart(1).toDataURL(), 0.5: ICONS.heart(0.5).toDataURL(), 0: ICONS.heart(0).toDataURL() };
 function updateHearts() {
+  updateCoins();
   const el = $('hearts');
   if (!el.children.length) for (let i = 0; i < 10; i++) { const im = document.createElement('img'); im.width = 18; im.height = 18; im.alt = ''; el.appendChild(im); }
   for (let i = 0; i < 10; i++) {
@@ -39,15 +40,37 @@ function weaponIconUrl(id) { return iconUrl('w:' + id, () => weaponIcon(id)); }
 function eggIconUrl(type) { return iconUrl('e:' + type, () => ICONS.egg(type)); }
 function armorIconUrl(tier) { return iconUrl('a:' + tier, () => ICONS.armor(hex(ARMORS[tier].color))); }
 function hotbarItems() {
-  const items = WEAPON_ORDER.filter(id => save.weapons.includes(id)).map(id => ({ kind: 'weapon', id, name: WEAPONS[id].name, icon: weaponIconUrl(id) }));
-  for (const type of Object.keys(EGGS)) if (save.eggs[type] > 0) items.push({ kind: 'egg', type, name: `${EGGS[type].name} (hatch it at home)`, icon: eggIconUrl(type), count: save.eggs[type] });
+  const extras = [];
+  for (const type of Object.keys(EGGS)) if (save.eggs[type] > 0) extras.push({ kind: 'egg', type, name: `${EGGS[type].name} (hatch it at home)`, icon: eggIconUrl(type), count: save.eggs[type] });
+  if (save.rocket) extras.push({ kind: 'rocket', name: 'Rocket Ship (hold it outside and tap to fly)', icon: iconUrl('rocket', rocketIcon) });
+  // your best weapons first, leaving room for eggs and the rocket
+  const room = Math.max(2, 9 - extras.length);
+  let weapons = save.weapons.filter(id => WEAPONS[id]).sort((a, b) => WEAPONS[b].dmg - WEAPONS[a].dmg);
+  if (weapons.length > room) {
+    const melee = weapons.filter(id => WEAPONS[id].kind === 'melee'), guns = weapons.filter(id => WEAPONS[id].kind === 'gun');
+    weapons = [...melee.slice(0, Math.ceil(room / 2)), ...guns.slice(0, Math.floor(room / 2))];
+    if (weapons.length < room) weapons = save.weapons.slice().sort((a, b) => WEAPONS[b].dmg - WEAPONS[a].dmg).slice(0, room);
+    if (!weapons.includes(save.weapon) && save.weapons.includes(save.weapon)) weapons[weapons.length - 1] = save.weapon;
+  }
+  const items = weapons.map(id => ({ kind: 'weapon', id, name: WEAPONS[id].name, icon: weaponIconUrl(id) })).concat(extras);
   while (items.length < 9) items.push(null);
   return items.slice(0, 9);
+}
+function rocketIcon() {
+  return iconCanvas(p => {
+    for (let y = 3; y < 12; y++) for (let x = 6; x < 10; x++) p(x, y, '#f0f0f4');
+    for (let x = 7; x < 9; x++) { p(x, 1, '#d8343a'); p(x, 2, '#d8343a'); }
+    p(6, 2, '#d8343a'); p(9, 2, '#d8343a');
+    p(7, 6, '#7ad8ff'); p(8, 6, '#7ad8ff');
+    for (let y = 9; y < 13; y++) { p(5, y, '#d8343a'); p(10, y, '#d8343a'); }
+    p(7, 12, '#ffa94a'); p(8, 12, '#ffa94a'); p(7, 13, '#ff5a3c'); p(8, 14, '#ffe95a');
+  });
 }
 function selectedItem() {
   const it = hotbarItems()[G.slot];
   if (!it) return null;
   if (it.kind === 'weapon') { save.weapon = it.id; return 'weapon'; }
+  if (it.kind === 'rocket') return 'rocket';
   return 'egg:' + it.type;
 }
 let itemNameTimer = null;
@@ -104,13 +127,14 @@ function questInfo() {
     if (A.defeated) {
       if (A.eggState === 'pedestal') return { text: 'You won! Pick up the egg (E).', target: { world: where, x: A.eggHome.x, z: A.eggHome.z, label: 'Egg' } };
       if (A.chestState === 'ready') return { text: 'Open the treasure chest (E) and spin for a prize!', target: { world: where, x: CAVE.chest.x, z: CAVE.chest.z, label: 'Chest' } };
-      if (A.scubaState === 'ready') return { text: 'The Scorpion dropped SCUBA GEAR! Pick it up (E).', target: { world: where, x: A.scuba.position.x, z: A.scuba.position.z, label: 'Scuba gear' } };
+      if (A.scubaState === 'ready') return { text: `The ${A.cfg.name} dropped SCUBA GEAR! Pick it up (E).`, target: { world: where, x: A.scuba.position.x, z: A.scuba.position.z, label: 'Scuba gear' } };
       if (A.scrollState === 'ready') return { text: 'There\'s a scroll! Pick it up and read the riddle (E).', target: { world: where, x: CAVE.scroll.x, z: CAVE.scroll.z, label: 'Scroll' } };
       return { text: 'All done here! Head back outside and take your egg home.', target: { world: where, x: CAVE.start.x, z: 1, label: 'Way out' } };
     }
     if (player.eggHeld) return { text: A.bossId === 'spider' ? 'Quick, carry the egg back into the tunnel!' : 'You have the egg! Walk back toward the way out...' };
     if (player.pos.z < CAVE.roomDoorZ) return { text: `Follow the tunnel deep into the cave${A.bossId === 'rabbit' ? '' : ''}.`, target: { world: where, x: CAVE.start.x, z: CAVE.roomDoorZ + 4, label: 'Big room' } };
-    const hint = { deer: 'A giant deer is sleeping next to an egg. Sneak up and pick up the egg (E).', scorpion: 'An egg, and no boss anywhere... Pick up the egg (E).', squid: 'The King Squid is asleep on his golden throne. Pick up the egg (E).', spider: 'An egg, sitting in the sunlight. Pick it up (E).' }[A.bossId];
+    const nm = A.cfg.name;
+    const hint = { deer: `The ${nm} is sleeping next to an egg. Sneak up and pick up the egg (E).`, scorpion: 'An egg, and no boss anywhere... Pick up the egg (E).', squid: `The ${nm} is asleep on a golden throne. Pick up the egg (E).`, spider: 'An egg, sitting in the sunlight. Pick it up (E).' }[A.bossId];
     return { text: hint, target: { world: where, x: A.eggHome.x, z: A.eggHome.z, label: 'Egg' } };
   }
   if (where === 'deep') {
@@ -119,12 +143,14 @@ function questInfo() {
     return { text: 'A coral cave appeared! Swim down into it.', target: { world: 'deep', x: c.x, z: c.z, label: 'Coral cave' } };
   }
   if (eggCount() > 0) return { text: 'Take your egg home! Walk into your house and use the Egg Incubator (E).', target: { world: 'overworld', x: OVER.incubator.x, z: OVER.incubator.z, label: 'Home' } };
+  const pl = PLANETS[PLANET], P = pl.places;
   const next = BOSS_ORDER[save.progress];
-  if (next === 'deer') return { text: 'Follow the radar into the forest. Find the giant rabbit hole!', target: doorTarget('rabbit', 'Forest') };
-  if (next === 'scorpion') return { text: 'The scroll\'s riddle points to the DESERT. Find the sand cave! (Scroll button to read it again)', target: doorTarget('sand', 'Desert') };
-  if (next === 'squid') return { text: `Go to the ocean dive spot. Swim out and ${t ? 'hold Down' : 'hold Shift'} to dive with your scuba gear!`, target: { world: 'overworld', x: OVER.diveSpot.x, z: OVER.diveSpot.z, label: 'Ocean' } };
-  if (next === 'spider') return { text: 'The riddle points to the CRYSTAL CAVES under the purple light. The final boss waits there!', target: doorTarget('crystal', 'Crystal Caves') };
-  return { text: 'You beat World 1! Climb into the rocket ship in the village (E). Or replay any boss for more eggs.', target: { world: 'overworld', x: OVER.rocketPad.x, z: OVER.rocketPad.z, label: 'Rocket' } };
+  if (next === 'deer') return { text: save.planet === 'island' ? `Follow the radar into the ${P.rabbit.toLowerCase()}. Find the giant ${DOORS.rabbit.label.toLowerCase()}!` : `Welcome to the ${pl.name}! Follow the radar to the ${P.rabbit} and find the ${DOORS.rabbit.label.toLowerCase()}.`, target: doorTarget('rabbit', P.rabbit) };
+  if (next === 'scorpion') return { text: `The scroll's riddle points to the ${P.sand.toUpperCase()}. Find the ${DOORS.sand.label.toLowerCase()}! (Scroll button to read it again)`, target: doorTarget('sand', P.sand) };
+  if (next === 'squid') return { text: `Go to the ${P.dive} dive spot. Swim out and ${t ? 'hold Down' : 'hold Shift'} to dive with your scuba gear!`, target: { world: 'overworld', x: OVER.diveSpot.x, z: OVER.diveSpot.z, label: P.dive } };
+  if (next === 'spider') return { text: `The riddle points to the ${P.crystal.toUpperCase()}. The final boss of this planet waits there!`, target: doorTarget('crystal', P.crystal) };
+  const nextPlanet = PLANET_ORDER[PLANET_ORDER.indexOf(PLANET) + 1];
+  return { text: nextPlanet ? `You beat ${pl.name.startsWith('The') ? pl.name : 'the ' + pl.name}! Hold your ROCKET SHIP outside and ${t ? 'tap the screen' : 'click'} to fly to the ${PLANETS[nextPlanet].name}.` : `You beat every planet! You're a Monster Mash champion. Replay bosses for more eggs, or decorate your house.` };
 }
 
 let lastQuest = '';
@@ -226,7 +252,7 @@ function interactTarget() {
   if (G.world.name === 'overworld') {
     if (near(gus.root.position.x, gus.root.position.z, 3.2)) return { text: 'Talk to Guide Gus', go: () => { if (player.mounted) dismount(); talkToGus(); } };
     if (near(OVER.incubator.x, OVER.incubator.z, 2.6)) return eggCount() ? { text: 'Hatch an egg in the incubator', go: openHatch } : { text: 'The incubator is empty', go: () => showToast('Beat a monster to win an egg, then bring it here.') };
-    if (save.rocket && near(OVER.rocketPad.x, OVER.rocketPad.z, 3.4)) return { text: 'Climb into the rocket ship', go: rocketLaunch };
+    if (near(shopkeeper.root.position.x, shopkeeper.root.position.z, 3.4)) return { text: 'Shop for house decorations', go: openShop };
   }
   if (A) {
     if (A.eggState === 'pedestal' && !A.eggFly && nearEggSpot(A) && !fightArena && !G.cutscene && A.boss.state !== 'dying') {
@@ -250,7 +276,7 @@ function updatePrompt() {
     const t = interactTarget();
     if (t) text = (touch.active ? 'Tap E: ' : '[E] ') + t.text;
     else if (!player.mounted && pet.model && G.world.name !== 'deep' && Math.hypot(pet.pos.x - player.pos.x, pet.pos.z - player.pos.z) < 3.2 && save.step >= 3) text = (touch.active ? 'Tap Ride: ' : '[R] ') + `Ride ${petShortName()}`;
-    else if (G.world.name === 'overworld' && player.inWater && player.pos.x < OVER.oceanX) text = save.scuba ? (touch.active ? 'Hold Down to dive' : 'Hold Shift to dive') : 'You need scuba gear to dive';
+    else if (G.world.name === 'overworld' && player.inWater && oceanDepth(player.pos.x, player.pos.z) > 0) text = save.scuba ? (touch.active ? 'Hold Down to dive' : 'Hold Shift to dive') : 'You need scuba gear to dive';
   }
   const el = $('prompt');
   if (text) { el.textContent = text; el.hidden = false; } else el.hidden = true;
@@ -264,6 +290,7 @@ function updatePrompt() {
 function attack() {
   if (frozen() || !G.running) return;
   const item = selectedItem();
+  if (item === 'rocket') { rocketLaunch(); return; }
   if (item && item.startsWith('egg:')) {
     if (G.world.name === 'overworld' && near(OVER.incubator.x, OVER.incubator.z, 2.6)) openHatch();
     else showToast('Take the egg home and put it in the Egg Incubator to hatch it!');
@@ -463,38 +490,119 @@ function openPets() {
 $('petsClose').addEventListener('click', () => closeModal());
 $('petsBtn').addEventListener('pointerdown', e => { e.stopPropagation(); openPets(); });
 
-// ---------- the rocket ship ----------
+// ---------- the rocket ship: ride it up, then pick a planet ----------
+let flyingRocket = null;
 function rocketLaunch() {
+  if (G.world.name !== 'overworld') { showToast('Go outside to launch your rocket ship!'); return; }
   if (player.mounted) dismount();
-  const start = rocket.position.clone();
-  // watch from the middle of the village square
-  player.pos.set(OVER.village.x + 2, OVER.village.h, start.z);
-  player.vel.set(0, 0, 0);
-  cam.yaw = Math.atan2(-(start.x - player.pos.x), -(start.z - player.pos.z));
+  const start = player.pos.clone();
+  if (flyingRocket) flyingRocket.parent?.remove(flyingRocket);
+  flyingRocket = makeRocketModel();
+  flyingRocket.position.copy(start);
+  scene.add(flyingRocket);
+  const back = new THREE.Vector3(Math.sin(cam.yaw), 0, Math.cos(cam.yaw));
+  const camPos = start.clone().addScaledVector(back, 14).add(new THREE.Vector3(0, 5, 0));
   playCutscene({
-    dur: 5.5, camDist: 4,
+    dur: 5.2,
     events: [
-      [0, cs => { G.hidePlayer = true; pet.model.root.visible = false; cs.lookAt = rocket.position; cs.pitch = 0.2; sfx('blastoff'); }],
-      [0.6, cs => { cs.rocketUp = true; }],
-      [4.6, () => { $('fade').classList.add('on'); }],
+      [0, cs => { cs.camPos = camPos; cs.lookAt = flyingRocket.position.clone().add(new THREE.Vector3(0, 4, 0)); burst(start.clone().add(new THREE.Vector3(0, 2, 0)), 0xffffff, 20, 4, 0.3, 0.8); }],
+      [0.5, cs => { G.hidePlayer = true; pet.model.root.visible = false; sfx('blastoff'); showToast('3... 2... 1... BLAST OFF!', 2); }],
+      [1.1, cs => { cs.rocketUp = true; }],
+      [4.4, () => { $('fade').classList.add('on'); }],
     ],
     tick: (cs, dt) => {
       if (cs.rocketUp) {
-        cs.v = (cs.v || 0) + dt * 9;
-        rocket.position.y += cs.v * dt;
+        cs.v = (cs.v || 0) + dt * 10;
+        flyingRocket.position.y += cs.v * dt;
+        flyingRocket.rotation.y += dt * 0.6;
+        cs.lookAt.lerp(flyingRocket.position.clone().add(new THREE.Vector3(0, 4, 0)), 0.15);
         G.shake = 0.3;
-        burst(rocket.position.clone(), Math.random() < 0.5 ? 0xffa94a : 0xff5a3c, 3, 4, 0.35, 0.8, -6);
-      } else if (Math.random() < 0.5) burst(rocket.position.clone(), 0xdddddd, 2, 3, 0.4, 1, 1);
+        burst(flyingRocket.position.clone(), Math.random() < 0.5 ? 0xffa94a : 0xff5a3c, 3, 4, 0.35, 0.8, -6);
+      } else if (cs.t > 0.5 && Math.random() < 0.5) burst(start.clone(), 0xdddddd, 2, 3, 0.4, 1, 1);
     },
     onEnd: () => {
-      rocket.position.copy(start);
+      scene.remove(flyingRocket); flyingRocket = null;
       G.hidePlayer = false; pet.model.root.visible = true;
-      openModal('endUI');
+      openPlanetPicker();
       setTimeout(() => $('fade').classList.remove('on'), 300);
     },
   });
 }
-$('endOk').addEventListener('click', () => closeModal());
+function openPlanetPicker() {
+  const list = $('planetList');
+  list.innerHTML = '';
+  PLANET_ORDER.forEach(pid => {
+    const pl = PLANETS[pid], open = planetUnlocked(pid), here = pid === PLANET;
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'planetcard ' + pid + (open ? '' : ' locked');
+    card.disabled = !open;
+    card.innerHTML = '<span class="pworld"></span><span class="pname"></span><span class="pblurb"></span><span class="pstat"></span>';
+    card.querySelector('.pworld').textContent = `World ${pl.world}`;
+    card.querySelector('.pname').textContent = pl.name;
+    card.querySelector('.pblurb').textContent = pl.blurb;
+    const prog = pid === save.planet ? save.progress : ((save.planetData[pid] || {}).progress || 0);
+    card.querySelector('.pstat').textContent = here ? 'You are here · fly back down' : !open ? `Locked: beat the final boss of World ${pl.world - 1} first` : `Bosses beaten: ${prog}/4 · loot up to ${pl.world}x better`;
+    card.addEventListener('click', () => { closeModal(); flyToPlanet(pid); });
+    list.appendChild(card);
+  });
+  openModal('planetUI');
+}
+function flyToPlanet(pid) {
+  const pl = PLANETS[pid];
+  $('fadeText').textContent = `Flying to the ${pl.name}...`;
+  $('fade').classList.add('on');
+  G.transitioning = true;
+  setTimeout(() => {
+    loadPlanetState(pid);
+    buildLevels(pid);
+    setLevel('overworld');
+    placeActors(OVER.spawn.x, null, OVER.spawn.z, Math.PI * 0.05);
+    resetDeep();
+    writeSave();
+    updateHotbar();
+    $('fadeText').textContent = '';
+    $('fade').classList.remove('on');
+    setTimeout(() => { G.transitioning = false; }, 250);
+    showToast(pid === 'island' ? 'Back on the Island!' : `Welcome to the ${pl.name}! New bosses, better loot.`, 3);
+  }, 600);
+}
+
+// ---------- the village shop ----------
+function updateCoins() { $('coinCount').textContent = save.coins || 0; }
+function openShop() {
+  const list = $('shopList');
+  list.innerHTML = '';
+  $('shopCoins').textContent = `You have ${save.coins || 0} coins`;
+  DECOR.forEach(d => {
+    const owned = (save.decor || []).includes(d.id);
+    const row = document.createElement('div');
+    row.className = 'shopitem' + (owned ? ' owned' : '');
+    row.innerHTML = '<span class="sname"></span><span class="sprice"></span>';
+    row.querySelector('.sname').textContent = d.name;
+    row.querySelector('.sprice').textContent = owned ? 'In your house' : `${d.price} coins`;
+    if (!owned) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = 'Buy';
+      b.disabled = (save.coins || 0) < d.price;
+      b.addEventListener('click', () => {
+        if ((save.coins || 0) < d.price) return;
+        save.coins -= d.price;
+        save.decor = (save.decor || []).concat(d.id);
+        writeSave(); updateCoins(); updateDecor(); sfx('prize');
+        showToast(`You bought the ${d.name}! Go home to see it.`, 2.5);
+        openShopRefresh();
+      });
+      row.appendChild(b);
+    }
+    list.appendChild(row);
+  });
+  if (G.modal !== 'shopUI') openModal('shopUI');
+}
+function openShopRefresh() { openShop(); }
+$('shopClose').addEventListener('click', () => closeModal());
+
+$('planetClose').addEventListener('click', () => closeModal());
 
 // ---------- cutscenes ----------
 function playCutscene(def) {
@@ -776,7 +884,7 @@ function checkPlaces(dt) {
       const d = DOORS[id];
       if (Math.hypot(a.pos.x - d.trigger.x, a.pos.z - d.trigger.z) < 1.8 && Math.abs(a.pos.y - d.floor) < 3) { travel(id); return; }
     }
-    if (a.inWater && a.pos.x < OVER.oceanX - 10) {
+    if (a.inWater && oceanDepth(a.pos.x, a.pos.z) > 10) {
       if (save.scuba && a.pos.y < OVER.water - 2.6) { travel('deep'); return; }
       noScubaHintT -= dt;
       if (!save.scuba && noScubaHintT <= 0 && Math.hypot(a.pos.x - OVER.diveSpot.x, a.pos.z - OVER.diveSpot.z) < 8) {
@@ -850,6 +958,14 @@ function start() {
   if (!name) { $('nameInput').focus(); return; }
   playerName = name;
   save = loadSave(name);
+  const pid = PLANETS[save.planet] ? save.planet : 'island';
+  save.planet = null;
+  loadPlanetState(pid);
+  if (pid !== PLANET) {
+    buildLevels(pid);
+    setLevel('overworld');
+    placeActors(OVER.spawn.x, null, OVER.spawn.z, Math.PI * 0.05);
+  }
   const newAdmin = isAdmin() && !save.admin;
   if (isAdmin()) applyAdmin();
   writeSave();

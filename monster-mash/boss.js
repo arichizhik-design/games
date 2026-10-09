@@ -10,7 +10,7 @@ function createArena(L, caveId) {
   const cfg = BOSSES[bossId];
   const A = {
     L, caveId, bossId, cfg, group: L.group,
-    boss: { model: makeBossModel(bossId), pos: new THREE.Vector3(), yaw: Math.PI, state: 'sleep', t: 0, hp: 1, maxHp: 1, cooldown: 2, attack: null, phase2: false, flashT: 0, zzzT: 0, walk: 0, hitPlayer: false, chargeDir: new THREE.Vector3(), lastAttack: '', leapFrom: new THREE.Vector3(), leapTo: new THREE.Vector3() },
+    boss: { model: makeBossModel(bossId, PLANET), pos: new THREE.Vector3(), yaw: Math.PI, state: 'sleep', t: 0, hp: 1, maxHp: 1, cooldown: 2, attack: null, phase2: false, flashT: 0, zzzT: 0, walk: 0, hitPlayer: false, chargeDir: new THREE.Vector3(), lastAttack: '', leapFrom: new THREE.Vector3(), leapTo: new THREE.Vector3() },
     egg: eggMesh(1, cfg.egg), eggHome: new THREE.Vector3(CAVE.pedestal.x, CAVE.floor + 1, CAVE.pedestal.z), eggState: 'pedestal', eggFly: null,
     chest: makeChestModel(CHESTS[cfg.chest].color), chestState: 'hidden',
     scroll: makeScrollModel(), scrollState: 'hidden',
@@ -110,7 +110,7 @@ function pickUpEgg(A) {
   sfx('pickup');
   if (A.bossId === 'deer') {
     showToast('You picked up the egg...');
-    setTimeout(() => { wakeBoss(A); setTimeout(() => dropEgg(A, 'The egg falls out of your hands! Beat the Deer to win it!'), 900); }, 600);
+    setTimeout(() => { wakeBoss(A); setTimeout(() => dropEgg(A, `The egg falls out of your hands! Beat the ${A.cfg.name} to win it!`), 900); }, 600);
   } else {
     A.armed = { x: player.pos.x, z: player.pos.z };
     showToast(A.bossId === 'scorpion' ? 'You got the egg! There\'s no boss here... is there?' : A.bossId === 'squid' ? 'Shhh... don\'t wake the King.' : 'Got it! Now get out of here...', 2.5);
@@ -153,8 +153,8 @@ function scorpionCutscene(A) {
       [1.4, cs => { G.shake = 0.8; }],
       [2.3, cs => { cs.turnTo(faceAngleToward(b.pos.x, b.pos.z), 1.0); }],
       [3.3, cs => { sfx('rumble'); G.shake = 1.2; b.state = 'emerge'; b.t = 0; b.model.root.visible = true; }],
-      [4.6, cs => { sfx('roar'); G.shake = 1; showToast('A GIANT SCORPION!!!', 2); }],
-      [5.6, cs => { dropEgg(A, 'You dropped the egg! Beat the Scorpion to win it!'); }],
+      [4.6, cs => { sfx('roar'); G.shake = 1; showToast(`A ${A.cfg.name.toUpperCase()}!!!`, 2); }],
+      [5.6, cs => { dropEgg(A, `You dropped the egg! Beat the ${A.cfg.name} to win it!`); }],
     ],
     onEnd: () => startFight(A),
   });
@@ -166,8 +166,8 @@ function squidCutscene(A) {
     events: [
       [0, cs => { sfx('rumble'); G.shake = 0.4; }],
       [0.6, cs => { cs.turnTo(faceAngleToward(b.pos.x, b.pos.z), 1.0); }],
-      [1.8, cs => { b.state = 'wake'; b.t = 0; sfx('roar'); G.shake = 0.8; showToast('The King Squid wakes up!!!', 2); }],
-      [4.0, cs => { dropEgg(A, 'The egg slips away! Beat the King Squid to win it!'); }],
+      [1.8, cs => { b.state = 'wake'; b.t = 0; sfx('roar'); G.shake = 0.8; showToast(`The ${A.cfg.name} wakes up!!!`, 2); }],
+      [4.0, cs => { dropEgg(A, `The egg slips away! Beat the ${A.cfg.name} to win it!`); }],
     ],
     onEnd: () => startFight(A),
   });
@@ -184,7 +184,7 @@ function spiderCutscene(A) {
       [3.0, cs => { b.state = 'emerge'; b.t = 0; b.model.root.visible = true; cs.lookAt = b.pos; cs.pitch = 0.05; }],
       [3.1, cs => { cs.walk = { dx: 0, dz: 1, speed: 2.5 }; }],
       [5.0, cs => { cs.walk = null; }],
-      [6.0, cs => { sfx('screech'); sfx('roar'); G.shake = 1.2; showToast('THE CRYSTAL SPIDER!!!', 2); cs.lookAt = null; cs.pitch = null; }],
+      [6.0, cs => { sfx('screech'); sfx('roar'); G.shake = 1.2; showToast(`THE ${A.cfg.name.toUpperCase()}!!!`, 2); cs.lookAt = null; cs.pitch = null; }],
       [7.6, cs => { dropEgg(A, 'You dropped the egg! This is the final boss. Good luck!'); }],
     ],
     onEnd: () => startFight(A),
@@ -724,6 +724,10 @@ function bossDefeated(A) {
   A.defeated = true;
   const first = !save.beaten[A.bossId];
   save.beaten[A.bossId] = (save.beaten[A.bossId] || 0) + 1;
+  const coins = first ? A.cfg.coins : Math.round(A.cfg.coins * 0.6);
+  addCoins(coins);
+  damageNumber(`+${coins} coins`, new THREE.Vector3(b.pos.x, b.pos.y + 4, b.pos.z), 'crit');
+  setTimeout(() => showToast(`+${coins} COINS! Spend them at the village shop.`, 2.6), 3900);
   const idx = BOSS_ORDER.indexOf(A.bossId);
   if (save.progress === idx) save.progress = idx + 1;
   writeSave();
@@ -735,7 +739,8 @@ function bossDefeated(A) {
     if (A.scuba && !save.scuba) { A.scubaState = 'ready'; A.scuba.visible = true; }
     if (A.bossId === 'spider' && !save.rocket) {
       save.rocket = true; writeSave();
-      setTimeout(() => showToast('A ROCKET SHIP just landed in the village!', 3.5), 2600);
+      updateHotbar();
+      setTimeout(() => showToast('You got a ROCKET SHIP! It\'s in your hotbar. Hold it outside and tap to fly to another planet!', 4.5), 6800);
     }
     showToast('A treasure chest appeared! Grab the egg too!', 2.6);
   }, 1200);

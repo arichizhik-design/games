@@ -23,6 +23,7 @@
   <div id="bottom">
     <div id="statusRow">
       <div id="hearts"></div>
+      <div id="coins"><span class="coin"></span><span id="coinCount">0</span></div>
       <div id="armorIcon"></div>
     </div>
     <div id="hotbar"></div>
@@ -127,10 +128,28 @@
   </div>
 </div>
 
+<div id="shopUI" class="screen" hidden>
+  <div class="panel wide">
+    <h2>Sue's Decoration Shop</h2>
+    <p id="shopCoins"></p>
+    <div id="shopList"></div>
+    <p class="tip">Things you buy show up inside your house. Beat bosses to earn more coins.</p>
+    <button id="shopClose" type="button" class="ghost">Close</button>
+  </div>
+</div>
+
+<div id="planetUI" class="screen" hidden>
+  <div class="panel wide">
+    <h2>Pick a planet</h2>
+    <div id="planetList"></div>
+    <button id="planetClose" type="button" class="ghost">Stay here</button>
+  </div>
+</div>
+
 <div id="ink"></div>
 <div id="cinemaTop" class="cinema-bar"></div>
 <div id="cinemaBottom" class="cinema-bar"></div>
-<div id="fade"></div>
+<div id="fade"><div id="fadeText"></div></div>
 
 <script src="three.min.js"></script>
 <script src="textures.js"></script>

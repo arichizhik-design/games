@@ -6,6 +6,7 @@ const B = {
   AMETHYST: 10, PLANKS: 11, COBBLE: 12, PATH: 13, HAY: 14, ORE: 15, BEDROCK: 16, ROOF: 17, MOSS: 18, WINDOW: 19,
   SANDSTONE: 20, CACTUS: 21, CORAL_PINK: 22, CORAL_ORANGE: 23, CORAL_BLUE: 24, SEA_LANTERN: 25, GOLD: 26,
   GLOWSHROOM: 27, MUD: 28, ROOTS: 29, KELP: 30, LANTERN: 31, WOOL_RED: 32, WOOL_WHITE: 33,
+  SNOW: 34, ICE: 35, PINE: 36, ASH: 37, BASALT: 38, MAGMA: 39, RED_SAND: 40,
 };
 // [top, side, bottom] tiles for each block
 const BLOCK_TILES = {
@@ -25,8 +26,11 @@ const BLOCK_TILES = {
   [B.MUD]: [T.MUD, T.MUD, T.MUD], [B.ROOTS]: [T.ROOTS, T.ROOTS, T.ROOTS], [B.KELP]: [T.KELP, T.KELP, T.KELP],
   [B.LANTERN]: [T.LANTERN, T.LANTERN, T.LANTERN], [B.WOOL_RED]: [T.WOOL_RED, T.WOOL_RED, T.WOOL_RED],
   [B.WOOL_WHITE]: [T.WOOL_WHITE, T.WOOL_WHITE, T.WOOL_WHITE],
+  [B.SNOW]: [T.SNOW_TOP, T.SNOW_SIDE, T.DIRT], [B.ICE]: [T.ICE, T.ICE, T.ICE], [B.PINE]: [T.PINE, T.PINE, T.PINE],
+  [B.ASH]: [T.ASH_TOP, T.ASH_SIDE, T.BASALT], [B.BASALT]: [T.BASALT, T.BASALT, T.BASALT], [B.MAGMA]: [T.MAGMA, T.MAGMA, T.MAGMA],
+  [B.RED_SAND]: [T.RED_SAND, T.RED_SAND, T.RED_SAND],
 };
-const GLOWS = new Set([B.CRYSTAL, B.AMETHYST, B.SEA_LANTERN, B.GOLD, B.GLOWSHROOM, B.LANTERN]);
+const GLOWS = new Set([B.CRYSTAL, B.AMETHYST, B.SEA_LANTERN, B.GOLD, B.GLOWSHROOM, B.LANTERN, B.MAGMA]);
 
 // face table: direction, the 4 corners and their uvs (two triangles: 0 1 2, 2 1 3)
 const FACES = [
@@ -190,49 +194,93 @@ function valueNoise2D(seed) {
   };
 }
 
-// ---------- the island ----------
-const OVER = {
-  W: 208, H: 56, D: 208, water: 13,
-  village: { x: 104, z: 116, r: 17, h: 16 },
-  spawn: { x: 104.5, z: 124.5 },
-  guide: { x: 100.5, z: 117.5 },
-  dummy: { x: 112.5, z: 111.5 },
-  home: { x0: 88, z0: 99, sx: 9, sz: 7 },
-  incubator: { x: 90.5, z: 101.5 },
-  bed: { x: 95, z: 100 },
-  rocketPad: { x: 119.5, z: 117.5 },
-  forest: { x: 100, z: 44, r: 38 },
-  desert: { x: 168, z: 168, r: 44 },
-  oceanX: 50,
-  diveSpot: { x: 22.5, z: 116.5 },
-  beach: { x: 60.5, z: 116.5 },
-  mountain: { x: 172, z: 46, r: 30 },
+// ---------- the planets' overworlds ----------
+// every planet has a village, woods, a desert, a sea and a crystal mountain, in different far-apart spots
+const MAP = { W: 288, H: 50, D: 288, water: 13 };
+const LAYOUTS = {
+  island: {
+    village: { x: 128, z: 164 }, forest: { x: 120, z: 50, r: 46 }, desert: { x: 222, z: 244, r: 50 }, mountain: { x: 258, z: 110, r: 30 },
+    ocean: 'west', dive: { x: 22, z: 164 },
+    doors: { rabbit: { x: 120, z: 36, dir: [0, -1], mound: { x: 120, z: 27 } }, sand: { x: 208, z: 250, dir: [1, 0], mound: { x: 220, z: 250 } }, crystal: { x: 232, z: 110, dir: [1, 0] } },
+    sky: 0x9ad0ff, ground: 0x5a7a3a, beam: 0xb77bff, seed: 77,
+    pal: { grass: 'GRASS', dirt: 'DIRT', beach: 'SAND', desertTop: 'SAND', desertSub: 'SANDSTONE', stone: 'STONE', leaves: 'LEAVES', cactus: 'CACTUS', desertPath: 'SANDSTONE', palms: true },
+    doorLook: { rabbit: ['ROOTS', 'DIRT', 'RABBIT HOLE', '#c9955a'], sand: ['SANDSTONE', 'SANDSTONE', 'SAND CAVE', '#ffcf4a'], crystal: ['AMETHYST', 'CAVE', 'CRYSTAL CAVES', '#5ff0e6'] },
+  },
+  frost: {
+    village: { x: 160, z: 124 }, forest: { x: 168, z: 238, r: 46 }, desert: { x: 66, z: 48, r: 50 }, mountain: { x: 30, z: 200, r: 30 },
+    ocean: 'east', dive: { x: 266, z: 124 },
+    doors: { rabbit: { x: 168, z: 252, dir: [0, 1], mound: { x: 168, z: 261 } }, sand: { x: 80, z: 40, dir: [-1, 0], mound: { x: 68, z: 40 } }, crystal: { x: 56, z: 200, dir: [-1, 0] } },
+    sky: 0xcfe6f6, ground: 0xe8f0f8, beam: 0x9ae8ff, seed: 131,
+    pal: { grass: 'SNOW', dirt: 'DIRT', beach: 'SNOW', desertTop: 'ICE', desertSub: 'SNOW', stone: 'STONE', leaves: 'PINE', cactus: 'ICE', desertPath: 'SNOW', palms: false },
+    doorLook: { rabbit: ['ICE', 'SNOW', 'SNOW BURROW', '#bfeeff'], sand: ['ICE', 'ICE', 'ICE CAVE', '#9ae8ff'], crystal: ['CRYSTAL', 'STONE', 'ICE CAVES', '#5ff0e6'] },
+  },
+  lava: {
+    village: { x: 144, z: 110 }, forest: { x: 44, z: 64, r: 44 }, desert: { x: 240, z: 70, r: 48 }, mountain: { x: 244, z: 208, r: 30 },
+    ocean: 'south', dive: { x: 144, z: 266 },
+    doors: { rabbit: { x: 44, z: 76, dir: [0, -1], mound: { x: 44, z: 67 } }, sand: { x: 228, z: 70, dir: [1, 0], mound: { x: 240, z: 70 } }, crystal: { x: 218, z: 208, dir: [1, 0] } },
+    sky: 0x7a3a2a, ground: 0x3a2a24, beam: 0xff7a2a, seed: 211,
+    pal: { grass: 'ASH', dirt: 'BASALT', beach: 'RED_SAND', desertTop: 'RED_SAND', desertSub: 'SANDSTONE', stone: 'BASALT', leaves: null, cactus: 'MAGMA', desertPath: 'BASALT', palms: false },
+    doorLook: { rabbit: ['MAGMA', 'BASALT', 'ASH BURROW', '#ff9a4a'], sand: ['MAGMA', 'RED_SAND', 'LAVA TUBE', '#ffcf4a'], crystal: ['MAGMA', 'BASALT', 'FIRE CAVES', '#ff7a2a'] },
+  },
 };
-// doors into the boss caves: the tunnel runs from (x, z) in direction dir; walking to the end takes you inside
-const DOORS = {
-  rabbit:  { x: 100, z: 38, dir: [0, -1], floor: 17, len: 9, w: 3, h: 4, frame: B.ROOTS, wall: B.DIRT, mound: { x: 100, z: 29, r: 13, h: 12 }, label: 'RABBIT HOLE', color: '#c9955a' },
-  sand:    { x: 160, z: 170, dir: [1, 0], floor: 17, len: 11, w: 5, h: 5, frame: B.SANDSTONE, wall: B.SANDSTONE, mound: { x: 171, z: 170, r: 15, h: 13 }, label: 'SAND CAVE', color: '#ffcf4a' },
-  crystal: { x: 146, z: 46, dir: [1, 0], floor: 17, len: 13, w: 5, h: 5, frame: B.AMETHYST, wall: B.CAVE, label: 'CRYSTAL CAVES', color: '#5ff0e6' },
-};
+const DOOR_SIZE = { rabbit: { len: 9, w: 3, h: 4, mr: 13, mh: 12 }, sand: { len: 11, w: 5, h: 5, mr: 15, mh: 13 }, crystal: { len: 13, w: 5, h: 5 } };
+
+let OVER = null, DOORS = null;
+// fill OVER and DOORS for a planet (positions of everything on its overworld)
+function setupLayout(pid) {
+  const L = LAYOUTS[pid], V = L.village;
+  const pal = {};
+  for (const k in L.pal) pal[k] = typeof L.pal[k] === 'string' ? B[L.pal[k]] : L.pal[k];
+  const home = { x0: V.x - 24, z0: V.z - 5, sx: 13, sz: 9 };
+  OVER = Object.assign({}, MAP, {
+    pid, layout: L, pal,
+    village: { x: V.x, z: V.z, h: 16 },
+    spawn: { x: V.x + 0.5, z: V.z + 8.5 },
+    guide: { x: V.x - 4.5, z: V.z + 3.5 },
+    dummy: { x: V.x + 2.5, z: V.z + 11.5 },
+    home, incubator: { x: home.x0 + 3.5, z: home.z0 + 4.5 }, bed: { x: home.x0 + 1, z: home.z0 + 1 },
+    shop: { x0: V.x + 30, z0: V.z - 5, sx: 9, sz: 9 }, shopkeeper: { x: V.x + 32.5, z: V.z + 0.5 },
+    forest: L.forest, desert: L.desert, mountain: L.mountain, ocean: L.ocean,
+    diveSpot: { x: L.dive.x + 0.5, z: L.dive.z + 0.5 },
+  });
+  // where you come back out of the coral cave: on the shore between the village and the dive spot
+  const dvx = V.x - L.dive.x, dvz = V.z - L.dive.z, dl = Math.hypot(dvx, dvz);
+  OVER.beach = { x: L.dive.x + dvx / dl * 46 + 0.5, z: L.dive.z + dvz / dl * 46 + 0.5 };
+  DOORS = {};
+  for (const id in L.doors) {
+    const d = L.doors[id], sz = DOOR_SIZE[id], look = L.doorLook[id];
+    DOORS[id] = { x: d.x, z: d.z, dir: d.dir, floor: 17, len: sz.len, w: sz.w, h: sz.h, frame: B[look[0]], wall: B[look[1]],
+      mound: d.mound ? { x: d.mound.x, z: d.mound.z, r: sz.mr, h: sz.mh } : null, label: look[2], color: look[3] };
+  }
+}
+// how far into the sea a spot is (0 or less means on land)
+function oceanDepth(x, z) {
+  if (OVER.ocean === 'west') return 60 - x;
+  if (OVER.ocean === 'east') return x - (MAP.W - 60);
+  return z - (MAP.D - 60);
+}
 
 function smooth01(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 
 function generateOverworld() {
   const w = new World('overworld', OVER.W, OVER.H, OVER.D);
-  const noise = valueNoise2D(77), noise2 = valueNoise2D(91);
-  const rng = makeRng(4242);
+  const L = OVER.layout, pal = OVER.pal;
+  const noise = valueNoise2D(L.seed), noise2 = valueNoise2D(L.seed + 14);
+  const rng = makeRng(L.seed * 55);
   const heights = new Int16Array(w.W * w.D);
-  const biome = new Uint8Array(w.W * w.D); // 0 grass, 1 forest, 2 desert, 3 ocean
+  const biome = new Uint8Array(w.W * w.D); // 0 plains, 1 woods, 2 desert, 3 sea
   const V = OVER.village, M = OVER.mountain, Dz = OVER.desert, Fo = OVER.forest;
+  const vx0 = V.x - 28, vx1 = V.x + 42, vzr = 16;
   for (let z = 0; z < w.D; z++) for (let x = 0; x < w.W; x++) {
     let h = 15 + (noise(x / 40, z / 40) - 0.5) * 14 + (noise2(x / 12, z / 12) - 0.5) * 3;
     const dw = smooth01((Dz.r - Math.hypot(x - Dz.x, z - Dz.z)) / 14);
     h = lerp(h, 16 + (noise2(x / 16, z / 8) - 0.5) * 7, dw);
-    const ow = smooth01((OVER.oceanX - x) / 16);
+    const ow = smooth01(oceanDepth(x, z) / 16);
     h = lerp(h, 4 + noise2(x / 9, z / 9) * 2.5, ow);
-    const dv = Math.hypot(x - V.x, z - V.z);
-    if (dv < V.r + 10) h = lerp(V.h, h, smooth01((dv - V.r) / 10));
+    // the village is a long flat strip: your house, the square, the street and the shop
+    const vdx = Math.max(vx0 - x, 0, x - vx1), vdz = Math.max(Math.abs(z - V.z) - vzr, 0), dv = Math.hypot(vdx, vdz);
+    if (dv < 10) h = lerp(V.h, h, smooth01(dv / 10));
     const dm = Math.hypot(x - M.x, z - M.z);
     if (dm < M.r) h += Math.pow(1 - dm / M.r, 1.15) * 26 + (noise2(x / 6, z / 6) - 0.5) * 4;
     for (const id in DOORS) {
@@ -245,7 +293,7 @@ function generateOverworld() {
       const dc = Math.hypot(x - fx, z - fz);
       if (dc < 11) h = lerp(d.floor, h, smooth01((dc - 6) / 5));
     }
-    const edge = Math.min(z, w.W - 1 - x, w.D - 1 - z);
+    const edge = Math.min(x, z, w.W - 1 - x, w.D - 1 - z);
     if (edge < 8 && ow < 0.5) h += (8 - edge) * 1.6;
     heights[z * w.W + x] = Math.max(3, Math.min(w.H - 6, Math.round(h)));
     biome[z * w.W + x] = ow > 0.5 ? 3 : dw > 0.45 ? 2 : Math.hypot(x - Fo.x, z - Fo.z) < Fo.r ? 1 : 0;
@@ -254,12 +302,12 @@ function generateOverworld() {
     const h = heights[z * w.W + x], bi = biome[z * w.W + x];
     const dm = Math.hypot(x - M.x, z - M.z);
     const rocky = dm < M.r * 0.78 && h > 22;
-    const sandy = bi >= 2 || h <= OVER.water + 1;
+    const shore = bi === 3 || h <= OVER.water + 1;
     for (let y = 0; y < h; y++) {
-      let b = B.STONE;
+      let b = pal.stone;
       if (y === 0) b = B.BEDROCK;
-      else if (y >= h - 1) b = rocky ? (rng() < 0.08 ? B.ORE : B.STONE) : sandy ? B.SAND : B.GRASS;
-      else if (y >= h - 4) b = rocky ? B.STONE : sandy ? (bi === 2 && y < h - 2 ? B.SANDSTONE : B.SAND) : B.DIRT;
+      else if (y >= h - 1) b = rocky ? (rng() < 0.08 ? B.ORE : pal.stone) : bi === 2 ? pal.desertTop : shore ? pal.beach : pal.grass;
+      else if (y >= h - 4) b = rocky ? pal.stone : bi === 2 ? (y < h - 2 ? pal.desertSub : pal.desertTop) : shore ? pal.beach : pal.dirt;
       else if (rocky && rng() < 0.05) b = B.ORE;
       w.set(x, y, z, b);
     }
@@ -267,13 +315,14 @@ function generateOverworld() {
     if (h > 34 && dm < 10 && rng() < 0.18) w.set(x, h, z, rng() < 0.5 ? B.CRYSTAL : B.AMETHYST);
   }
 
-  // gravel paths from the village to every place
+  // gravel paths from the village to every place (a wooden pier over the water to the dive spot)
   const pathCells = new Set();
+  const out = id => [DOORS[id].x - DOORS[id].dir[0] * 4, DOORS[id].z - DOORS[id].dir[1] * 4];
   const paths = [
-    [[V.x - 2, V.z - 10], [102, 70], [DOORS.rabbit.x, DOORS.rabbit.z + 4]],
-    [[V.x + 10, V.z + 6], [140, 140], [DOORS.sand.x - 6, DOORS.sand.z]],
-    [[V.x - 12, V.z], [76, 118], [OVER.beach.x - 2, OVER.beach.z]],
-    [[V.x + 8, V.z - 10], [128, 80], [DOORS.crystal.x - 6, DOORS.crystal.z]],
+    [[V.x, V.z], [(V.x + out('rabbit')[0]) / 2 + 6, (V.z + out('rabbit')[1]) / 2], out('rabbit')],
+    [[V.x, V.z], [(V.x + out('sand')[0]) / 2, (V.z + out('sand')[1]) / 2 + 6], out('sand')],
+    [[V.x, V.z], [(V.x + out('crystal')[0]) / 2 - 5, (V.z + out('crystal')[1]) / 2], out('crystal')],
+    [[V.x, V.z], [(V.x + OVER.diveSpot.x) / 2, (V.z + OVER.diveSpot.z) / 2 + 4], [OVER.diveSpot.x + Math.sign(V.x - OVER.diveSpot.x) * 3, OVER.diveSpot.z + Math.sign(V.z - OVER.diveSpot.z) * 3]],
   ];
   for (const pts of paths) for (let i = 0; i < pts.length - 1; i++) {
     const [ax, az] = pts[i], [bx, bz] = pts[i + 1];
@@ -289,55 +338,63 @@ function generateOverworld() {
     if (!w.inside(x, 0, z)) continue;
     const h = heights[z * w.W + x];
     if (h <= OVER.water) { w.set(x, OVER.water - 1, z, B.PLANKS); if (h < OVER.water - 1) w.set(x, OVER.water - 2, z, B.LOG); }
-    else if (biome[z * w.W + x] === 2) w.set(x, h - 1, z, B.SANDSTONE);
+    else if (biome[z * w.W + x] === 2) w.set(x, h - 1, z, pal.desertPath);
     else w.set(x, h - 1, z, B.PATH);
   }
 
-  // the village: square, well, houses and your own house
+  // the village: square and well, your house to the west, a street of houses to the east, and the shop at the end
   for (let z = V.z - 5; z <= V.z + 5; z++) for (let x = V.x - 5; x <= V.x + 5; x++) w.set(x, V.h - 1, z, B.COBBLE);
+  for (let x = V.x - 12; x <= V.x + 30; x++) for (let z = V.z - 1; z <= V.z + 1; z++) w.set(x, V.h - 1, z, B.COBBLE);
   for (let z = V.z - 1; z <= V.z + 1; z++) for (let x = V.x - 1; x <= V.x + 1; x++) {
     if (x === V.x && z === V.z) { w.set(x, V.h - 1, z, B.WATER); continue; }
     w.set(x, V.h, z, B.COBBLE);
   }
   const H = OVER.home;
-  buildHouse(w, H.x0, H.z0, H.sx, H.sz, V.h);
+  buildHouse(w, H.x0, H.z0, H.sx, H.sz, V.h, 'x+');
   w.set(OVER.bed.x, V.h, OVER.bed.z, B.WOOL_RED); w.set(OVER.bed.x + 1, V.h, OVER.bed.z, B.WOOL_WHITE);
-  buildHouse(w, V.x + 8, V.z - 14, 6, 7, V.h);
-  buildHouse(w, V.x - 13, V.z + 7, 6, 6, V.h);
-  buildHouse(w, V.x + 9, V.z + 8, 7, 6, V.h);
-  buildHouse(w, V.x - 3, V.z - 16, 6, 6, V.h);
-  for (let z = -2; z <= 2; z++) for (let x = -2; x <= 2; x++) w.set(Math.floor(OVER.rocketPad.x) + x, V.h - 1, Math.floor(OVER.rocketPad.z) + z, (x + z) % 2 ? B.COBBLE : B.STONE);
-  for (let i = -3; i <= 3; i++) w.set(OVER.dummy.x - 3 | 0, V.h, (OVER.dummy.z | 0) + i, i % 3 === 0 ? B.LOG : B.AIR);
+  buildHouse(w, V.x + 8, V.z - 10, 6, 7, V.h, 'z+');
+  buildHouse(w, V.x + 18, V.z - 10, 7, 7, V.h, 'z+');
+  buildHouse(w, V.x + 8, V.z + 4, 7, 6, V.h, 'z-');
+  buildHouse(w, V.x + 19, V.z + 4, 6, 6, V.h, 'z-');
+  const S = OVER.shop;
+  buildHouse(w, S.x0, S.z0, S.sx, S.sz, V.h, 'x-');
+  for (let i = -3; i <= 3; i++) w.set(Math.floor(OVER.dummy.x) - 3, V.h, Math.floor(OVER.dummy.z) + i, i % 3 === 0 ? B.LOG : B.AIR);
 
-  // doors into the boss caves
   for (const id in DOORS) carveDoor(w, DOORS[id]);
 
-  // trees: thick in the forest, a few on the grass, palms on the beach, cacti in the desert
+  // trees: thick in the woods, a few on the plains, palms on island beaches, cacti (or ice spikes, or magma) in the desert
   const trees = [];
   const free = (x, z, r) => !trees.some(t => Math.abs(t[0] - x) < r && Math.abs(t[1] - z) < r);
   const nearPath = (x, z) => { for (let ox = -2; ox <= 2; ox++) for (let oz = -2; oz <= 2; oz++) if (pathCells.has((x + ox) + ',' + (z + oz))) return true; return false; };
   const nearDoor = (x, z) => Object.values(DOORS).some(d => Math.hypot(x - d.x, z - d.z) < 10 || (d.mound && Math.hypot(x - d.mound.x, z - d.mound.z) < d.mound.r + 2));
-  for (let tries = 0; tries < 9000; tries++) {
+  const inVillage = (x, z) => x > vx0 - 4 && x < vx1 + 4 && Math.abs(z - V.z) < vzr + 4;
+  for (let tries = 0; tries < 16000; tries++) {
     const x = 6 + Math.floor(rng() * (w.W - 12)), z = 6 + Math.floor(rng() * (w.D - 12));
     const bi = biome[z * w.W + x], h = heights[z * w.W + x];
-    if (Math.hypot(x - V.x, z - V.z) < V.r + 3 || Math.hypot(x - M.x, z - M.z) < M.r - 4 || nearDoor(x, z) || nearPath(x, z)) continue;
-    if (bi === 1 || (bi === 0 && rng() < 0.18)) {
-      if (h <= OVER.water + 1 || w.get(x, h - 1, z) !== B.GRASS || !free(x, z, bi === 1 ? 3.6 : 5)) continue;
+    if (inVillage(x, z) || Math.hypot(x - M.x, z - M.z) < M.r - 4 || nearDoor(x, z) || nearPath(x, z)) continue;
+    if (bi === 1 || (bi === 0 && rng() < 0.15)) {
+      if (h <= OVER.water + 1 || w.get(x, h - 1, z) !== pal.grass || !free(x, z, bi === 1 ? 3.6 : 5)) continue;
       trees.push([x, z]);
       const th = (bi === 1 ? 5 : 4) + Math.floor(rng() * 3);
       for (let y = h; y < h + th; y++) w.set(x, y, z, B.LOG);
-      for (let y = h + th - 2; y <= h + th + 1; y++) {
-        const r = y >= h + th ? 1 : 2;
+      if (!pal.leaves) {
+        // burnt trees: bare branches with glowing tips
+        for (const [ox, oz] of [[1, 0], [-1, 0], [0, 1]]) { w.set(x + ox, h + th - 2, z + oz, B.LOG); if (rng() < 0.5) w.set(x + ox * 2, h + th - 1, z + oz * 2, B.MAGMA); }
+        continue;
+      }
+      const pine = pal.leaves === B.PINE;
+      for (let y = h + th - (pine ? 4 : 2); y <= h + th + 1; y++) {
+        const r = pine ? Math.max(0, Math.min(2, Math.floor((h + th + 1 - y) / 1.5))) : (y >= h + th ? 1 : 2);
         for (let ox = -r; ox <= r; ox++) for (let oz = -r; oz <= r; oz++) {
-          if (Math.abs(ox) === r && Math.abs(oz) === r && (y === h + th + 1 || rng() < 0.5)) continue;
-          if (w.get(x + ox, y, z + oz) === B.AIR) w.set(x + ox, y, z + oz, B.LEAVES);
+          if (Math.abs(ox) === r && Math.abs(oz) === r && r > 0 && (y === h + th + 1 || rng() < 0.5)) continue;
+          if (w.get(x + ox, y, z + oz) === B.AIR) w.set(x + ox, y, z + oz, pal.leaves);
         }
       }
     } else if (bi === 2 && rng() < 0.12 && free(x, z, 6)) {
       trees.push([x, z]);
       const ch = 2 + Math.floor(rng() * 3);
-      for (let y = h; y < h + ch; y++) w.set(x, y, z, B.CACTUS);
-    } else if (bi === 3 && h > OVER.water && h <= OVER.water + 2 && rng() < 0.3 && free(x, z, 7)) {
+      for (let y = h; y < h + ch; y++) w.set(x, y, z, pal.cactus);
+    } else if (pal.palms && bi === 3 && h > OVER.water && h <= OVER.water + 2 && rng() < 0.3 && free(x, z, 7)) {
       trees.push([x, z]);
       const th = 5 + Math.floor(rng() * 2);
       for (let y = h; y < h + th; y++) w.set(x + (y - h > 3 ? 1 : 0), y, z, B.LOG);
@@ -370,7 +427,7 @@ function carveDoor(w, d) {
   d.outside = { x: d.x - dx * 4 + 0.5, z: d.z - dz * 4 + 0.5 };
 }
 
-function buildHouse(w, x0, z0, sx, sz, floor) {
+function buildHouse(w, x0, z0, sx, sz, floor, door = 'z+') {
   for (let x = x0; x < x0 + sx; x++) for (let z = z0; z < z0 + sz; z++) {
     w.set(x, floor - 1, z, B.PLANKS);
     for (let y = floor; y < floor + 3; y++) {
@@ -381,8 +438,9 @@ function buildHouse(w, x0, z0, sx, sz, floor) {
       w.set(x, y, z, b);
     }
   }
-  const dx = x0 + Math.floor(sx / 2);
-  w.set(dx, floor, z0 + sz - 1, B.AIR); w.set(dx, floor + 1, z0 + sz - 1, B.AIR);
+  const mx = x0 + Math.floor(sx / 2), mz = z0 + Math.floor(sz / 2);
+  const [dx, dz] = door === 'z+' ? [mx, z0 + sz - 1] : door === 'z-' ? [mx, z0] : door === 'x-' ? [x0, mz] : [x0 + sx - 1, mz];
+  w.set(dx, floor, dz, B.AIR); w.set(dx, floor + 1, dz, B.AIR);
   for (let layer = 0; ; layer++) {
     const za = z0 - 1 + layer, zb = z0 + sz - layer, y = floor + 3 + layer;
     if (za > zb) break;
@@ -432,7 +490,7 @@ const CAVE_STYLES = {
 };
 
 function generateBossCave(id) {
-  const st = CAVE_STYLES[id];
+  const st = Object.assign({}, CAVE_STYLES[id], (CAVE_PLANET_STYLES[OVER.pid] || {})[id] || {});
   const w = new World(id, CAVE.W, CAVE.H, CAVE.D);
   w.ambient = st.ambient;
   w.style = st;
@@ -526,7 +584,7 @@ function generateBossCave(id) {
     w.lights.push({ x: tx + 0.5, y: F + 4, z: tz - 1, r: 0.7, g: 0.6, b: 0.25, radius: 12 });
   }
   // vines hanging from the roof (drawn as models, you can walk through them)
-  if (st.vines) {
+  if (st.vines !== false && st.vines) {
     for (let z = 3; z < w.D - 3; z += 1) for (let x = 3; x < w.W - 3; x += 1) {
       if (rng() > (z < CAVE.roomDoorZ ? 0.22 : 0.05)) continue;
       let y = F + 1; while (y < w.H - 2 && w.get(x, y, z) === B.AIR) y++;
@@ -540,6 +598,22 @@ function generateBossCave(id) {
   return w;
 }
 
+// the other planets' caves use their own blocks and lights
+const CAVE_PLANET_STYLES = {
+  frost: {
+    rabbit: { walls: [[B.ICE, 4], [B.STONE, 3], [B.SNOW, 2]], floor: [[B.SNOW, 4], [B.ICE, 1]], glow: [B.SEA_LANTERN, B.CRYSTAL], light: [[0.35, 0.6, 0.8], [0.25, 0.7, 0.75]], ambient: [0.26, 0.3, 0.38], barrier: B.ICE, sky: 0x0c1824, fog: [0x0c1824, 14, 60] },
+    sand: { walls: [[B.ICE, 6], [B.SNOW, 2]], floor: [[B.SNOW, 1]], glow: [B.SEA_LANTERN, B.SEA_LANTERN], light: [[0.4, 0.6, 0.8], [0.4, 0.55, 0.8]], ambient: [0.3, 0.34, 0.42], barrier: B.ICE, sky: 0x0c1824, fog: [0x0c1824, 14, 60] },
+    coral: { walls: [[B.CORAL_BLUE, 4], [B.ICE, 3], [B.CORAL_PINK, 1]], floor: [[B.SNOW, 4], [B.ICE, 1]], barrier: B.ICE },
+    crystal: { walls: [[B.ICE, 10], [B.STONE, 10], [B.ORE, 1]], floor: [[B.SNOW, 2], [B.ICE, 1]], glow: [B.CRYSTAL, B.SEA_LANTERN], light: [[0.3, 0.7, 0.8], [0.4, 0.55, 0.8]], ambient: [0.22, 0.26, 0.34], barrier: B.ICE },
+  },
+  lava: {
+    rabbit: { walls: [[B.BASALT, 5], [B.ASH, 3], [B.MAGMA, 1]], floor: [[B.ASH, 3], [B.BASALT, 2]], glow: [B.MAGMA, B.LANTERN], light: [[0.8, 0.35, 0.15], [0.75, 0.5, 0.2]], ambient: [0.3, 0.18, 0.14], vines: false, barrier: B.BASALT, sky: 0x1a0806, fog: [0x1a0806, 14, 60] },
+    sand: { walls: [[B.RED_SAND, 4], [B.SANDSTONE, 3], [B.BASALT, 2]], floor: [[B.RED_SAND, 1]], glow: [B.MAGMA, B.LANTERN], light: [[0.8, 0.35, 0.15], [0.75, 0.5, 0.2]], ambient: [0.32, 0.2, 0.14], barrier: B.BASALT, sky: 0x1a0806, fog: [0x1a0806, 14, 60] },
+    coral: { walls: [[B.BASALT, 4], [B.CORAL_ORANGE, 3], [B.MAGMA, 1]], floor: [[B.BASALT, 3], [B.RED_SAND, 2]], glow: [B.MAGMA, B.SEA_LANTERN], light: [[0.8, 0.4, 0.2], [0.5, 0.45, 0.6]], ambient: [0.28, 0.2, 0.2], barrier: B.BASALT },
+    crystal: { walls: [[B.BASALT, 20], [B.ORE, 1]], floor: [[B.BASALT, 3], [B.ASH, 1]], glow: [B.MAGMA, B.AMETHYST], light: [[0.85, 0.35, 0.15], [0.55, 0.3, 0.8]], ambient: [0.24, 0.16, 0.16], barrier: B.BASALT, sky: 0x140606, fog: [0x140606, 14, 60] },
+  },
+};
+
 // ---------- the deep ocean: a tall column of water with a sandy floor ----------
 const DEEP = { W: 64, H: 140, D: 64, top: 130, floorY: 6, cutsceneY: 30, diveSeconds: 30 };
 
@@ -551,7 +625,7 @@ function generateDeep() {
   const noise = valueNoise2D(55);
   for (let z = 0; z < w.D; z++) for (let x = 0; x < w.W; x++) {
     const h = DEEP.floorY - 2 + Math.round(noise(x / 8, z / 8) * 4);
-    for (let y = 0; y < w.H; y++) w.set(x, y, z, y === 0 ? B.BEDROCK : y < h ? B.SAND : B.WATER);
+    for (let y = 0; y < w.H; y++) w.set(x, y, z, y === 0 ? B.BEDROCK : y < h ? (OVER.pid === 'frost' ? B.SNOW : OVER.pid === 'lava' ? B.BASALT : B.SAND) : B.WATER);
     if (rng() < 0.03) { const kh = 3 + Math.floor(rng() * 8); for (let y = h; y < h + kh; y++) w.set(x, y, z, B.KELP); }
     else if (rng() < 0.02) { const c = [B.CORAL_PINK, B.CORAL_ORANGE, B.CORAL_BLUE][Math.floor(rng() * 3)]; w.set(x, h, z, c); if (rng() < 0.5) w.set(x, h + 1, z, c); }
     else if (rng() < 0.004) { w.set(x, h, z, B.SEA_LANTERN); w.lights.push({ x: x + 0.5, y: h + 1, z: z + 0.5, r: 0.3, g: 0.5, b: 0.6, radius: 10 }); }
