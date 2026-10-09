@@ -1,6 +1,6 @@
 # 🍦 Ice Cream Tycoon
 
-> **Also in this repo:** [Pet Quest: The Crystal Caves](pet-quest/README.md), a blocky 3D pet adventure with a boss fight. Open `pet-quest.html` to play.
+> **Also in this repo:** [Monster Mash](monster-mash/README.md), a blocky 3D adventure with four boss fights, pets and treasure. Open `monster-mash.html` to play.
 
 A multiplayer browser game where every player runs their own ice cream stand in a shared park.
 

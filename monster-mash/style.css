@@ -1,4 +1,4 @@
-/* Layout: full-screen 3D canvas with a Minecraft-style HUD laid over it (quest top-left, hotbar bottom-centre). */
+/* Layout: full-screen 3D canvas with a Minecraft-style HUD laid over it (quest top-left, radar top-right, hotbar bottom-centre). */
 :root {
   color-scheme: dark;
   --ink: #120e1f;          /* cave dark, behind everything */
@@ -32,13 +32,6 @@ button:focus-visible { outline: 3px solid var(--crystal); outline-offset: 2px; }
 .quest-label { font-family: var(--display); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
 #questText { font-size: 22px; }
 
-#compass {
-  top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
-  display: flex; gap: 10px; align-items: center; background: rgba(18, 14, 31, .72);
-  border: 2px solid var(--panel-edge); padding: 4px 14px; font-size: 24px; white-space: nowrap;
-}
-#compassArrow { display: inline-block; color: var(--crystal); font-size: 26px; transition: transform .1s linear; }
-
 #bossbar { top: calc(62px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: min(520px, 80vw); text-align: center; }
 #bossName { font-family: var(--display); font-size: 18px; color: var(--amethyst); text-shadow: 2px 2px 0 #000; margin-bottom: 4px; }
 #bossbar .bar { height: 14px; background: #1c1630; border: 2px solid #000; }
@@ -70,7 +63,11 @@ button:focus-visible { outline: 3px solid var(--crystal); outline-offset: 2px; }
 
 #keys { right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); font-size: 17px; color: var(--muted); text-align: right; line-height: 1.1; background: rgba(18, 14, 31, .55); padding: 6px 10px; }
 #keys b { color: var(--text); font-weight: normal; }
-#petsBtn { top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; pointer-events: auto; background: var(--panel); color: var(--text); border: 2px solid var(--panel-edge); padding: 6px 12px; font-size: 16px; cursor: pointer; }
+#topBtns { top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; display: flex; gap: 6px; pointer-events: auto; }
+#topBtns button { background: var(--panel); color: var(--text); border: 2px solid var(--panel-edge); padding: 6px 12px; font-size: 16px; cursor: pointer; }
+#radar { top: calc(52px + env(safe-area-inset-top, 0px)); right: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+#radarCanvas { width: 112px; height: 112px; border-radius: 50%; border: 3px solid #1a3a26; box-shadow: 0 0 0 2px #000, 0 0 18px rgba(110, 255, 150, .25); }
+#radarText { font-size: 21px; color: #9dffb8; text-shadow: 2px 2px 0 #000; background: rgba(0, 0, 0, .55); padding: 0 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 #dialog {
   position: fixed; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(640px, calc(100vw - 32px));
@@ -110,11 +107,12 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 34px; margin: 0 0
 .petcard button { margin: 6px 0 0; font-size: 15px; padding: 5px 12px; }
 
 #hatchEgg { height: 150px; display: grid; place-items: center; }
-.egg { width: 84px; height: 108px; border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%; background:
-  radial-gradient(circle at 30% 35%, var(--amethyst) 0 9px, transparent 10px),
-  radial-gradient(circle at 68% 58%, var(--crystal) 0 11px, transparent 12px),
-  radial-gradient(circle at 40% 75%, var(--amethyst) 0 7px, transparent 8px),
-  linear-gradient(#f7f1ff, #cbbfff); border: 4px solid #000; box-shadow: 0 0 30px var(--crystal); }
+.egg { --shell: #efe8ff; --spotA: var(--amethyst); --spotB: var(--crystal);
+  width: 84px; height: 108px; border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%; background:
+  radial-gradient(circle at 30% 35%, var(--spotA) 0 9px, transparent 10px),
+  radial-gradient(circle at 68% 58%, var(--spotB) 0 11px, transparent 12px),
+  radial-gradient(circle at 40% 75%, var(--spotA) 0 7px, transparent 8px),
+  var(--shell); border: 4px solid #000; box-shadow: 0 0 30px var(--spotB); }
 .egg.wobble { animation: wobble .35s ease-in-out infinite; }
 .egg.pop { animation: pop .4s ease-out forwards; }
 @keyframes wobble { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(12deg); } }
@@ -127,6 +125,7 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 34px; margin: 0 0
 #tbtns button { height: 64px; font-size: 16px; color: #fff; background: rgba(43, 37, 64, .75); border: 3px solid var(--panel-edge); border-radius: 12px; }
 #tbtns button.big { background: rgba(160, 60, 60, .8); }
 body.is-touch #keys { display: none; }
+body.is-touch #prompt { bottom: calc(300px + env(safe-area-inset-bottom, 0px)); }
 
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .45s; }
 #fade.on { opacity: 1; }
@@ -135,10 +134,45 @@ body.is-touch #keys { display: none; }
 .dmg.crit { color: var(--gold); font-size: 32px; }
 #hurtFlash { position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px 30px rgba(255, 40, 40, .7); opacity: 0; transition: opacity .25s; }
 
+/* treasure chest spinner: a strip of prizes slides under the red dashed line */
+#spinView { position: relative; overflow: hidden; margin: 14px 0 6px; border: 3px solid #000; background: #15111f; height: 132px; }
+#spinStrip { display: flex; gap: 8px; padding: 10px 0; will-change: transform; }
+.prize { --rar: #f0f0f0; flex: 0 0 104px; height: 106px; box-sizing: border-box; background: #241e36; border: 3px solid #3a3256; border-bottom: 6px solid var(--rar); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.prize img { width: 54px; height: 54px; image-rendering: pixelated; }
+.prize .pname { font-size: 18px; line-height: 1; text-align: center; color: var(--rar); padding: 0 4px; }
+.prize.won { background: #3a2f12; border-color: var(--gold); box-shadow: 0 0 20px var(--gold); }
+#spinLine { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; border-left: 4px dashed #ff2a2a; transform: translateX(-2px); filter: drop-shadow(0 0 4px #ff2a2a); }
+#spinLine::before, #spinLine::after { content: ''; position: absolute; left: -11px; border: 9px solid transparent; }
+#spinLine::before { top: 0; border-top-color: #ff2a2a; }
+#spinLine::after { bottom: 0; border-bottom-color: #ff2a2a; }
+#spinResult { font-family: var(--display); font-size: 22px; min-height: 28px; text-wrap: balance; }
+#spinOdds { font-size: 17px; color: var(--muted); }
+
+/* riddle scroll */
+.parchment { background: #f0deb0; color: #3a2a14; border: 4px solid #a07a40; box-shadow: 0 0 0 4px #000, 8px 8px 0 4px rgba(0, 0, 0, .5); padding: 22px 28px; max-width: 460px; width: 100%; box-sizing: border-box; text-align: center; }
+.scroll-label { font-family: var(--display); font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: #8a4a1a; }
+#scrollText { font-size: 26px; line-height: 1.1; white-space: pre-line; margin: 12px 0; }
+#scrollFrom { font-size: 18px; color: #7a5a30; }
+.parchment button { display: block; margin: 12px auto 0; font-size: 20px; padding: 8px 24px; background: #8a4a1a; color: #fff; border: 3px solid #000; cursor: pointer; }
+
+#ink { position: fixed; inset: 0; pointer-events: none; opacity: 0; background:
+  radial-gradient(circle at 30% 40%, #05050c 0 18%, transparent 30%), radial-gradient(circle at 70% 60%, #05050c 0 22%, transparent 34%),
+  radial-gradient(circle at 50% 20%, #05050c 0 14%, transparent 26%), rgba(5, 5, 12, .55); }
+.cinema-bar { position: fixed; left: 0; right: 0; height: 0; background: #000; transition: height .5s; pointer-events: none; z-index: 5; }
+#cinemaTop { top: 0; }
+#cinemaBottom { bottom: 0; }
+body.cinema .cinema-bar { height: 11vh; }
+body.cinema #hud > :not(#toast):not(#bossbar) { opacity: 0; }
+#tbtns #downBtn { grid-column: 1 / span 2; height: 48px; }
+
 @media (max-width: 640px) {
+  #radar { right: 8px; top: calc(96px + env(safe-area-inset-top, 0px)); }
+  #topBtns { flex-direction: column; align-items: stretch; right: 8px; }
+  #quest { max-width: calc(100vw - 132px); left: 8px; }
+  #radarCanvas { width: 84px; height: 84px; }
+  #radarText { font-size: 17px; }
   #keys { display: none; }
   #questText { font-size: 19px; }
-  #compass { top: auto; bottom: calc(118px + env(safe-area-inset-bottom, 0px)); font-size: 20px; }
   #bossbar { top: calc(110px + env(safe-area-inset-top, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) {

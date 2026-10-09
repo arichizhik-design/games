@@ -13,11 +13,13 @@ function makeRng(seed) {
 }
 
 const TILE = 16;
-const ATLAS_SLOTS = 24;
+const ATLAS_SLOTS = 40;
 const T = {
   GRASS_TOP: 0, GRASS_SIDE: 1, DIRT: 2, STONE: 3, SAND: 4, LOG_SIDE: 5, LOG_TOP: 6, LEAVES: 7, WATER: 8,
   CAVE: 9, CRYSTAL: 10, AMETHYST: 11, PLANKS: 12, COBBLE: 13, PATH: 14, HAY: 15, ORE: 16, BEDROCK: 17,
-  ROOF: 18, MOSS: 19, WINDOW: 20,
+  ROOF: 18, MOSS: 19, WINDOW: 20, SANDSTONE: 21, SANDSTONE_TOP: 22, CACTUS_SIDE: 23, CACTUS_TOP: 24,
+  CORAL_PINK: 25, CORAL_ORANGE: 26, CORAL_BLUE: 27, SEA_LANTERN: 28, GOLD: 29, GLOWSHROOM: 30, MUD: 31, ROOTS: 32,
+  KELP: 33, LANTERN: 34, WOOL_RED: 35, WOOL_WHITE: 36,
 };
 
 function shade(hex, f) {
@@ -121,6 +123,63 @@ function drawAtlas() {
     px(at(T.WINDOW), x, y, frame ? shade(0x7a5530, 0.9 + rng() * 0.2) : shade(0xa9d8f0, (x + y) % 9 === 0 ? 1.15 : 0.95));
   }
 
+  // sandstone: layered bands
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    const band = y < 3 ? 1.08 : (y > 12 ? 0.82 : (y % 5 === 0 ? 0.88 : 1));
+    px(at(T.SANDSTONE), x, y, shade(0xd8c088, band * (0.95 + rng() * 0.1)));
+  }
+  noiseTile(ctx, at(T.SANDSTONE_TOP), 0xdcc48c, 0.12, rng);
+  // cactus: ridges with little spines
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    const ridge = x % 4 === 1 ? 0.75 : 1;
+    px(at(T.CACTUS_SIDE), x, y, shade(0x3f9a3a, ridge * (0.92 + rng() * 0.16)));
+    if (x % 4 === 3 && y % 5 === 2) px(at(T.CACTUS_SIDE), x, y, '#f0f0c0');
+  }
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    const edge = x === 0 || y === 0 || x === 15 || y === 15;
+    px(at(T.CACTUS_TOP), x, y, shade(edge ? 0x2f7a2a : 0x5ab84a, 0.92 + rng() * 0.16));
+  }
+  // coral: bumpy blobs
+  const coral = (slot, base) => {
+    noiseTile(ctx, at(slot), base, 0.25, rng);
+    for (let i = 0; i < 12; i++) {
+      const x = Math.floor(rng() * 15), y = Math.floor(rng() * 15);
+      px(at(slot), x, y, shade(base, 1.35)); px(at(slot), x + 1, y + 1, shade(base, 0.6));
+    }
+  };
+  coral(T.CORAL_PINK, 0xff6a9a); coral(T.CORAL_ORANGE, 0xff9a3a); coral(T.CORAL_BLUE, 0x3a8ad8);
+  // sea lantern: glowing panes
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    const frame = x < 2 || y < 2 || x > 13 || y > 13 || ((x + y) % 7 === 0);
+    px(at(T.SEA_LANTERN), x, y, frame ? shade(0x9ad8e0, 0.9 + rng() * 0.1) : shade(0xe8fff8, 0.95 + rng() * 0.1));
+  }
+  // gold block
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    const edge = x === 0 || y === 0 ? 1.25 : (x === 15 || y === 15 ? 0.7 : 1);
+    px(at(T.GOLD), x, y, shade(0xf2c230, edge * (0.92 + rng() * 0.14)));
+  }
+  for (let i = 0; i < 6; i++) px(at(T.GOLD), 2 + Math.floor(rng() * 12), 2 + Math.floor(rng() * 12), '#fff6c0');
+  // glowing mushroom cap
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) px(at(T.GLOWSHROOM), x, y, shade(0x5ad8ff, 0.85 + rng() * 0.3));
+  for (let i = 0; i < 8; i++) px(at(T.GLOWSHROOM), Math.floor(rng() * 16), Math.floor(rng() * 16), '#ffffff');
+  noiseTile(ctx, at(T.MUD), 0x5a3a24, 0.35, rng);
+  // roots: dark dirt with winding roots
+  noiseTile(ctx, at(T.ROOTS), 0x5a3a24, 0.3, rng);
+  for (let k = 0; k < 3; k++) {
+    let x = Math.floor(rng() * 16);
+    for (let y = 0; y < TILE; y++) { px(at(T.ROOTS), x, y, shade(0xb08a5a, 0.9 + rng() * 0.2)); if (rng() < 0.4) x = (x + (rng() < 0.5 ? 15 : 1)) % 16; }
+  }
+  // kelp
+  noiseTile(ctx, at(T.KELP), 0x2a6a3a, 0.3, rng);
+  for (let x = 2; x < 16; x += 5) for (let y = 0; y < TILE; y++) px(at(T.KELP), x, y, shade(0x4a9a4a, 0.9 + rng() * 0.2));
+  // lantern
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    const frame = x < 3 || x > 12 || y < 2 || y > 13;
+    px(at(T.LANTERN), x, y, frame ? shade(0x4a3a2a, 0.9 + rng() * 0.2) : shade(0xffb84a, 0.9 + rng() * 0.2));
+  }
+  noiseTile(ctx, at(T.WOOL_RED), 0xd8343a, 0.15, rng);
+  noiseTile(ctx, at(T.WOOL_WHITE), 0xf0f0f0, 0.08, rng);
+
   const tex = new THREE.CanvasTexture(c);
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestFilter;
@@ -187,6 +246,7 @@ function iconCanvas(draw) {
   draw(p, ctx);
   return c;
 }
+const RAINBOW_HEX = ['#ff5577', '#ffa94a', '#ffe95a', '#6be06b', '#5ff0e6', '#7a7bff', '#c07bff'];
 
 // a diagonal tool: handle from bottom-left, head toward top-right
 function diagonalIcon(handle, head, headLen, width, extra) {
@@ -194,7 +254,7 @@ function diagonalIcon(handle, head, headLen, width, extra) {
     for (let i = 0; i < 14; i++) {
       const x = 1 + i, y = 14 - i;
       const isHead = i >= 14 - headLen;
-      const col = isHead ? head : handle;
+      const col = isHead ? (head === 'rainbow' ? RAINBOW_HEX[i % 7] : head) : handle;
       const w = isHead ? width : 1;
       for (let k = 0; k < w; k++) { p(x + k, y, col); p(x, y - k, col); }
       p(x + 1, y + 1, 'rgba(0,0,0,0.35)');
@@ -202,23 +262,33 @@ function diagonalIcon(handle, head, headLen, width, extra) {
     if (extra) extra(p);
   });
 }
+function gunIcon(body, glow) {
+  return iconCanvas(p => {
+    for (let x = 2; x < 14; x++) for (let y = 5; y < 9; y++) p(x, y, y === 5 ? '#888' : body);
+    for (let x = 13; x < 15; x++) for (let y = 6; y < 8; y++) p(x, y, glow === 'rainbow' ? RAINBOW_HEX[x % 7] : glow);
+    for (let y = 9; y < 14; y++) for (let x = 3; x < 6; x++) p(x, y, '#3a2a1a');
+    p(7, 9, body); p(7, 10, body); p(8, 10, body);
+    for (let x = 6; x < 12; x++) p(x, 6, glow === 'rainbow' ? RAINBOW_HEX[x % 7] : glow);
+  });
+}
+function weaponIcon(id) {
+  const w = WEAPONS[id];
+  const [a, b] = w.icon;
+  if (w.kind === 'gun') return gunIcon(a, b);
+  if (id === 'bat') return diagonalIcon(a, b, 8, 2);
+  if (id === 'spear' || id === 'trident') return diagonalIcon(a, b, 4, 1, p => {
+    if (id === 'trident') { p(11, 1, b); p(14, 4, b); p(10, 2, b); p(13, 5, b); } else { p(13, 0, b); p(15, 2, b); }
+  });
+  return diagonalIcon(a, b, 10, 2, p => { for (let k = -2; k <= 2; k++) p(5 + k, 10 + k, '#5a5a5a'); });
+}
+function hex(n) { return '#' + n.toString(16).padStart(6, '0'); }
 
 const ICONS = {
-  bat: () => diagonalIcon('#7a5230', '#c9955a', 8, 2),
-  stoneSword: () => diagonalIcon('#6b4a2b', '#a8a8a8', 10, 1, p => { for (let k = -2; k <= 2; k++) p(5 + k, 10 + k, '#5a5a5a'); }),
-  crystalSword: () => diagonalIcon('#4a3a6a', '#5ff0e6', 10, 2, p => { for (let k = -2; k <= 2; k++) p(5 + k, 10 + k, '#b77bff'); }),
-  hammer: () => iconCanvas(p => {
-    for (let i = 0; i < 11; i++) p(3 + i, 14 - i, '#6b4a2b');
-    for (let y = 1; y < 7; y++) for (let x = 9; x < 15; x++) p(x, y, (x + y) % 3 ? '#9a6bd8' : '#c9a0ff');
-  }),
-  rainbow: () => diagonalIcon('#333', '#ff5577', 11, 2, p => {
-    const cols = ['#ff5577', '#ffa94a', '#ffe95a', '#6be06b', '#5ff0e6', '#7a7bff', '#c07bff'];
-    for (let i = 0; i < 11; i++) { p(4 + i, 11 - i, cols[i % 7]); p(5 + i, 11 - i, cols[(i + 1) % 7]); }
-  }),
-  egg: () => iconCanvas(p => {
+  egg: (type) => iconCanvas(p => {
+    const e = EGGS[type || 'forest'];
     const rows = [[6, 9], [5, 10], [4, 11], [4, 11], [3, 12], [3, 12], [3, 12], [3, 12], [3, 12], [4, 11], [4, 11], [5, 10]];
-    rows.forEach(([a, b], i) => { for (let x = a; x <= b; x++) p(x, i + 2, x === a || x === b ? '#3a2a5a' : '#efe8ff'); });
-    p(6, 5, '#b77bff'); p(7, 5, '#b77bff'); p(9, 8, '#5ff0e6'); p(10, 8, '#5ff0e6'); p(9, 9, '#5ff0e6'); p(6, 11, '#b77bff');
+    rows.forEach(([a, b], i) => { for (let x = a; x <= b; x++) p(x, i + 2, x === a || x === b ? '#2a2a3a' : hex(e.shell)); });
+    p(6, 5, hex(e.spotA)); p(7, 5, hex(e.spotA)); p(9, 8, hex(e.spotB)); p(10, 8, hex(e.spotB)); p(9, 9, hex(e.spotB)); p(6, 11, hex(e.spotA));
     p(5, 4, '#ffffff');
   }),
   heart: (full) => iconCanvas(p => {
@@ -235,7 +305,18 @@ const ICONS = {
     const shape = ['##....##', '########', '########', '.######.', '.######.', '.######.', '..####..'];
     shape.forEach((row, y) => [...row].forEach((ch, x) => {
       if (ch !== '#') return;
-      p(x * 2, y * 2 + 1, col); p(x * 2 + 1, y * 2 + 1, col); p(x * 2, y * 2 + 2, col); p(x * 2 + 1, y * 2 + 2, col);
+      const c = (x + y) % 5 === 0 ? 'rgba(255,255,255,0.35)' : col;
+      p(x * 2, y * 2 + 1, col); p(x * 2 + 1, y * 2 + 1, c); p(x * 2, y * 2 + 2, col); p(x * 2 + 1, y * 2 + 2, col);
     }));
+  }),
+  scroll: () => iconCanvas(p => {
+    for (let y = 3; y < 13; y++) for (let x = 3; x < 13; x++) p(x, y, '#f0deb0');
+    for (let x = 2; x < 14; x++) { p(x, 2, '#a07a40'); p(x, 13, '#a07a40'); }
+    for (let y = 5; y < 12; y += 2) for (let x = 5; x < 11; x++) if ((x + y) % 4) p(x, y, '#6b4a2b');
+  }),
+  scuba: () => iconCanvas(p => {
+    for (let y = 4; y < 10; y++) for (let x = 2; x < 14; x++) p(x, y, (y === 4 || y === 9 || x === 2 || x === 13 || x === 7 || x === 8) ? '#2a2a3a' : '#7ad8ff');
+    for (const x of [0, 1, 14, 15]) p(x, 6, '#ffcf4a');
+    p(4, 5, '#ffffff'); p(10, 5, '#ffffff');
   }),
 };

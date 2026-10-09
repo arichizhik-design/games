@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pet Quest</title>
+<title>Monster Mash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=VT323&display=swap">
 <link rel="stylesheet" href="style.css">
@@ -13,9 +13,9 @@
 
 <div id="hud" hidden>
   <div id="quest"><div class="quest-label">Quest</div><div id="questText"></div><div id="rideInfo" hidden></div></div>
-  <div id="compass" hidden><span id="compassArrow">▲</span><span id="compassText"></span></div>
+  <div id="radar" hidden><canvas id="radarCanvas" width="112" height="112"></canvas><div id="radarText"></div></div>
   <div id="bossbar" hidden>
-    <div id="bossName">Crystal Golem</div>
+    <div id="bossName"></div>
     <div class="bar"><div id="bossFill"></div></div>
   </div>
   <div id="prompt" hidden></div>
@@ -29,10 +29,13 @@
     <div id="itemName"></div>
   </div>
   <div id="keys">
-    <b>WASD</b> move · <b>Mouse</b> look · <b>Click</b> swing / use · <b>Space</b> jump<br>
-    <b>E</b> talk / pick up · <b>R</b> ride pet · <b>1-9</b> hotbar · <b>P</b> pets
+    <b>WASD</b> move · <b>Mouse</b> look · <b>Click</b> swing / shoot · <b>Space</b> jump / swim up<br>
+    <b>Shift</b> dive · <b>E</b> talk / pick up · <b>R</b> ride pet · <b>1-9</b> hotbar · <b>P</b> pets
   </div>
-  <button id="petsBtn" type="button">Pets</button>
+  <div id="topBtns">
+    <button id="scrollBtn" type="button" hidden>Scroll</button>
+    <button id="petsBtn" type="button">Pets</button>
+  </div>
 </div>
 
 <div id="touch" hidden>
@@ -42,6 +45,7 @@
     <button type="button" data-t="ride">Ride</button>
     <button type="button" data-t="jump">Jump</button>
     <button type="button" data-t="attack" class="big">Swing</button>
+    <button type="button" data-t="down" id="downBtn" hidden>Down</button>
   </div>
 </div>
 
@@ -53,9 +57,9 @@
 
 <div id="title" class="screen">
   <div class="panel">
-    <h1>Pet Quest</h1>
-    <p class="sub">The Crystal Caves</p>
-    <p>Explore a blocky world with your pet. Ride it, find the Crystal Caves, sneak up on the sleeping Golem and win its magic egg.</p>
+    <h1>Monster Mash</h1>
+    <p class="sub">World 1 · The Island</p>
+    <p>Four monsters guard four magic eggs. Follow your radar, beat each boss, spin the treasure chest for loot, and hatch new pets.</p>
     <button id="playBtn" type="button">Play</button>
     <button id="resetBtn" type="button" class="ghost">Start over</button>
     <p id="resetConfirm" hidden>Delete your pets and progress? <button id="resetYes" type="button" class="ghost small">Yes, start over</button></p>
@@ -69,17 +73,28 @@
 <div id="death" class="screen" hidden>
   <div class="panel">
     <h2>Knocked out!</h2>
-    <p id="deathText">The Crystal Golem fell back asleep. Try again!</p>
+    <p id="deathText"></p>
     <p class="tip" id="deathTip"></p>
     <button id="respawnBtn" type="button">Try again</button>
   </div>
 </div>
 
-<div id="chestUI" class="screen" hidden>
+<div id="spinUI" class="screen" hidden>
   <div class="panel wide">
-    <h2>Treasure Chest!</h2>
-    <p>Pick one reward:</p>
-    <div id="chestChoices"></div>
+    <h2 id="spinTitle">Treasure Chest</h2>
+    <div id="spinView"><div id="spinStrip"></div><div id="spinLine"></div></div>
+    <p id="spinResult"></p>
+    <button id="spinCollect" type="button" hidden>Collect!</button>
+    <p id="spinOdds"></p>
+  </div>
+</div>
+
+<div id="scrollUI" class="screen" hidden>
+  <div class="parchment">
+    <div class="scroll-label">A riddle</div>
+    <p id="scrollText"></p>
+    <p id="scrollFrom"></p>
+    <button id="scrollOk" type="button">Got it!</button>
   </div>
 </div>
 
@@ -100,10 +115,23 @@
   </div>
 </div>
 
+<div id="endUI" class="screen" hidden>
+  <div class="panel">
+    <h2>To be continued!</h2>
+    <p>You beat every boss in World 1 and blasted off into space!</p>
+    <p class="tip">World 2 is coming soon. Until then, you can fight any boss again for more eggs and better loot.</p>
+    <button id="endOk" type="button">Back to the island</button>
+  </div>
+</div>
+
+<div id="ink"></div>
+<div id="cinemaTop" class="cinema-bar"></div>
+<div id="cinemaBottom" class="cinema-bar"></div>
 <div id="fade"></div>
 
 <script src="three.min.js"></script>
 <script src="textures.js"></script>
+<script src="data.js"></script>
 <script src="world.js"></script>
 <script src="models.js"></script>
 <script src="game.js"></script>

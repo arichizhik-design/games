@@ -1,6 +1,6 @@
-// Packs Pet Quest into one HTML file (pet-quest.html in the repo root) that opens straight in a browser.
-//   node pet-quest/build.js                 -> pet-quest.html, everything inside (works offline)
-//   node pet-quest/build.js --page out.html -> page body only, three.js from a CDN (for hosting as a web page)
+// Packs Monster Mash into one HTML file (monster-mash.html in the repo root) that opens straight in a browser.
+//   node monster-mash/build.js                 -> monster-mash.html, everything inside (works offline)
+//   node monster-mash/build.js --page out.html -> page body only, three.js from a CDN (for hosting as a web page)
 const fs = require('fs');
 const path = require('path');
 
@@ -25,7 +25,7 @@ if (pageMode) {
   fs.writeFileSync(out, head.trim() + '\n' + body.trim() + '\n');
   console.log('Wrote', out);
 } else {
-  const out = path.join(dir, '..', 'pet-quest.html');
+  const out = path.join(dir, '..', 'monster-mash.html');
   fs.writeFileSync(out, html);
   console.log('Wrote', out);
 }
