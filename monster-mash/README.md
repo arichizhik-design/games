@@ -56,7 +56,7 @@ switch pets.
 |---|---|---|
 | Move | W A S D | joystick |
 | Look | mouse (click the game first), or ← → | drag the screen |
-| Swing / shoot | click (or F) | Swing |
+| Swing / shoot | click (or F) | tap the screen, or Swing |
 | Jump / swim up | Space | Jump |
 | Dive (with scuba gear) | Shift (or C) | Down |
 | Talk, pick up, open | E | E |

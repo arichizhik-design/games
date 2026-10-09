@@ -91,9 +91,9 @@ function questInfo() {
   const where = G.world ? G.world.name : 'overworld';
   const t = touch.active;
   switch (save.step) {
-    case 0: return { text: t ? 'Walk with the joystick. Drag the screen to look around.' : 'Walk around with W A S D. Move the mouse to look around (click the game first).' };
+    case 0: return { text: t ? 'Walk with the joystick. Drag the screen to look around. Tap the screen to swing.' : 'Walk around with W A S D. Move the mouse to look around (click the game first).' };
     case 1: return { text: 'Talk to Guide Gus, the villager with the big nose. Walk up to him and press E.', target: { world: 'overworld', x: OVER.guide.x, z: OVER.guide.z, label: 'Guide Gus' } };
-    case 2: return { text: `${t ? 'Tap Swing' : 'Click'} to hit the training dummy with your baseball bat. Hits: ${save.dummyHits}/3`, target: { world: 'overworld', x: OVER.dummy.x, z: OVER.dummy.z, label: 'Dummy' } };
+    case 2: return { text: `${t ? 'Tap the screen' : 'Click'} to hit the training dummy with your baseball bat. Hits: ${save.dummyHits}/3`, target: { world: 'overworld', x: OVER.dummy.x, z: OVER.dummy.z, label: 'Dummy' } };
     case 3: return { text: t ? 'Ride Pebble! Walk next to your turtle and tap Ride.' : 'Ride Pebble! Walk next to your turtle and press R. Press R again to hop off.' };
     case 4: return { text: 'Nice riding! Go back to Guide Gus. He has something for you.', target: { world: 'overworld', x: OVER.guide.x, z: OVER.guide.z, label: 'Guide Gus' } };
   }
@@ -684,20 +684,25 @@ window.addEventListener('touchstart', enableTouch, { passive: true, once: true }
   const end = e => { if (e.pointerId !== id) return; id = null; knob.style.transform = ''; touch.moveX = touch.moveZ = 0; };
   stick.addEventListener('pointerup', end);
   stick.addEventListener('pointercancel', end);
-  let lookId = null, lx = 0, ly = 0;
+  // drag the screen to look around; a quick tap swings your weapon (or shoots)
+  let lookId = null, lx = 0, ly = 0, moved = 0, downAt = 0;
   canvas.addEventListener('pointerdown', e => {
     if (e.pointerType !== 'touch') return;
     if (dialogState) { advanceDialog(); return; }
-    lookId = e.pointerId; lx = e.clientX; ly = e.clientY;
+    lookId = e.pointerId; lx = e.clientX; ly = e.clientY; moved = 0; downAt = performance.now();
   });
   canvas.addEventListener('pointermove', e => {
     if (e.pointerId !== lookId) return;
+    moved += Math.abs(e.clientX - lx) + Math.abs(e.clientY - ly);
     look((e.clientX - lx) * 2.2, (e.clientY - ly) * 2.2);
     lx = e.clientX; ly = e.clientY;
   });
-  const lookEnd = e => { if (e.pointerId === lookId) lookId = null; };
-  canvas.addEventListener('pointerup', lookEnd);
-  canvas.addEventListener('pointercancel', lookEnd);
+  canvas.addEventListener('pointerup', e => {
+    if (e.pointerId !== lookId) return;
+    lookId = null;
+    if (moved < 14 && performance.now() - downAt < 350) attack();
+  });
+  canvas.addEventListener('pointercancel', e => { if (e.pointerId === lookId) lookId = null; });
   document.querySelectorAll('#tbtns button').forEach(b => {
     const t = b.dataset.t;
     b.addEventListener('pointerdown', e => {
