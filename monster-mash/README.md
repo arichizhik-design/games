@@ -40,7 +40,7 @@ another egg; it gets 30% tougher each time.
   Scorpion, Lava Kraken, Inferno Spider (7x health, 3x damage).
 - Each planet has its own boss progress, places in new spots, and better chests (Frost Blade, Ice Hammer, Ice Cannon,
   Blizzard Ray, Lava Sword, Magma Axe, Lava Launcher, Sun Beam; Frost and Lava armor) and faster pets.
-- Every crystal spider pet is as big as the boss.
+- Crystal spider pets are big (about half the size of the boss) but still small enough to ride.
 
 ## Rewards
 

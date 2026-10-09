@@ -755,10 +755,10 @@ const PET_SPECIES = {
   dolphin:  { name: 'Dolphin',           rarity: 'Uncommon', speed: 13,   shape: 'fish',   scale: 1.2,  c: { body: 0x7aa8d8, belly: 0xe8f2ff, fin: 0x5a88b8 } },
   shark:    { name: 'Shark',             rarity: 'Rare',     speed: 15,   shape: 'fish',   scale: 1.4,  shark: true, c: { body: 0x7a8a9a, belly: 0xf0f0f0, fin: 0x5a6a7a } },
   squidlet: { name: 'Baby Squid',        rarity: 'Epic',     speed: 16,   shape: 'squid',  scale: 0.45, c: { body: 0xd84a7a, dark: 0x8a2a5a, eye: 0xffffff } },
-  spider:   { name: 'Crystal Spider',    rarity: 'Epic',     speed: 18,   shape: 'spider', scale: 3.4, c: { body: 0x2a2440, leg: 0x3a3456, gem: 0x5ff0e6, eye: 0xff4a6a } },
-  spiderGold:    { name: 'Gold Crystal Spider',    rarity: 'Legendary', speed: 20, shape: 'spider', scale: 3.4, mutation: 'Gold', c: { body: 0xc9961a, leg: 0xe0b030, gem: 0xfff07a, eye: 0xff4a6a } },
-  spiderDiamond: { name: 'Diamond Crystal Spider', rarity: 'Legendary', speed: 22, shape: 'spider', scale: 3.4, mutation: 'Diamond', c: { body: 0x5ac8d8, leg: 0x8ff7ff, gem: 0xffffff, eye: 0x2a5aff } },
-  spiderRainbow: { name: 'Rainbow Crystal Spider', rarity: 'Mythic',    speed: 25, shape: 'spider', scale: 3.4, mutation: 'Rainbow', rainbow: true, c: { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff } },
+  spider:   { name: 'Crystal Spider',    rarity: 'Epic',     speed: 18,   shape: 'spider', scale: 1.8, c: { body: 0x2a2440, leg: 0x3a3456, gem: 0x5ff0e6, eye: 0xff4a6a } },
+  spiderGold:    { name: 'Gold Crystal Spider',    rarity: 'Legendary', speed: 20, shape: 'spider', scale: 1.8, mutation: 'Gold', c: { body: 0xc9961a, leg: 0xe0b030, gem: 0xfff07a, eye: 0xff4a6a } },
+  spiderDiamond: { name: 'Diamond Crystal Spider', rarity: 'Legendary', speed: 22, shape: 'spider', scale: 1.8, mutation: 'Diamond', c: { body: 0x5ac8d8, leg: 0x8ff7ff, gem: 0xffffff, eye: 0x2a5aff } },
+  spiderRainbow: { name: 'Rainbow Crystal Spider', rarity: 'Mythic',    speed: 25, shape: 'spider', scale: 1.8, mutation: 'Rainbow', rainbow: true, c: { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff } },
 };
 
 // each boss drops a better egg than the last
@@ -845,10 +845,10 @@ const PLANET_PETS = {
   narwhal:     ['Narwhal', 'Uncommon', 26, 'fish', 1.3, { body: 0x8a9aaa, belly: 0xe8eef4, fin: 0x6a7a8a }],
   orca:        ['Orca', 'Rare', 28, 'fish', 1.5, { body: 0x1a1a22, belly: 0xffffff, fin: 0x1a1a22 }, { shark: true }],
   iceSquidlet: ['Ice Squid', 'Epic', 30, 'squid', 0.5, { body: 0x7ab8f0, dark: 0x3a6ab0, eye: 0xffffff }],
-  frostSpider:        ['Frost Spider', 'Epic', 32, 'spider', 3.4, { body: 0xd8ecff, leg: 0x9ac8f0, gem: 0x5ff0e6, eye: 0x2a5aff }],
-  frostSpiderGold:    ['Gold Frost Spider', 'Legendary', 35, 'spider', 3.45, { body: 0xc9961a, leg: 0xf0d070, gem: 0xbfeeff, eye: 0x2a5aff }, { mutation: 'Gold' }],
-  frostSpiderDiamond: ['Diamond Frost Spider', 'Legendary', 38, 'spider', 3.5, { body: 0x8ff7ff, leg: 0xffffff, gem: 0xffffff, eye: 0x2a5aff }, { mutation: 'Diamond' }],
-  frostSpiderRainbow: ['Rainbow Frost Spider', 'Mythic', 42, 'spider', 3.55, { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff }, { mutation: 'Rainbow', rainbow: true }],
+  frostSpider:        ['Frost Spider', 'Epic', 32, 'spider', 1.8, { body: 0xd8ecff, leg: 0x9ac8f0, gem: 0x5ff0e6, eye: 0x2a5aff }],
+  frostSpiderGold:    ['Gold Frost Spider', 'Legendary', 35, 'spider', 1.8, { body: 0xc9961a, leg: 0xf0d070, gem: 0xbfeeff, eye: 0x2a5aff }, { mutation: 'Gold' }],
+  frostSpiderDiamond: ['Diamond Frost Spider', 'Legendary', 38, 'spider', 1.8, { body: 0x8ff7ff, leg: 0xffffff, gem: 0xffffff, eye: 0x2a5aff }, { mutation: 'Diamond' }],
+  frostSpiderRainbow: ['Rainbow Frost Spider', 'Mythic', 42, 'spider', 1.8, { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff }, { mutation: 'Rainbow', rainbow: true }],
   lavaBunny:   ['Ember Bunny', 'Common', 30, 'bunny', 1.25, { body: 0x3a2a2a, ear: 0xff7a2a, nose: 0xff7a2a }],
   fireFox:     ['Fire Fox', 'Uncommon', 32, 'quad', 1.15, { body: 0xff4a1a, belly: 0xffb02a, ear: 0x3a1a10, tip: 0xfff07a, eye: 0xfff07a }],
   fireFawn:    ['Fire Fawn', 'Rare', 34, 'deer', 1.0, { body: 0x5a2a1a, belly: 0xff9a4a, spot: 0xffd04a, antler: 0xff7a2a }],
@@ -858,10 +858,10 @@ const PLANET_PETS = {
   lavaDolphin: ['Lava Dolphin', 'Uncommon', 37, 'fish', 1.3, { body: 0xff7a2a, belly: 0xfff0c0, fin: 0xc84a1a }],
   lavaShark:   ['Lava Shark', 'Rare', 40, 'fish', 1.5, { body: 0x3a2a2a, belly: 0xff9a4a, fin: 0xff5a1a }, { shark: true }],
   magmaSquidlet: ['Magma Squid', 'Epic', 42, 'squid', 0.5, { body: 0xff6a2a, dark: 0x8a2a10, eye: 0xfff07a }],
-  infernoSpider:        ['Inferno Spider', 'Epic', 45, 'spider', 3.4, { body: 0x2a1410, leg: 0x5a2a1a, gem: 0xff7a2a, eye: 0xfff07a }],
-  infernoSpiderGold:    ['Gold Inferno Spider', 'Legendary', 48, 'spider', 3.45, { body: 0xc9961a, leg: 0xffd04a, gem: 0xff7a2a, eye: 0xff2a2a }, { mutation: 'Gold' }],
-  infernoSpiderDiamond: ['Diamond Inferno Spider', 'Legendary', 52, 'spider', 3.5, { body: 0x8ff7ff, leg: 0xffffff, gem: 0xff7a2a, eye: 0xff2a2a }, { mutation: 'Diamond' }],
-  infernoSpiderRainbow: ['Rainbow Inferno Spider', 'Mythic', 58, 'spider', 3.55, { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff }, { mutation: 'Rainbow', rainbow: true }],
+  infernoSpider:        ['Inferno Spider', 'Epic', 45, 'spider', 1.8, { body: 0x2a1410, leg: 0x5a2a1a, gem: 0xff7a2a, eye: 0xfff07a }],
+  infernoSpiderGold:    ['Gold Inferno Spider', 'Legendary', 48, 'spider', 1.8, { body: 0xc9961a, leg: 0xffd04a, gem: 0xff7a2a, eye: 0xff2a2a }, { mutation: 'Gold' }],
+  infernoSpiderDiamond: ['Diamond Inferno Spider', 'Legendary', 52, 'spider', 1.8, { body: 0x8ff7ff, leg: 0xffffff, gem: 0xff7a2a, eye: 0xff2a2a }, { mutation: 'Diamond' }],
+  infernoSpiderRainbow: ['Rainbow Inferno Spider', 'Mythic', 58, 'spider', 1.8, { body: 0xff5577, leg: 0x5ff0e6, gem: 0xffe95a, eye: 0xffffff }, { mutation: 'Rainbow', rainbow: true }],
 };
 for (const [id, [name, rarity, speed, shape, scale, c, extra]] of Object.entries(PLANET_PETS))
   PET_SPECIES[id] = Object.assign({ name, rarity, speed, shape, scale, c }, extra || {});
@@ -2787,7 +2787,7 @@ function toggleRide() {
   if (player.mounted) { dismount(); return; }
   if (player.eggHeld) { showToast('Your hands are full with the egg!'); return; }
   const d = Math.hypot(pet.pos.x - player.pos.x, pet.pos.z - player.pos.z);
-  if (d < 3.2) mountPet();
+  if (d < 2.6 + pet.model.halfW) mountPet();
   else showToast(`Walk closer to ${petShortName()} to ride`);
 }
 function petShortName() { return pet.species === 'turtle' ? 'Pebble' : 'your ' + PET_SPECIES[pet.species].name.split(' ').slice(-1)[0]; }
@@ -4168,7 +4168,7 @@ function updatePrompt() {
   if (!frozen()) {
     const t = interactTarget();
     if (t) text = (touch.active ? 'Tap E: ' : '[E] ') + t.text;
-    else if (!player.mounted && pet.model && G.world.name !== 'deep' && Math.hypot(pet.pos.x - player.pos.x, pet.pos.z - player.pos.z) < 3.2 && save.step >= 3) text = (touch.active ? 'Tap Ride: ' : '[R] ') + `Ride ${petShortName()}`;
+    else if (!player.mounted && pet.model && G.world.name !== 'deep' && Math.hypot(pet.pos.x - player.pos.x, pet.pos.z - player.pos.z) < 2.6 + pet.model.halfW && save.step >= 3) text = (touch.active ? 'Tap Ride: ' : '[R] ') + `Ride ${petShortName()}`;
     else if (G.world.name === 'overworld' && player.inWater && oceanDepth(player.pos.x, player.pos.z) > 0) text = save.scuba ? (touch.active ? 'Hold Down to dive' : 'Hold Shift to dive') : 'You need scuba gear to dive';
   }
   const el = $('prompt');

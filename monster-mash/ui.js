@@ -275,7 +275,7 @@ function updatePrompt() {
   if (!frozen()) {
     const t = interactTarget();
     if (t) text = (touch.active ? 'Tap E: ' : '[E] ') + t.text;
-    else if (!player.mounted && pet.model && G.world.name !== 'deep' && Math.hypot(pet.pos.x - player.pos.x, pet.pos.z - player.pos.z) < 3.2 && save.step >= 3) text = (touch.active ? 'Tap Ride: ' : '[R] ') + `Ride ${petShortName()}`;
+    else if (!player.mounted && pet.model && G.world.name !== 'deep' && Math.hypot(pet.pos.x - player.pos.x, pet.pos.z - player.pos.z) < 2.6 + pet.model.halfW && save.step >= 3) text = (touch.active ? 'Tap Ride: ' : '[R] ') + `Ride ${petShortName()}`;
     else if (G.world.name === 'overworld' && player.inWater && oceanDepth(player.pos.x, player.pos.z) > 0) text = save.scuba ? (touch.active ? 'Hold Down to dive' : 'Hold Shift to dive') : 'You need scuba gear to dive';
   }
   const el = $('prompt');

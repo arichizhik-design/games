@@ -524,7 +524,7 @@ function toggleRide() {
   if (player.mounted) { dismount(); return; }
   if (player.eggHeld) { showToast('Your hands are full with the egg!'); return; }
   const d = Math.hypot(pet.pos.x - player.pos.x, pet.pos.z - player.pos.z);
-  if (d < 3.2) mountPet();
+  if (d < 2.6 + pet.model.halfW) mountPet();
   else showToast(`Walk closer to ${petShortName()} to ride`);
 }
 function petShortName() { return pet.species === 'turtle' ? 'Pebble' : 'your ' + PET_SPECIES[pet.species].name.split(' ').slice(-1)[0]; }
