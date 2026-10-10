@@ -162,6 +162,37 @@ input[type=range] { width: 100%; accent-color: #ff4d5a; }
   .slot { width: 58px; padding: 3px; font-size: 10px; }
   .slot .ic { font-size: 15px; }
 }
+
+/* ---------- coins, skins, charms, cases ---------- */
+#coinBar { margin: -6px 0 12px; font-weight: 800; color: #ffd166; }
+.cosmetics { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 8px; }
+.cosmetics > span { width: 46px; font-size: 12px; font-weight: 800; color: #9fb0d8; }
+.cosmetics small { color: #7d8bb0; font-size: 12px; }
+.chip { padding: 5px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #232a45;
+  border: 2px solid var(--r, #555); color: #fff; }
+.chip.on { background: var(--r, #555); color: #11152a; }
+.chip.locked { opacity: .45; border-style: dashed; }
+.coinLine { color: #aab6d8; font-size: 13px; line-height: 1.5; }
+.coinLine b { color: #ffd166; }
+.case { margin-top: 12px; padding: 12px; border-radius: 12px; background: #232a45; }
+.caseTop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.caseTop b { font-size: 17px; }
+.case > small { display: block; color: #aab6d8; margin: 4px 0; }
+.openBtn { padding: 8px 12px; background: #ff4d5a; font-weight: 800; white-space: nowrap; }
+.openBtn:disabled { background: #3a4060; color: #8a93b5; cursor: default; }
+.odds { font-size: 12px; line-height: 1.5; }
+.reel:empty { display: none; }
+.reel { margin-top: 10px; }
+.reelItem { padding: 12px; border-radius: 10px; text-align: center; font-size: 20px; font-weight: 900;
+  border: 3px solid var(--r); background: #171c33; }
+.reelItem small { display: block; font-size: 11px; color: var(--r); letter-spacing: 1px; text-transform: uppercase; }
+.reelItem em { display: block; font-size: 12px; font-style: normal; font-weight: 600; color: #aab6d8; margin-top: 4px; }
+.reelItem.won { animation: pop .4s ease-out; box-shadow: 0 0 24px var(--r); }
+@keyframes pop { from { transform: scale(.7); } to { transform: scale(1); } }
+.collection .row { gap: 5px; }
+.coinsWon { color: #ffd166; font-weight: 800; }
+@media (prefers-reduced-motion: reduce) { .reelItem.won { animation: none; } }
+#tAim.on { background: rgba(255,77,90,.7); border-color: #fff; }
 </style>
 </head>
 <body>
@@ -218,10 +249,12 @@ input[type=range] { width: 100%; accent-color: #ff4d5a; }
   <div id="menu">
     <div id="menuPanel">
       <h1>BLOCKY <span>RIVALS</span></h1>
+      <div id="coinBar">🪙 <b class="coinCount">0</b> coins</div>
       <div id="tabs">
         <button data-tab="play" class="on">Play</button>
         <button data-tab="loadout">Loadout</button>
         <button data-tab="avatar">Avatar</button>
+        <button data-tab="cases">Cases</button>
       </div>
 
       <div class="tab" id="tab-play">
@@ -241,12 +274,13 @@ input[type=range] { width: 100%; accent-color: #ff4d5a; }
         <button id="startBtn" class="big">PLAY</button>
         <div class="help" id="help">
           <b>WASD</b> move · <b>Mouse</b> look · <b>Click</b> shoot · <b>Right click</b> aim<br>
-          <b>Space</b> jump · <b>Shift</b> sprint · <b>R</b> reload · <b>1–4</b> / wheel switch · <b>G</b> grenade · <b>Esc</b> pause
+          <b>Space</b> jump · <b>Shift</b> sprint · <b>R</b> reload · <b>1–4</b> / wheel switch · <b>G</b> grenade / jump pad · <b>Esc</b> pause
         </div>
       </div>
 
       <div class="tab hidden" id="tab-loadout"></div>
       <div class="tab hidden" id="tab-avatar"></div>
+      <div class="tab hidden" id="tab-cases"></div>
     </div>
     <div id="previewHint">drag to spin</div>
   </div>
@@ -288,6 +322,9 @@ const WEAPONS = {
   sniper:   { name: 'Sniper', short: 'SNIPER', type: 'gun', dmg: 90, head: 2.0, rate: 1.4, mag: 5, reload: 2.8,
               spread: 0.08, ads: 0, zoom: 4, scope: true, recoil: 0.07, range: 600, eff: 250, pref: 70, speed: 0.9,
               snd: { f: 1800, d: 0.5, t: 70 }, desc: 'Aim with right click. Headshots one-shot.' },
+  crossbow: { name: 'Crossbow', short: 'CROSSBOW', type: 'gun', dmg: 80, head: 1.6, rate: 0.5, mag: 1, reload: 1.15,
+              spread: 0.03, ads: 0, zoom: 2.4, scope: true, recoil: 0.03, range: 400, eff: 120, pref: 45, speed: 0.95,
+              snd: { f: 900, d: 0.15, t: 320 }, desc: 'One bolt at a time. Headshots eliminate.' },
   handgun:  { name: 'Handgun', short: 'PISTOL', type: 'gun', pistol: true, dmg: 22, head: 1.6, rate: 0.16, mag: 12, reload: 1.3,
               spread: 0.012, ads: 0.004, zoom: 1.25, recoil: 0.02, range: 250, fall: [60, 0.7], eff: 45, pref: 25, speed: 1.08,
               snd: { f: 3000, d: 0.1, t: 200 }, desc: 'Quick and reliable backup.' },
@@ -297,18 +334,22 @@ const WEAPONS = {
   uzi:      { name: 'Uzi', short: 'UZI', type: 'gun', pistol: true, dmg: 13, head: 1.4, rate: 0.06, mag: 30, reload: 1.6, auto: true,
               spread: 0.035, ads: 0.02, zoom: 1.15, recoil: 0.008, range: 200, fall: [40, 0.6], eff: 35, pref: 15, speed: 1.1,
               snd: { f: 3500, d: 0.07, t: 220 }, desc: 'Sprays bullets super fast.' },
+  shorty:   { name: 'Shorty', short: 'SHORTY', type: 'gun', pistol: true, dmg: 10, pellets: 8, head: 1.3, rate: 0.28, mag: 2, reload: 1.7,
+              spread: 0.09, ads: 0.07, zoom: 1.1, recoil: 0.06, range: 90, fall: [14, 0.25], eff: 14, pref: 8, speed: 1.08,
+              snd: { f: 1300, d: 0.3, t: 80 }, desc: 'Tiny double barrel. Two huge blasts up close.' },
   katana:   { name: 'Katana', short: 'KATANA', type: 'melee', dmg: 55, rate: 0.6, reach: 7, speed: 1.15, desc: 'Two slashes eliminate. Fast to run with.' },
   knife:    { name: 'Knife', short: 'KNIFE', type: 'melee', dmg: 40, rate: 0.35, reach: 5.5, speed: 1.22, desc: 'Fastest swings and fastest running.' },
   grenade:  { name: 'Grenade', short: 'GRENADE', type: 'grenade', count: 2, rate: 0.8, desc: 'Throw it and it explodes after 2 seconds.' },
   medkit:   { name: 'Medkit', short: 'MEDKIT', type: 'medkit', count: 1, rate: 1, desc: 'Heals 50 health. Takes 1 second.' },
+  jumppad:  { name: 'Jump Pad', short: 'JUMP PAD', type: 'pad', count: 2, rate: 0.8, desc: 'Throw it down, step on it and fly way up high.' },
 };
 const SLOTS = [
-  { key: 'primary', label: 'Primary', list: ['ar', 'burst', 'shotgun', 'sniper'] },
-  { key: 'secondary', label: 'Secondary', list: ['handgun', 'revolver', 'uzi'] },
+  { key: 'primary', label: 'Primary', list: ['ar', 'burst', 'shotgun', 'sniper', 'crossbow'] },
+  { key: 'secondary', label: 'Secondary', list: ['handgun', 'revolver', 'uzi', 'shorty'] },
   { key: 'melee', label: 'Melee', list: ['katana', 'knife'] },
-  { key: 'utility', label: 'Utility', list: ['grenade', 'medkit'] },
+  { key: 'utility', label: 'Utility', list: ['grenade', 'medkit', 'jumppad'] },
 ];
-const BOT_GUNS = ['ar', 'ar', 'burst', 'shotgun', 'sniper', 'handgun', 'revolver', 'uzi'];
+const BOT_GUNS = ['ar', 'ar', 'burst', 'shotgun', 'sniper', 'handgun', 'revolver', 'uzi', 'shorty', 'crossbow'];
 const DIFF = {
   easy:   { acc: 0.3,  react: 0.75, head: 0.08, turn: 4,  strafe: 0.5, fireMul: 1.4 },
   normal: { acc: 0.46, react: 0.45, head: 0.15, turn: 7,  strafe: 0.8, fireMul: 1.12 },
@@ -331,9 +372,43 @@ function randomLook() {
     hair: pick(Object.keys(HAIRS)), hairColor: pick(HAIR_COLORS), face: pick(Object.keys(FACES)) };
 }
 
+// ---------- weapon skins (wraps) and charms ----------
+const RARITY = {
+  common:    { name: 'Common', color: '#b7c3cc', weight: 45 },
+  rare:      { name: 'Rare', color: '#4aa3ff', weight: 30 },
+  epic:      { name: 'Epic', color: '#b45cff', weight: 17 },
+  legendary: { name: 'Legendary', color: '#ffc93c', weight: 8 },
+};
+const WRAPS = {
+  default:   { name: 'Default', rarity: 'common' },
+  camo:      { name: 'Camo', rarity: 'common' },
+  bubblegum: { name: 'Bubblegum', rarity: 'common' },
+  ice:       { name: 'Ice', rarity: 'rare' },
+  midnight:  { name: 'Midnight', rarity: 'rare' },
+  lava:      { name: 'Lava', rarity: 'epic' },
+  toxic:     { name: 'Toxic', rarity: 'epic' },
+  gold:      { name: 'Gold', rarity: 'legendary' },
+  galaxy:    { name: 'Galaxy', rarity: 'legendary' },
+  inferno:   { name: 'Inferno', rarity: 'legendary' },
+};
+const CHARMS = {
+  none:    { name: 'No charm', rarity: 'common' },
+  pin:     { name: 'Bowling Pin', rarity: 'common' },
+  duck:    { name: 'Rubber Duck', rarity: 'common' },
+  heart:   { name: 'Heart', rarity: 'rare' },
+  fire:    { name: 'Fire', rarity: 'rare' },
+  skull:   { name: 'Skull', rarity: 'epic' },
+  star:    { name: 'Star', rarity: 'epic' },
+  diamond: { name: 'Diamond', rarity: 'legendary' },
+};
+const CASES = {
+  wrap:  { name: 'Wrap Case', price: 150, items: WRAPS, kind: 'wraps', desc: 'A skin for your weapons: Galaxy, Lava, Gold and more.' },
+  charm: { name: 'Charm Case', price: 100, items: CHARMS, kind: 'charms', desc: 'A little charm that hangs off your weapon.' },
+};
+
 // ---------- saved settings ----------
 const save = { look: { ...DEFAULT_LOOK }, loadout: { primary: 'ar', secondary: 'handgun', melee: 'katana', utility: 'grenade' },
-  sens: 1, diff: 'normal', mode: 'duel' };
+  sens: 1, diff: 'normal', mode: 'duel', coins: 300, owned: { wraps: ['default'], charms: ['none'] }, wraps: {}, charms: {} };
 try {
   const s = JSON.parse(localStorage.getItem('blockyRivals') || 'null');
   if (s) {
@@ -342,8 +417,15 @@ try {
     if (s.sens >= 0.2 && s.sens <= 3) save.sens = s.sens;
     if (DIFF[s.diff]) save.diff = s.diff;
     if (s.mode === 'duel' || s.mode === 'ffa') save.mode = s.mode;
+    if (s.coins >= 0) save.coins = Math.floor(s.coins);
+    if (s.owned) for (const k of ['wraps', 'charms']) if (Array.isArray(s.owned[k])) {
+      const all = k === 'wraps' ? WRAPS : CHARMS;
+      for (const id of s.owned[k]) if (all[id] && !save.owned[k].includes(id)) save.owned[k].push(id);
+    }
+    for (const k of ['wraps', 'charms']) if (s[k]) for (const w in s[k]) if (WEAPONS[w] && save.owned[k].includes(s[k][w])) save[k][w] = s[k][w];
   }
 } catch (e) { /* no saved settings */ }
+function addCoins(n) { save.coins += n; persist(); }
 function persist() { try { localStorage.setItem('blockyRivals', JSON.stringify(save)); } catch (e) { /* storage blocked */ } }
 
 // ---------- audio ----------
@@ -387,6 +469,9 @@ const sfx = {
   swing() { noise(0.16, 2800, 0.3, 'bandpass', 2); },
   beep(f) { tone(f, 0.16, 0.14); },
   heal() { tone(520, 0.15, 0.12, 'sine', 300); },
+  boing() { tone(180, 0.35, 0.25, 'sine', 600); },
+  tick() { tone(1200, 0.03, 0.06); },
+  reveal(r) { const f = { common: 500, rare: 650, epic: 800, legendary: 1000 }[r]; tone(f, 0.15, 0.15); tone(f * 1.5, 0.3, 0.15, 'square', 0, 0.12); },
 };
 
 // ---------- renderer and scenes ----------
@@ -432,7 +517,7 @@ const podium = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.4, 0.6, 40), new
 podium.position.y = -0.3; podium.receiveShadow = true; pScene.add(podium);
 const pFloor = new THREE.Mesh(new THREE.CylinderGeometry(40, 40, 0.2, 40), new THREE.MeshLambertMaterial({ color: 0x8fc8e8 }));
 pFloor.position.y = -0.7; pScene.add(pFloor);
-let pAvatar = null, pSpin = 0.5, pDrag = null;
+let pAvatar = null, pSpin = 0.5, pDrag = null, previewKey = null, pGun = null;
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -655,56 +740,247 @@ function poseAvatar(av, o) {
 }
 
 // ---------- gun models (grip at the origin, barrel pointing +z) ----------
-function gunModel(key) {
+// skins are drawn on a canvas once, then shared by every weapon that wears them
+const wrapMats = {};
+function wrapMaterial(id) {
+  if (!id || id === 'default' || !WRAPS[id]) return null;
+  if (wrapMats[id]) return wrapMats[id];
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const blob = (x, y, r, col) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); };
+  const dots = (n, col, max) => { for (let i = 0; i < n; i++) { g.fillStyle = col; const r = Math.random() * max; g.beginPath(); g.arc(Math.random() * 256, Math.random() * 256, r, 0, 7); g.fill(); } };
+  let glow = 0;
+  switch (id) {
+    case 'galaxy':
+      g.fillStyle = '#1a0b4a'; g.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 14; i++) blob(rand(0, 256), rand(0, 256), rand(40, 110), pick(['rgba(140,60,255,.7)', 'rgba(60,90,255,.7)', 'rgba(230,140,255,.55)', 'rgba(255,255,255,.25)']));
+      dots(160, '#fff', 1.6); dots(14, '#fff', 3);
+      glow = 0.55; break;
+    case 'lava':
+      g.fillStyle = '#ff7a10'; g.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 10; i++) blob(rand(0, 256), rand(0, 256), rand(30, 70), 'rgba(255,220,60,.8)');
+      for (let i = 0; i < 10; i++) blob(rand(0, 256), rand(0, 256), rand(30, 60), 'rgba(170,20,0,.7)');
+      g.strokeStyle = '#3a0800'; g.lineWidth = 4; g.lineJoin = 'round';
+      for (let i = 0; i < 26; i++) {
+        let x = rand(0, 256), y = rand(0, 256); g.beginPath(); g.moveTo(x, y);
+        for (let k = 0; k < 4; k++) { x += rand(-45, 45); y += rand(-45, 45); g.lineTo(x, y); }
+        g.stroke();
+      }
+      glow = 0.5; break;
+    case 'inferno':
+      g.fillStyle = '#1a0c00'; g.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 34; i++) {
+        g.strokeStyle = pick(['#ffb31a', '#ff8c00', '#ffd84d', '#e06a00']); g.lineWidth = rand(4, 13);
+        const y0 = rand(-20, 276), f = rand(0.02, 0.05), ph = rand(0, 6), amp = rand(8, 30);
+        g.beginPath(); for (let x = 0; x <= 256; x += 8) g[x ? 'lineTo' : 'moveTo'](x, y0 + Math.sin(x * f + ph) * amp); g.stroke();
+      }
+      glow = 0.35; break;
+    case 'toxic':
+      g.fillStyle = '#2e7d10'; g.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 18; i++) blob(rand(0, 256), rand(0, 256), rand(20, 60), 'rgba(170,255,60,.85)');
+      dots(40, 'rgba(10,40,0,.6)', 8);
+      glow = 0.45; break;
+    case 'gold': {
+      const gr = g.createLinearGradient(0, 0, 256, 256);
+      ['#8a6100', '#ffd75a', '#b88400', '#fff2b0', '#c99300', '#ffd75a'].forEach((col, i, a) => gr.addColorStop(i / (a.length - 1), col));
+      g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+      glow = 0.25; break;
+    }
+    case 'ice':
+      g.fillStyle = '#9fdcff'; g.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 10; i++) blob(rand(0, 256), rand(0, 256), rand(30, 80), 'rgba(255,255,255,.7)');
+      g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 2;
+      for (let i = 0; i < 18; i++) { g.beginPath(); const x = rand(0, 256), y = rand(0, 256); g.moveTo(x, y); g.lineTo(x + rand(-60, 60), y + rand(-60, 60)); g.stroke(); }
+      glow = 0.2; break;
+    case 'midnight':
+      g.fillStyle = '#0b0f1e'; g.fillRect(0, 0, 256, 256);
+      g.strokeStyle = '#2f7bff'; g.lineWidth = 3;
+      for (let i = 0; i < 256; i += 32) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.moveTo(0, i); g.lineTo(256, i); g.stroke(); }
+      glow = 0.35; break;
+    case 'camo':
+      g.fillStyle = '#5c6b3a'; g.fillRect(0, 0, 256, 256);
+      for (const col of ['#3f4a26', '#8a8455', '#2b2b1c']) for (let i = 0; i < 14; i++) { g.fillStyle = col; g.beginPath(); g.ellipse(rand(0, 256), rand(0, 256), rand(14, 40), rand(10, 26), rand(0, 3), 0, 7); g.fill(); }
+      break;
+    case 'bubblegum':
+      g.fillStyle = '#ff7cc8'; g.fillRect(0, 0, 256, 256);
+      dots(60, '#ffffff', 7); dots(30, '#7fd8ff', 6);
+      break;
+  }
+  const t = new THREE.CanvasTexture(c);
+  const m = new THREE.MeshLambertMaterial({ map: t });
+  if (glow) { m.emissive = new THREE.Color(0xffffff); m.emissiveMap = t; m.emissiveIntensity = glow; }
+  return (wrapMats[id] = m);
+}
+
+// a little charm on a chain; its pivot is where it hooks onto the weapon
+function charmModel(id) {
+  if (!id || id === 'none' || !CHARMS[id]) return null;
+  const pivot = new THREE.Group(), obj = new THREE.Group();
+  const add = (geo, col, x, y, z, basic) => {
+    const m = new THREE.Mesh(geo, basic ? new THREE.MeshBasicMaterial({ color: col }) : lam(col));
+    m.position.set(x, y, z); obj.add(m); return m;
+  };
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.018, 6, 12), lam('#c9ced6'));
+  ring.position.y = -0.06; pivot.add(ring);
+  const chain = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.03), lam('#c9ced6'));
+  chain.position.y = -0.2; pivot.add(chain);
+  obj.position.y = -0.32; pivot.add(obj);
+  switch (id) {
+    case 'pin':
+      add(new THREE.CylinderGeometry(0.05, 0.1, 0.32, 10), '#ffffff', 0, -0.2, 0);
+      add(new THREE.SphereGeometry(0.07, 10, 8), '#ffffff', 0, -0.02, 0);
+      add(new THREE.CylinderGeometry(0.058, 0.062, 0.035, 10), '#e53b3b', 0, -0.09, 0);
+      add(new THREE.CylinderGeometry(0.066, 0.07, 0.035, 10), '#e53b3b', 0, -0.14, 0);
+      break;
+    case 'duck':
+      add(new THREE.SphereGeometry(0.14, 12, 10), '#ffd21f', 0, -0.2, 0).scale.set(1, 0.8, 1.2);
+      add(new THREE.SphereGeometry(0.09, 10, 8), '#ffd21f', 0, -0.06, 0.07);
+      add(new THREE.BoxGeometry(0.07, 0.03, 0.08), '#ff8a1f', 0, -0.07, 0.17);
+      break;
+    case 'heart':
+      add(new THREE.SphereGeometry(0.08, 10, 8), '#ff3b6b', -0.06, -0.1, 0);
+      add(new THREE.SphereGeometry(0.08, 10, 8), '#ff3b6b', 0.06, -0.1, 0);
+      add(new THREE.ConeGeometry(0.135, 0.18, 4), '#ff3b6b', 0, -0.22, 0).rotation.set(Math.PI, Math.PI / 4, 0);
+      break;
+    case 'fire':
+      add(new THREE.ConeGeometry(0.12, 0.32, 7), '#ff5a10', 0, -0.16, 0, true);
+      add(new THREE.ConeGeometry(0.07, 0.2, 7), '#ffd23c', 0, -0.2, 0.02, true);
+      break;
+    case 'skull':
+      add(new THREE.BoxGeometry(0.2, 0.18, 0.18), '#f2efe6', 0, -0.13, 0);
+      add(new THREE.BoxGeometry(0.14, 0.06, 0.14), '#f2efe6', 0, -0.24, 0.01);
+      add(new THREE.BoxGeometry(0.05, 0.05, 0.02), '#111', -0.045, -0.13, 0.09);
+      add(new THREE.BoxGeometry(0.05, 0.05, 0.02), '#111', 0.045, -0.13, 0.09);
+      break;
+    case 'star': {
+      const sh = new THREE.Shape();
+      for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, r = i % 2 ? 0.07 : 0.16; sh[i ? 'lineTo' : 'moveTo'](Math.sin(a) * r, Math.cos(a) * r); }
+      const m = add(new THREE.ExtrudeGeometry(sh, { depth: 0.05, bevelEnabled: false }), '#ffcc22', 0, -0.17, -0.025);
+      m.material = new THREE.MeshLambertMaterial({ color: '#ffcc22', emissive: '#664400' });
+      break;
+    }
+    case 'diamond': {
+      const m = add(new THREE.OctahedronGeometry(0.14), '#6ff0ff', 0, -0.16, 0);
+      m.scale.y = 1.4; m.material = new THREE.MeshLambertMaterial({ color: '#6ff0ff', emissive: '#1a7a90' });
+      break;
+    }
+  }
+  pivot.userData.isCharm = true;
+  return pivot;
+}
+
+function gunModel(key, wrap, charm) {
   const g = new THREE.Group();
+  const skin = wrapMaterial(wrap);
   const B = (w, h, d, c, x, y, z, rx = 0) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), lam(c)); m.position.set(x, y, z); m.rotation.x = rx;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), skin || lam(c)); m.position.set(x, y, z); m.rotation.x = rx;
     m.castShadow = true; g.add(m); return m;
   };
   const C = (r, len, c, x, y, z, seg = 12) => {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, seg), lam(c)); m.rotation.x = Math.PI / 2;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, seg), skin || lam(c)); m.rotation.x = Math.PI / 2;
     m.position.set(x, y, z); m.castShadow = true; g.add(m); return m;
   };
+  const charmAt = new V3(0.16, 0.2, -0.15);
+  const ring = (x, y, z, r, c) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, 0.03, 6, 14), skin || lam(c)); m.position.set(x, y, z); g.add(m); return m; };
+  // little grey screw heads on both sides
+  const screw = (y, z) => { for (const sd of [1, -1]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 8), lam('#8e939b')); m.rotation.z = Math.PI / 2; m.position.set(0.165 * sd, y, z); g.add(m); } };
   const muzzle = new THREE.Object3D(); g.add(muzzle);
   let sightY = 0.5;
   const fore = new V3(0, 0.05, 1.2);
   switch (key) {
-    case 'ar':
-      B(0.28, 0.42, 2.0, '#3a3d44', 0, 0.25, 0.6); C(0.08, 1.1, '#202226', 0, 0.32, 2.1);
-      B(0.24, 0.62, 0.38, '#202226', 0, -0.22, 0.95, 0.25); B(0.22, 0.52, 0.26, '#202226', 0, -0.12, 0, -0.25);
-      B(0.24, 0.42, 0.95, '#3a3d44', 0, 0.2, -0.85); B(0.1, 0.16, 0.6, '#ff8a1f', 0, 0.54, 0.55);
-      B(0.32, 0.14, 0.9, '#ff8a1f', 0, 0.06, 1.25);
-      muzzle.position.set(0, 0.32, 2.7); sightY = 0.62; fore.set(0, 0.0, 1.35);
+    case 'ar': {
+      // orange SCAR-style rifle with black slots, ring sights and a black curved mag
+      const o = '#f0a845', k = '#151515';
+      B(0.3, 0.36, 2.0, o, 0, 0.42, 0.55); B(0.28, 0.3, 1.0, o, 0, 0.14, 0.2);
+      B(0.32, 0.07, 0.4, k, 0, 0.5, 0.95); B(0.32, 0.07, 0.4, k, 0, 0.5, 1.45); B(0.32, 0.07, 0.25, k, 0, 0.36, 1.2);
+      B(0.3, 0.3, 0.7, o, 0, 0.4, 1.9); B(0.12, 0.06, 2.2, k, 0, 0.63, 0.85);
+      C(0.07, 1.3, k, 0, 0.42, 2.85); C(0.1, 0.35, k, 0, 0.42, 3.4);
+      ring(0, 0.82, 2.0, 0.1, k); B(0.05, 0.14, 0.05, k, 0, 0.7, 2.0);
+      ring(0, 0.82, -0.05, 0.1, k); B(0.05, 0.14, 0.05, k, 0, 0.7, -0.05);
+      B(0.24, 0.62, 0.36, k, 0, -0.26, 0.68, 0.25); B(0.24, 0.42, 0.34, k, 0, -0.68, 0.84, 0.5);
+      B(0.25, 0.04, 0.3, '#2c2c2c', 0, -0.4, 0.72, 0.25);
+      B(0.24, 0.6, 0.3, o, 0, -0.25, -0.05, -0.3); B(0.06, 0.06, 0.42, k, 0, -0.06, 0.28);
+      B(0.26, 0.4, 0.9, o, 0, 0.35, -0.75); B(0.24, 0.4, 0.55, o, 0, -0.02, -1.0); B(0.28, 0.82, 0.14, k, 0, 0.18, -1.27);
+      screw(0.3, 0.25); screw(0.3, 0.6); screw(0.1, 0.05);
+      muzzle.position.set(0, 0.42, 3.6); sightY = 0.82; fore.set(0, 0.3, 1.85); charmAt.set(0.17, 0.32, 0.0);
       break;
-    case 'burst':
-      B(0.3, 0.5, 2.2, '#e8ecf2', 0, 0.25, 0.55); C(0.09, 0.9, '#2b2f38', 0, 0.3, 2.05);
-      B(0.26, 0.55, 0.36, '#2b2f38', 0, -0.2, 0.9, 0.15); B(0.22, 0.5, 0.26, '#2b2f38', 0, -0.12, 0, -0.2);
-      B(0.26, 0.4, 0.8, '#e8ecf2', 0, 0.22, -0.9); B(0.34, 0.12, 2.0, '#27a8ff', 0, 0.42, 0.55);
-      B(0.14, 0.24, 0.4, '#2b2f38', 0, 0.6, 0.35);
-      muzzle.position.set(0, 0.3, 2.55); sightY = 0.72; fore.set(0, 0.0, 1.3);
+    }
+    case 'burst': {
+      // FAMAS-style bullpup with a big carry handle loop on top
+      const o = '#4f5664', k = '#141414';
+      B(0.32, 0.5, 1.5, o, 0, 0.32, -0.35); B(0.3, 0.4, 0.9, o, 0, 0.36, 0.8); B(0.3, 0.32, 0.6, o, 0, 0.32, 1.5);
+      B(0.14, 0.5, 0.22, o, 0, 0.8, -0.75); B(0.14, 0.42, 0.2, o, 0, 0.76, 1.15); B(0.16, 0.16, 2.1, o, 0, 1.06, 0.2);
+      B(0.04, 0.2, 0.06, k, 0, 0.92, 1.05);
+      C(0.07, 1.1, k, 0, 0.34, 2.3); C(0.1, 0.3, k, 0, 0.34, 2.85);
+      B(0.26, 0.6, 0.34, k, 0, -0.18, -0.7, 0.12); B(0.27, 0.04, 0.3, '#2c2c2c', 0, -0.25, -0.7, 0.12); B(0.27, 0.04, 0.3, '#2c2c2c', 0, -0.05, -0.68, 0.12);
+      B(0.22, 0.55, 0.28, k, 0, -0.2, 0, -0.25); B(0.06, 0.06, 0.45, k, 0, -0.05, 0.3);
+      B(0.3, 0.55, 0.5, o, 0, 0.25, -1.25); B(0.32, 0.62, 0.12, k, 0, 0.25, -1.55);
+      screw(0.32, -0.2); screw(0.32, 0.6);
+      muzzle.position.set(0, 0.34, 3.0); sightY = 1.0; fore.set(0, 0.28, 1.4); charmAt.set(0.18, 0.2, -0.3);
       break;
-    case 'shotgun':
-      C(0.12, 2.4, '#2a2a2e', 0, 0.36, 1.25); C(0.1, 1.9, '#2a2a2e', 0, 0.14, 1.0);
-      B(0.32, 0.26, 0.8, '#8b5a2b', 0, 0.12, 1.35); B(0.26, 0.42, 0.9, '#2a2a2e', 0, 0.25, 0.1);
-      B(0.24, 0.5, 0.26, '#8b5a2b', 0, -0.14, -0.05, -0.3); B(0.26, 0.5, 1.2, '#8b5a2b', 0, 0.12, -0.95, 0.12);
-      muzzle.position.set(0, 0.36, 2.5); sightY = 0.5; fore.set(0, 0.0, 1.35);
+    }
+    case 'sniper': {
+      // green AWP-style rifle: thumbhole stock, black mag, long black scope
+      const o = '#5fa22a', k = '#141414';
+      B(0.3, 0.45, 1.6, o, 0, 0.2, 0.4); B(0.28, 0.38, 1.6, o, 0, 0.26, 1.95); B(0.31, 0.06, 1.2, k, 0, 0.32, 2.05);
+      C(0.075, 2.4, k, 0, 0.4, 3.5); C(0.1, 0.3, k, 0, 0.4, 4.6);
+      C(0.13, 1.7, k, 0, 0.92, 0.6); C(0.2, 0.55, k, 0, 0.92, 1.6); C(0.17, 0.4, k, 0, 0.92, -0.35);
+      const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 12), new THREE.MeshBasicMaterial({ color: 0xf2f2f2 }));
+      lens.rotation.x = Math.PI / 2; lens.position.set(0, 0.92, 1.89); g.add(lens);
+      B(0.16, 0.22, 0.16, k, 0, 1.12, 0.6); B(0.22, 0.16, 0.16, k, 0.15, 0.92, 0.6);
+      B(0.12, 0.3, 0.16, k, 0, 0.6, 0.15); B(0.12, 0.3, 0.16, k, 0, 0.6, 1.05);
+      B(0.3, 0.06, 0.06, k, 0.2, 0.42, 0.05); B(0.1, 0.1, 0.1, k, 0.36, 0.38, 0.05);
+      B(0.26, 0.5, 0.45, k, 0, -0.18, 0.7); B(0.27, 0.35, 0.04, '#2c2c2c', 0, -0.2, 0.62); B(0.27, 0.35, 0.04, '#2c2c2c', 0, -0.2, 0.78);
+      B(0.26, 0.6, 0.3, o, 0, -0.15, -0.1, -0.3); B(0.28, 0.32, 1.3, o, 0, 0.3, -1.0);
+      B(0.28, 0.26, 0.85, o, 0, -0.45, -1.15); B(0.28, 0.95, 0.35, o, 0, -0.05, -1.55); B(0.3, 1.0, 0.12, k, 0, -0.05, -1.78);
+      screw(0.3, 0.1); screw(0.1, 1.0); screw(-0.05, 0.3); screw(-0.4, -1.2); screw(0.32, 1.95);
+      muzzle.position.set(0, 0.4, 4.75); sightY = 0.92; fore.set(0, 0.25, 1.7); charmAt.set(0.17, 0.25, 0.25);
       break;
-    case 'sniper':
-      B(0.28, 0.4, 2.2, '#3b4a2f', 0, 0.22, 0.5); C(0.07, 2.4, '#1d1f22', 0, 0.3, 2.7);
-      C(0.17, 1.3, '#1d1f22', 0, 0.68, 0.4); C(0.2, 0.15, '#1d1f22', 0, 0.68, 1.05); C(0.2, 0.15, '#1d1f22', 0, 0.68, -0.25);
-      B(0.08, 0.24, 0.1, '#1d1f22', 0, 0.48, 0.4); B(0.22, 0.5, 0.26, '#2a3322', 0, -0.12, 0, -0.25);
-      B(0.26, 0.5, 1.2, '#3b4a2f', 0, 0.16, -1.0); B(0.2, 0.36, 0.3, '#1d1f22', 0, -0.12, 0.7);
-      muzzle.position.set(0, 0.3, 3.9); sightY = 0.68; fore.set(0, 0.0, 1.3);
+    }
+    case 'crossbow': {
+      // dark crossbow with bent limbs, strings, a scope and a bolt that disappears when fired
+      const o = '#2c2e33', l = '#45484e', k = '#111';
+      B(0.26, 0.3, 3.0, o, 0, 0.3, 0.6); B(0.16, 0.08, 2.4, l, 0, 0.48, 0.9);
+      for (const sd of [1, -1]) {
+        const limbBox = B(1.7, 0.14, 0.24, o, 0.8 * sd, 0.34, 1.85); limbBox.rotation.y = 0.35 * sd;
+        const tipBox = B(0.5, 0.18, 0.26, l, 1.62 * sd, 0.34, 1.42); tipBox.rotation.y = 0.9 * sd;
+        g.add(limb(new V3(1.75 * sd, 0.4, 1.3), new V3(0, 0.52, 0.45), 0.03, lam(k)));
+        g.add(limb(new V3(1.6 * sd, 0.3, 1.45), new V3(0.3 * sd, 0.15, 1.85), 0.03, lam(k)));
+      }
+      const bolt = C(0.04, 1.5, '#5a3a1e', 0, 0.56, 1.2);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.25, 6), lam('#c9ced6')); tip.rotation.x = Math.PI / 2; tip.position.set(0, 0.56, 2.05); g.add(tip);
+      bolt.add(tip); tip.position.set(0, 0.85, 0); tip.rotation.set(0, 0, 0);
+      C(0.11, 1.2, k, 0, 0.9, 0.3); C(0.17, 0.4, k, 0, 0.9, 1.0); C(0.14, 0.3, k, 0, 0.9, -0.4);
+      B(0.1, 0.32, 0.14, k, 0, 0.62, 0.0); B(0.1, 0.32, 0.14, k, 0, 0.62, 0.7);
+      B(0.2, 0.3, 0.6, o, 0, 0.05, 1.3); B(0.24, 0.6, 0.3, o, 0, -0.2, -0.05, -0.3);
+      B(0.26, 0.5, 0.9, o, 0, 0.2, -1.2); B(0.28, 0.7, 0.14, k, 0, 0.12, -1.7);
+      screw(0.3, 0.2); screw(0.3, 1.0);
+      muzzle.position.set(0, 0.56, 2.1); sightY = 0.9; fore.set(0, 0.15, 1.3); charmAt.set(0.15, 0.2, 0.3);
+      g.userData.bolt = bolt;
       break;
+    }
     case 'handgun':
       B(0.24, 0.34, 1.15, '#2d3036', 0, 0.3, 0.35); B(0.22, 0.6, 0.3, '#1c1e22', 0, -0.05, -0.05, -0.2);
       B(0.08, 0.08, 0.1, '#ff8a1f', 0, 0.5, 0.85);
       muzzle.position.set(0, 0.32, 0.95); sightY = 0.5; fore.set(0, -0.1, 0.05);
       break;
     case 'revolver':
-      C(0.07, 1.2, '#9aa2ad', 0, 0.36, 0.75); C(0.2, 0.4, '#7c848f', 0, 0.3, 0.15, 6);
-      B(0.2, 0.3, 0.5, '#9aa2ad', 0, 0.3, 0.0); B(0.22, 0.62, 0.3, '#6b3f1f', 0, -0.08, -0.15, -0.35);
-      muzzle.position.set(0, 0.36, 1.38); sightY = 0.48; fore.set(0, -0.1, 0.0);
+      // long silver barrel with a rib on top, a fat cylinder and a black grip, like the Rivals one
+      C(0.11, 1.35, '#d4d8de', 0, 0.42, 0.95, 10); B(0.08, 0.1, 1.35, '#c4c9d0', 0, 0.55, 0.95);
+      B(0.2, 0.2, 0.3, '#c4c9d0', 0, 0.3, 0.5); C(0.24, 0.45, '#b9bec6', 0, 0.36, 0.12, 8);
+      C(0.06, 0.48, '#8d939b', 0.13, 0.36, 0.12, 8);
+      B(0.22, 0.42, 0.5, '#d4d8de', 0, 0.36, -0.28); B(0.08, 0.16, 0.14, '#9aa0a8', 0, 0.6, -0.45, 0.6);
+      B(0.08, 0.06, 0.28, '#3a3d42', 0, 0.06, 0.15);
+      B(0.24, 0.8, 0.34, '#141414', 0, -0.22, -0.42, -0.4); C(0.05, 0.26, '#6a6f78', 0.12, -0.42, -0.5, 8);
+      muzzle.position.set(0, 0.42, 1.66); sightY = 0.6; fore.set(0, -0.15, -0.3); charmAt.set(0.18, 0.18, -0.1);
+      break;
+    case 'shorty':
+      // sawed-off double barrel
+      C(0.13, 1.1, '#2c2f35', -0.13, 0.42, 0.75, 8); C(0.13, 1.1, '#2c2f35', 0.13, 0.42, 0.75, 8);
+      B(0.5, 0.1, 0.18, '#2c2f35', 0, 0.42, 1.25); B(0.5, 0.1, 0.18, '#2c2f35', 0, 0.42, 0.45);
+      B(0.4, 0.3, 0.9, '#7b4a25', 0, 0.2, 0.55); B(0.34, 0.36, 0.42, '#2c2f35', 0, 0.3, 0.0);
+      B(0.28, 0.85, 0.36, '#7b4a25', 0, -0.2, -0.32, -0.45);
+      muzzle.position.set(0, 0.42, 1.35); sightY = 0.62; fore.set(0, -0.05, 0.6); charmAt.set(0.24, 0.18, -0.05);
       break;
     case 'uzi':
       B(0.26, 0.42, 1.2, '#2a2c30', 0, 0.3, 0.35); C(0.06, 0.4, '#1a1b1e', 0, 0.36, 1.1);
@@ -716,14 +992,27 @@ function gunModel(key) {
       B(0.5, 0.14, 0.14, '#ffcc22', 0, 0, 0.36); B(0.14, 0.18, 0.9, '#b8202a', 0, 0, -0.05);
       muzzle.position.set(0, 0, 3.6);
       break;
-    case 'knife':
-      B(0.06, 0.22, 1.1, '#cfd6de', 0, 0.02, 0.85); B(0.3, 0.1, 0.1, '#333', 0, 0, 0.27);
-      B(0.14, 0.18, 0.6, '#3a2a1a', 0, 0, -0.05);
-      muzzle.position.set(0, 0, 1.4);
+    case 'knife': {
+      // combat knife: long pointed blade, small guard, ridged black handle
+      B(0.06, 0.3, 1.25, '#d5dbe2', 0, 0.02, 0.98); B(0.065, 0.06, 1.25, '#f4f6f8', 0, 0.16, 0.98);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 4), skin || lam('#d5dbe2'));
+      tip.rotation.x = Math.PI / 2; tip.scale.set(0.4, 1, 1); tip.position.set(0, 0.02, 1.8); g.add(tip);
+      B(0.14, 0.42, 0.08, '#1d1d1f', 0, 0, 0.34);
+      for (let i = 0; i < 4; i++) B(0.2, 0.22, 0.1, '#1d1d1f', 0, 0, 0.2 - i * 0.16);
+      B(0.16, 0.18, 0.7, '#2a2a2c', 0, 0, -0.04); B(0.2, 0.22, 0.12, '#1d1d1f', 0, 0, -0.42);
+      muzzle.position.set(0, 0, 2); charmAt.set(0.1, -0.05, -0.45);
       break;
+    }
     case 'grenade': {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(0.33, 12, 10), lam('#3c6b2f')); m.position.set(0, 0.05, 0.15); g.add(m);
-      B(0.14, 0.18, 0.14, '#888', 0, 0.42, 0.15); B(0.06, 0.06, 0.3, '#bbb', 0.12, 0.42, 0.25);
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.36, 14, 12), skin || lam('#3c6b2f')); m.scale.set(1, 1.12, 1); m.position.set(0, 0.05, 0.15); g.add(m);
+      B(0.18, 0.2, 0.18, '#2b2b2b', 0, 0.48, 0.15); B(0.06, 0.06, 0.36, '#bbb', 0.14, 0.46, 0.28);
+      const pin = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.02, 6, 12), lam('#c9ced6')); pin.position.set(-0.16, 0.5, 0.15); g.add(pin);
+      charmAt.set(-0.16, 0.42, 0.15);
+      break;
+    }
+    case 'jumppad': {
+      const pad = jumpPadModel(skin); pad.scale.setScalar(0.32); pad.position.set(0, 0.1, 0.4); pad.rotation.x = -0.9; g.add(pad);
+      charmAt.set(0.5, 0.0, 0.4);
       break;
     }
     case 'medkit':
@@ -732,7 +1021,25 @@ function gunModel(key) {
   }
   const flash = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffd36b }));
   flash.scale.set(1, 1, 2.2); flash.visible = false; muzzle.add(flash);
-  g.userData = { muzzle, flash, sightY, fore };
+  let charmObj = null;
+  if (WEAPONS[key].type !== 'medkit') {
+    charmObj = charmModel(charm);
+    if (charmObj) { charmObj.position.copy(charmAt); g.add(charmObj); }
+  }
+  g.userData = { muzzle, flash, sightY, fore, charm: charmObj, bolt: g.userData.bolt };
+  return g;
+}
+
+// grey plate with glowing blue panels; 4 studs across
+function jumpPadModel(skin) {
+  const g = new THREE.Group();
+  const base = skin || lam('#b9bfc8'), glow = new THREE.MeshBasicMaterial({ color: 0x55dcff });
+  const box = (w, h, d, m, x, y, z, ry = 0) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.rotation.y = ry; b.castShadow = true; b.receiveShadow = true; g.add(b); return b; };
+  box(4, 0.3, 4, base, 0, 0.15, 0);
+  box(1.6, 0.06, 1.6, glow, 0, 0.32, 0, Math.PI / 4).scale.set(0.8, 1, 0.8);
+  box(1.3, 0.06, 1.3, glow, 0, 0.33, 0);
+  for (const [x, z] of [[1.75, 1.75], [-1.75, 1.75], [1.75, -1.75], [-1.75, -1.75]]) box(0.7, 0.4, 0.7, base, x, 0.2, z);
+  for (const [x, z, r] of [[0, 1.55, 0], [0, -1.55, 0], [1.55, 0, Math.PI / 2], [-1.55, 0, Math.PI / 2]]) box(1.6, 0.05, 0.3, glow, x, 0.32, z, r);
   return g;
 }
 
@@ -742,15 +1049,16 @@ function holdType(key) {
   if (w.type !== 'gun') return 'pistol';
   return w.pistol ? 'pistol' : 'rifle';
 }
-function setAvatarGun(av, key) {
-  if (av.gunKey === key) return;
+function setAvatarGun(av, key, wrap, charm) {
+  const id = key + '/' + (wrap || '') + '/' + (charm || '');
+  if (av.gunKey === id) return;
   if (av.gun) av.gun.parent.remove(av.gun);
-  const gun = gunModel(key);
+  const gun = gunModel(key, wrap, charm);
   gun.rotation.x = Math.PI / 2;
   gun.position.y = -0.18;
   gun.scale.setScalar(0.9);
   av.arms[0].hand.add(gun);
-  av.gun = gun; av.gunKey = key;
+  av.gun = gun; av.gunKey = id;
 }
 
 // ---------- the arena ----------
@@ -769,6 +1077,9 @@ function buildArena() {
   block(0, -1, 0, W + 40, 1, D + 40, '#8f99a3');
   block(0, 0, D / 2 + 1, W + 4, 16, 2, '#d9d1c1'); block(0, 0, -D / 2 - 1, W + 4, 16, 2, '#d9d1c1');
   block(W / 2 + 1, 0, 0, 2, 16, D, '#d9d1c1'); block(-W / 2 - 1, 0, 0, 2, 16, D, '#d9d1c1');
+  // invisible walls above the edge, so a jump pad can't send you out of the arena
+  for (const [x, z, w, d] of [[0, D / 2 + 1, W + 4, 2], [0, -D / 2 - 1, W + 4, 2], [W / 2 + 1, 0, 2, D], [-W / 2 - 1, 0, 2, D]])
+    boxes.push({ min: new V3(x - w / 2, 16, z - d / 2), max: new V3(x + w / 2, 90, z + d / 2) });
   // middle tower with stairs on two sides
   block(0, 0, 0, 14, 5, 14, '#f0a830');
   for (let i = 1; i <= 4; i++) sym(7 + (5 - i) * 1.3 - 0.65, 0, 0, 1.3, i, 5, '#f7c35c');
@@ -849,7 +1160,7 @@ function physicsMove(f, wx, wz, speed, jump, dt) {
 const game = { state: 'menu', mode: save.mode, diff: save.diff, t: 0, round: 1, score: [0, 0], goal: 5, over: false, paused: false };
 let clock = 0; // game time in seconds, stops while paused
 let fighters = [], player = null;
-const input = { keys: {}, fire: false, aim: false, jump: false, moveX: 0, moveY: 0, lastSlot: 1 };
+const input = { keys: {}, fire: false, aim: false, jump: false, moveX: 0, moveY: 0, lastSlot: 1, tapFire: 0 };
 let adsAmt = 0, shake = 0, recoilDebt = 0, vmKick = 0, swingT = 0, healT = 0;
 
 function makeFighter(name, look, isPlayer) {
@@ -875,7 +1186,8 @@ function setSlot(f, i, instant) {
   if (f.loadout[i] === undefined) return;
   if (!instant && f.isPlayer) input.lastSlot = f.slot;
   f.slot = i; f.reloadT = 0; f.burstLeft = 0; f.swapT = instant ? 0 : 0.35; healT = f.isPlayer ? 0 : healT;
-  setAvatarGun(f.avatar, f.loadout[i]);
+  const k = f.loadout[i];
+  setAvatarGun(f.avatar, k, f.isPlayer ? save.wraps[k] : f.wrap, f.isPlayer ? save.charms[k] : f.charm);
   if (f.isPlayer) { buildViewmodel(); updateSlotsHud(); }
 }
 const curKey = f => f.loadout[f.slot];
@@ -899,6 +1211,7 @@ function startMatch() {
   const nBots = game.mode === 'duel' ? 1 : 5;
   for (let i = 0; i < nBots; i++) {
     const b = makeFighter(names[i], randomLook(), false);
+    b.wrap = pick(Object.keys(WRAPS)); b.charm = pick(Object.keys(CHARMS));
     b.loadout = [pick(BOT_GUNS)];
     fighters.push(b);
   }
@@ -911,6 +1224,7 @@ function startMatch() {
     showBig('FREE FOR ALL', 'First to 15 eliminations');
   }
   showHud(true);
+  if (isTouch) setAimToggle(false);
   updateSlotsHud();
   lockPointer();
 }
@@ -1039,7 +1353,10 @@ function eliminate(victim, killer, key, head) {
   if (victim.avatar.gun) victim.avatar.gun.visible = true;
   if (killer && killer !== victim) killer.kills++;
   addKillfeed(killer, victim, key, head);
-  if (killer && killer.isPlayer && victim !== killer) { sfx.kill(); killNotice(`ELIMINATED ${victim.name}${head ? ' · HEADSHOT' : ''}`); }
+  if (killer && killer.isPlayer && victim !== killer) {
+    const c = head ? 15 : 10; addCoins(c);
+    sfx.kill(); killNotice(`ELIMINATED ${victim.name}${head ? ' · HEADSHOT' : ''}  +${c} 🪙`);
+  }
   if (victim.isPlayer) {
     adsAmt = 0; healT = 0;
     showBig('ELIMINATED', killer && killer !== victim ? `by ${killer.name} · ${Math.ceil(killer.hp)} HP left` : 'Oops!');
@@ -1048,7 +1365,7 @@ function eliminate(victim, killer, key, head) {
     const winner = victim === fighters[0] ? 1 : 0;
     game.score[winner]++;
     game.state = 'roundEnd'; game.t = 3;
-    if (!victim.isPlayer) showBig('ROUND WON', `${game.score[0]} - ${game.score[1]}`);
+    if (!victim.isPlayer) { addCoins(20); showBig('ROUND WON', `${game.score[0]} - ${game.score[1]}  ·  +20 🪙`); }
     else $('smallMsg').textContent += ` · ${game.score[0]} - ${game.score[1]}`;
   } else {
     victim.respawnAt = clock + 3;
@@ -1088,7 +1405,7 @@ function updateSlotsHud() {
   player.loadout.forEach((k, i) => {
     const w = WEAPONS[k], d = document.createElement('div');
     d.className = 'slot' + (i === player.slot ? ' on' : '') + (i === 3 && player.util <= 0 ? ' empty' : '');
-    d.innerHTML = `<span class="k">${i + 1}</span><span class="ic">${['🔫', '🔫', '🗡️', w.type === 'medkit' ? '➕' : '💣'][i]}</span>${w.short}${i === 3 ? ' ×' + player.util : ''}`;
+    d.innerHTML = `<span class="k">${i + 1}</span><span class="ic">${['🔫', '🔫', '🗡️', { medkit: '➕', pad: '⏫', grenade: '💣' }[w.type]][i]}</span>${w.short}${i === 3 ? ' ×' + player.util : ''}`;
     el.appendChild(d);
   });
 }
@@ -1151,7 +1468,7 @@ function buildViewmodel() {
   if (vmHold) vmRoot.remove(vmHold);
   const key = curKey(player), w = WEAPONS[key], look = player.look;
   vmHold = new THREE.Group(); vmHold.rotation.y = Math.PI; vmHold.scale.setScalar(VM_SCALE);
-  vmGun = gunModel(key); vmHold.add(vmGun);
+  vmGun = gunModel(key, save.wraps[key], save.charms[key]); vmHold.add(vmGun);
   const skin = lam(look.skin), sleeve = lam(look.sleeves === 'long' ? look.shirt : look.skin), shirt = lam(look.sleeves === 'none' ? look.skin : look.shirt);
   // right hand on the grip, arm going back towards the bottom right of the screen
   const rHand = new V3(0, -0.15, -0.05), rElbow = new V3(-1.3, -1.9, -2.6), rShoulder = new V3(-2.2, -3.6, -5);
@@ -1247,28 +1564,49 @@ function playerMelee() {
     if (h) { burst(h.point, 0x8a8a8a, 3, 5); return; }
   }
 }
-function throwGrenade(f) {
+function throwGrenade(f, pad) {
   camera.getWorldDirection(camDir); camera.getWorldPosition(camPos);
-  const mesh = gunModel('grenade');
+  const mesh = pad ? jumpPadModel(wrapMaterial(save.wraps.jumppad)) : gunModel('grenade', save.wraps.grenade, save.charms.grenade);
   mesh.position.copy(camPos).addScaledVector(camDir, 1.6);
   scene.add(mesh);
-  const vel = camDir.clone().multiplyScalar(48).add(new V3(0, 9, 0)).addScaledVector(f.vel, 0.5);
-  grenades.push({ mesh, pos: mesh.position, vel, t: 2, owner: f });
+  const vel = camDir.clone().multiplyScalar(pad ? 34 : 48).add(new V3(0, 9, 0)).addScaledVector(f.vel, 0.5);
+  grenades.push({ mesh, pos: mesh.position, vel, t: pad ? 25 : 2, owner: f, pad, landed: false });
   sfx.swing();
 }
 function updateGrenades(dt) {
   for (let i = grenades.length - 1; i >= 0; i--) {
     const g = grenades[i];
-    g.t -= dt; g.vel.y -= GRAV * dt;
+    g.t -= dt;
+    if (g.pad && g.landed) {
+      // anyone who steps on a jump pad flies up
+      for (const f of fighters) {
+        if (f.alive && Math.abs(f.pos.x - g.pos.x) < 2.3 && Math.abs(f.pos.z - g.pos.z) < 2.3 && f.pos.y > g.pos.y - 0.6 && f.pos.y < g.pos.y + 1 && f.vel.y <= 1) {
+          f.vel.y = 62; f.onGround = false;
+          if (f.isPlayer || (player && player.pos.distanceTo(f.pos) < 40)) sfx.boing();
+        }
+      }
+      g.mesh.children.forEach(c => { if (c.material && c.material.type === 'MeshBasicMaterial') c.material.color.setHSL(0.53, 1, 0.6 + Math.sin(clock * 6) * 0.1); });
+      if (g.t <= 0) { scene.remove(g.mesh); grenades.splice(i, 1); }
+      continue;
+    }
+    g.vel.y -= GRAV * dt;
     for (const ax of ['x', 'y', 'z']) {
       const old = g.pos[ax]; g.pos[ax] += g.vel[ax] * dt;
       if (insideBox(g.pos, 0.3)) {
-        g.pos[ax] = old; g.vel[ax] *= -0.4;
+        g.pos[ax] = old;
+        if (g.pad && ax === 'y' && g.vel.y < 0) {
+          // land flat on whatever is underneath
+          let top = 0;
+          for (const b of boxes) if (g.pos.x > b.min.x && g.pos.x < b.max.x && g.pos.z > b.min.z && g.pos.z < b.max.z && b.max.y <= g.pos.y + 0.5) top = Math.max(top, b.max.y);
+          g.pos.y = top; g.landed = true; g.vel.set(0, 0, 0); g.mesh.rotation.set(0, 0, 0);
+          break;
+        }
+        g.vel[ax] *= -0.4;
         if (ax === 'y') { g.vel.x *= 0.7; g.vel.z *= 0.7; }
       }
     }
-    g.mesh.rotation.x += dt * 8;
-    if (g.t <= 0) { explode(g.pos.clone(), g.owner); scene.remove(g.mesh); grenades.splice(i, 1); }
+    if (!g.landed) g.mesh.rotation.x += dt * 8;
+    if (!g.pad && g.t <= 0) { explode(g.pos.clone(), g.owner); scene.remove(g.mesh); grenades.splice(i, 1); }
   }
 }
 function insideBox(p, r) {
@@ -1328,7 +1666,8 @@ function updatePlayer(dt) {
     if (f.ammo[key] > 0) playerFire();
     f.burstLeft--; f.burstNext = clock + w.burstGap;
   }
-  if (input.fire && canAct && clock >= f.nextFire && f.burstLeft === 0) {
+  if ((input.fire || clock < input.tapFire) && canAct && clock >= f.nextFire && f.burstLeft === 0) {
+    input.tapFire = 0;
     if (w.type === 'gun') {
       if (f.reloadT > 0) { /* still reloading */ } else if (f.ammo[key] > 0) {
         playerFire();
@@ -1338,8 +1677,8 @@ function updatePlayer(dt) {
       } else { sfx.empty(); startReload(f); input.fire = false; }
     } else if (w.type === 'melee') {
       playerMelee(); f.nextFire = clock + w.rate;
-    } else if (w.type === 'grenade') {
-      if (f.util > 0) { throwGrenade(f); f.util--; f.nextFire = clock + w.rate; updateSlotsHud(); swingT = 1; }
+    } else if (w.type === 'grenade' || w.type === 'pad') {
+      if (f.util > 0) { throwGrenade(f, w.type === 'pad'); f.util--; f.nextFire = clock + w.rate; updateSlotsHud(); swingT = 1; }
       input.fire = false;
       if (f.util <= 0 || input.quickNade) setTimeout(() => { if (player === f && curKey(f) === key && f.alive) setSlot(f, input.lastSlot === 3 ? 0 : input.lastSlot); }, 450);
       input.quickNade = false;
@@ -1578,10 +1917,20 @@ function animateViewmodel(dt, w) {
     rx += 0.5;
     const s = Math.sin(swingT * Math.PI);
     rx -= s * 1.3; ry += s * 0.9; rz += s * 0.5; p.x -= s * 0.25;
-  } else if (w.type === 'grenade') {
+  } else if (w.type === 'grenade' || w.type === 'pad') {
     const s = Math.sin(swingT * Math.PI); rx -= s * 1.2; p.z -= s * 0.2;
   }
   vmRoot.position.copy(p);
+  // the crossbow bolt is only there when it's loaded
+  if (vmGun.userData.bolt) vmGun.userData.bolt.visible = f.ammo[curKey(f)] > 0 && f.reloadT <= 0;
+  // charms swing when you move, turn and shoot
+  const ch = vmGun.userData.charm;
+  if (ch) {
+    const turn = clamp((f.yaw - (f.lastYaw ?? f.yaw)) / Math.max(dt, 0.001), -6, 6);
+    f.lastYaw = f.yaw;
+    ch.rotation.z = lerp(ch.rotation.z, Math.sin(bob * 0.5) * 0.35 * sp - turn * 0.08, Math.min(1, dt * 8));
+    ch.rotation.x = lerp(ch.rotation.x, vmKick * 0.9 + Math.cos(bob * 0.5) * 0.15 * sp + (f.onGround ? 0 : 0.3), Math.min(1, dt * 8));
+  }
   vmRoot.rotation.set(rx, ry, rz);
   const flashOn = f.flashT > 0;
   f.flashT -= dt;
@@ -1598,12 +1947,14 @@ function endMatch() {
   const t = $('endTitle'), body = $('endBody');
   if (game.mode === 'duel') {
     const won = game.score[0] > game.score[1];
+    const c = won ? 100 : 25; addCoins(c);
     t.textContent = won ? '🏆 VICTORY' : '💀 DEFEAT';
-    body.innerHTML = `<p style="font-size:28px;font-weight:900;margin:4px 0 10px">${game.score[0]} - ${game.score[1]}</p><p>vs ${fighters[1].name}</p>`;
+    body.innerHTML = `<p style="font-size:28px;font-weight:900;margin:4px 0 10px">${game.score[0]} - ${game.score[1]}</p><p>vs ${fighters[1].name}</p><p class="coinsWon">+${c} 🪙 coins</p>`;
   } else {
     const top = fighters.slice().sort((a, b) => b.kills - a.kills);
+    const c = top[0] === player ? 100 : 25; addCoins(c);
     t.textContent = top[0] === player ? '🏆 YOU WIN!' : `${top[0].name} wins`;
-    body.innerHTML = '<table>' + top.map((f, i) => `<tr class="${f.isPlayer ? 'me' : ''}"><td>${i + 1}. ${f.name}</td><td>${f.kills} / ${f.deaths}</td></tr>`).join('') + '</table>';
+    body.innerHTML = `<p class="coinsWon">+${c} 🪙 coins</p><table>` + top.map((f, i) => `<tr class="${f.isPlayer ? 'me' : ''}"><td>${i + 1}. ${f.name}</td><td>${f.kills} / ${f.deaths}</td></tr>`).join('') + '</table>';
   }
   $('endScreen').classList.remove('hidden');
 }
@@ -1615,6 +1966,7 @@ function toMenu() {
   showHud(false);
   unlockPointer();
   refreshPreview();
+  buildLoadoutTab(); buildCasesTab(); updateCoins();
 }
 
 // ---------- menu ----------
@@ -1623,16 +1975,32 @@ function renderMenu(dt) {
   if (pAvatar) {
     pAvatar.root.rotation.y = pSpin;
     pAvatar.phase = (pAvatar.phase || 0) + dt;
-    poseAvatar(pAvatar, { phase: 0, move: 0, pitch: Math.sin(pAvatar.phase * 0.8) * 0.06 - 0.05, hold: holdType(save.loadout.primary) });
+    poseAvatar(pAvatar, { phase: 0, move: 0, pitch: Math.sin(pAvatar.phase * 0.8) * 0.06 - 0.05, hold: holdType(previewKey || save.loadout.primary) });
     pAvatar.body.position.y = Math.sin(pAvatar.phase * 2) * 0.03;
   }
-  pCam.position.set(0, 3.6, 13); pCam.lookAt(0, 2.5, 0);
+  if (pGun) {
+    pGun.rotation.set(0.15, -Math.PI / 2 + Math.sin(performance.now() / 1400) * 0.7, -0.45);
+    const ch = pGun.children[0].userData.charm;
+    if (ch) ch.rotation.z = Math.sin(performance.now() / 300) * 0.25;
+  }
+  pCam.position.set(0, 3.6, 15); pCam.lookAt(0.6, 2.7, 0);
   renderer.render(pScene, pCam);
 }
 function refreshPreview() {
   if (pAvatar) pScene.remove(pAvatar.root);
   pAvatar = buildAvatar(save.look);
-  setAvatarGun(pAvatar, save.loadout.primary);
+  const k = previewKey || save.loadout.primary;
+  setAvatarGun(pAvatar, k, save.wraps[k], save.charms[k]);
+  pAvatar.root.position.x = -1.6;
+  // big weapon showcase next to the avatar
+  if (pGun) pScene.remove(pGun);
+  const inner = gunModel(k, save.wraps[k], save.charms[k]);
+  const bb = new THREE.Box3().setFromObject(inner), size = bb.getSize(new V3()), mid = bb.getCenter(new V3());
+  inner.position.sub(mid);
+  pGun = new THREE.Group(); pGun.add(inner);
+  pGun.scale.setScalar(4.4 / Math.max(size.x, size.y, size.z, 0.8));
+  pGun.position.set(3.6, 3.3, 0);
+  pScene.add(pGun);
   pScene.add(pAvatar.root);
 }
 
@@ -1651,11 +2019,84 @@ function buildLoadoutTab() {
         stats = bar('Damage', w.dmg * (w.pellets || 1) / 100) + bar('Speed', dps / 260) + bar('Range', (w.eff || 30) / 120);
       } else if (w.type === 'melee') stats = bar('Damage', w.dmg / 100) + bar('Speed', 0.3 / w.rate);
       b.innerHTML = `<b>${w.name}</b><small>${w.desc}</small>${stats}`;
-      b.onclick = () => { save.loadout[s.key] = k; persist(); buildLoadoutTab(); refreshPreview(); };
+      b.onclick = () => { save.loadout[s.key] = k; previewKey = k; persist(); buildLoadoutTab(); refreshPreview(); };
       grid.appendChild(b);
     }
     el.appendChild(grid);
+    // skin and charm for the weapon picked in this slot
+    const k = save.loadout[s.key];
+    const pickRow = (label, kind, all) => {
+      const row = document.createElement('div'); row.className = 'cosmetics';
+      row.innerHTML = `<span>${label}</span>`;
+      for (const id of Object.keys(all).filter(id => save.owned[kind].includes(id))) {
+        const cur = (save[kind][k] || (kind === 'wraps' ? 'default' : 'none')) === id;
+        const b = document.createElement('button');
+        b.className = 'chip' + (cur ? ' on' : '');
+        b.style.setProperty('--r', RARITY[all[id].rarity].color);
+        b.textContent = all[id].name;
+        b.onclick = () => { save[kind][k] = id; previewKey = k; persist(); buildLoadoutTab(); refreshPreview(); };
+        row.appendChild(b);
+      }
+      if (save.owned[kind].length === 1) row.insertAdjacentHTML('beforeend', '<small>Open cases to get more</small>');
+      el.appendChild(row);
+    };
+    if (WEAPONS[k].type !== 'medkit') { pickRow('Skin', 'wraps', WRAPS); pickRow('Charm', 'charms', CHARMS); }
   }
+}
+
+// ---------- cases ----------
+let opening = false;
+function updateCoins() { document.querySelectorAll('.coinCount').forEach(e => { e.textContent = save.coins.toLocaleString(); }); }
+function rollItem(items) {
+  const ids = Object.keys(items).filter(id => id !== 'default' && id !== 'none');
+  let total = 0;
+  for (const id of ids) total += RARITY[items[id].rarity].weight;
+  let r = Math.random() * total;
+  for (const id of ids) { r -= RARITY[items[id].rarity].weight; if (r <= 0) return id; }
+  return ids[ids.length - 1];
+}
+function buildCasesTab() {
+  const el = $('tab-cases'); el.innerHTML = '';
+  el.insertAdjacentHTML('beforeend', `<p class="coinLine">You have <b class="coinCount"></b> 🪙 coins. Get more by eliminating bots (+10, headshot +15), winning duel rounds (+20) and finishing matches (+25, win +100).</p>`);
+  for (const id in CASES) {
+    const c = CASES[id], box = document.createElement('div'); box.className = 'case';
+    const odds = Object.keys(RARITY).map(r => {
+      const names = Object.keys(c.items).filter(i => i !== 'default' && i !== 'none' && c.items[i].rarity === r).map(i => c.items[i].name);
+      return `<span style="color:${RARITY[r].color}">${names.join(', ')}</span>`;
+    }).join(' · ');
+    box.innerHTML = `<div class="caseTop"><b>${c.name}</b><button class="openBtn">Open · ${c.price} 🪙</button></div><small>${c.desc}</small><div class="odds">${odds}</div><div class="reel"></div>`;
+    const btn = box.querySelector('.openBtn'), reel = box.querySelector('.reel');
+    btn.disabled = save.coins < c.price;
+    btn.onclick = () => {
+      if (opening || save.coins < c.price) return;
+      opening = true; ac();
+      addCoins(-c.price); updateCoins();
+      document.querySelectorAll('.openBtn').forEach(b => { b.disabled = true; });
+      const won = rollItem(c.items), names = Object.keys(c.items).filter(i => i !== 'default' && i !== 'none');
+      let n = 0, delay = 50;
+      const spin = () => {
+        n++;
+        const show = n > 24 ? won : pick(names), it = c.items[show];
+        reel.innerHTML = `<div class="reelItem" style="--r:${RARITY[it.rarity].color}">${it.name}</div>`;
+        if (n <= 24) { sfx.tick(); delay *= 1.1; setTimeout(spin, delay); return; }
+        const dupe = save.owned[c.kind].includes(won);
+        if (dupe) addCoins(Math.floor(c.price / 2)); else save.owned[c.kind].push(won);
+        persist(); sfx.reveal(it.rarity);
+        reel.innerHTML = `<div class="reelItem won" style="--r:${RARITY[it.rarity].color}"><small>${RARITY[it.rarity].name}</small>${it.name}<em>${dupe ? `You already had it: +${Math.floor(c.price / 2)} 🪙 back` : 'New! Put it on a weapon in Loadout.'}</em></div>`;
+        opening = false; buildLoadoutTab();
+        updateCoins();
+        document.querySelectorAll('.openBtn').forEach((b, i) => { b.disabled = save.coins < CASES[Object.keys(CASES)[i]].price; });
+      };
+      spin();
+    };
+    el.appendChild(box);
+  }
+  const have = document.createElement('div'); have.className = 'collection';
+  const list = (kind, all) => Object.keys(all).filter(i => i !== 'default' && i !== 'none')
+    .map(i => `<span class="chip${save.owned[kind].includes(i) ? ' on' : ' locked'}" style="--r:${RARITY[all[i].rarity].color}">${save.owned[kind].includes(i) ? '' : '🔒 '}${all[i].name}</span>`).join('');
+  have.innerHTML = `<div class="label">Your skins</div><div class="row">${list('wraps', WRAPS)}</div><div class="label">Your charms</div><div class="row">${list('charms', CHARMS)}</div>`;
+  el.appendChild(have);
+  updateCoins();
 }
 function buildAvatarTab() {
   const el = $('tab-avatar'); el.innerHTML = '';
@@ -1700,7 +2141,8 @@ function syncPlayTab() {
 }
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
-  for (const t of ['play', 'loadout', 'avatar']) $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab);
+  for (const t of ['play', 'loadout', 'avatar', 'cases']) $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab);
+  if (b.dataset.tab === 'cases' && !opening) buildCasesTab();
 });
 document.querySelectorAll('#modeRow button').forEach(b => b.onclick = () => { save.mode = b.dataset.mode; persist(); syncPlayTab(); });
 document.querySelectorAll('#diffRow button').forEach(b => b.onclick = () => { save.diff = b.dataset.diff; persist(); syncPlayTab(); });
@@ -1719,11 +2161,11 @@ window.addEventListener('pointerup', () => { pDrag = null; });
 
 // ---------- input: keyboard and mouse ----------
 const isTouch = matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
-if (isTouch) $('help').innerHTML = 'Left stick to move, drag the right side to look. Buttons to shoot, aim, jump and reload. ⇄ switches weapon.';
+if (isTouch) $('help').innerHTML = 'Drag on the left side to move. Drag on the right side to look, tap it to shoot (or hold FIRE). Tap AIM to aim, tap it again to stop. ⇄ switches weapon.';
 const playing = () => game.state !== 'menu' && game.state !== 'over';
 function lockPointer() { if (!isTouch && canvas.requestPointerLock) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* not allowed */ } } }
 function unlockPointer() { if (document.pointerLockElement) document.exitPointerLock(); }
-function pause() { if (!playing() || game.paused) return; game.paused = true; input.fire = input.aim = false; $('pause').classList.remove('hidden'); }
+function pause() { if (!playing() || game.paused) return; game.paused = true; input.fire = false; if (!isTouch) input.aim = false; $('pause').classList.remove('hidden'); }
 function resume() { game.paused = false; $('pause').classList.add('hidden'); lockPointer(); }
 document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && playing() && !isTouch) pause(); });
 canvas.addEventListener('click', () => { if (playing() && !isTouch && !document.pointerLockElement && !game.paused) lockPointer(); });
@@ -1755,51 +2197,75 @@ window.addEventListener('keydown', e => {
   const n = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
   if (n >= 0) setSlot(player, n);
   if (e.code === 'KeyQ') setSlot(player, input.lastSlot);
-  if (e.code === 'KeyG' && WEAPONS[player.loadout[3]].type === 'grenade' && player.util > 0) { setSlot(player, 3); player.swapT = 0.15; input.fire = true; input.quickNade = true; }
+  if (e.code === 'KeyG' && ['grenade', 'pad'].includes(WEAPONS[player.loadout[3]].type) && player.util > 0) { setSlot(player, 3); player.swapT = 0.15; input.fire = true; input.quickNade = true; }
   if (e.code === 'KeyP') pause();
 });
 window.addEventListener('keyup', e => { input.keys[e.code] = false; });
 window.addEventListener('blur', () => { input.keys = {}; input.fire = input.aim = false; if (isTouch) pause(); });
 
 // ---------- input: touch ----------
+function setAimToggle(on) { input.aim = on; $('tAim').classList.toggle('on', on); }
 if (isTouch) {
   const stick = $('stick'), knob = $('knob');
-  let stickId = null, lookId = null, lastLook = null;
+  let stickId = null, lookId = null, lastLook = null, lookStart = null;
   const btn = (id, down, up) => {
     const el = $(id);
     el.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); ac(); down(); }, { passive: false });
     el.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); if (up) up(); }, { passive: false });
   };
   btn('tFire', () => { input.fire = true; }, () => { input.fire = false; });
-  btn('tAim', () => { input.aim = !input.aim; $('tAim').style.background = input.aim ? 'rgba(255,77,90,.55)' : ''; });
+  // tap AIM once to aim, tap again to stop
+  btn('tAim', () => setAimToggle(!input.aim));
   btn('tJump', () => { input.jump = true; });
   btn('tReload', () => { if (player) startReload(player); });
   btn('tSwap', () => { if (player && player.alive) setSlot(player, (player.slot + 1) % 4); });
   btn('tPause', () => pause());
+  // the joystick jumps to wherever your thumb lands on the left side
+  let stickCenter = null;
   const setStick = t => {
-    const r = stick.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    let dx = t.clientX - cx, dy = t.clientY - cy;
-    const m = Math.hypot(dx, dy), max = r.width / 2;
+    const max = stick.offsetWidth / 2;
+    let dx = t.clientX - stickCenter.x, dy = t.clientY - stickCenter.y;
+    const m = Math.hypot(dx, dy);
     if (m > max) { dx *= max / m; dy *= max / m; }
     input.moveX = dx / max; input.moveY = -dy / max;
     knob.style.transform = `translate(${dx}px, ${dy}px)`;
   };
-  stick.addEventListener('touchstart', e => { e.preventDefault(); const t = e.changedTouches[0]; stickId = t.identifier; setStick(t); }, { passive: false });
+  const resetStick = () => { stick.style.left = stick.style.top = stick.style.bottom = ''; knob.style.transform = ''; input.moveX = input.moveY = 0; };
   window.addEventListener('touchstart', e => {
-    if (!playing()) return;
-    for (const t of e.changedTouches) if (t.identifier !== stickId && lookId === null && t.clientX > window.innerWidth * 0.35) { lookId = t.identifier; lastLook = { x: t.clientX, y: t.clientY }; }
+    if (!playing() || game.paused) return;
+    ac();
+    for (const t of e.changedTouches) {
+      if (stickId === null && t.clientX < window.innerWidth * 0.4) {
+        stickId = t.identifier;
+        const half = stick.offsetWidth / 2;
+        stick.style.left = (t.clientX - half) + 'px'; stick.style.top = (t.clientY - half) + 'px'; stick.style.bottom = 'auto';
+        stickCenter = { x: t.clientX, y: t.clientY };
+        setStick(t);
+      } else if (lookId === null && t.clientX >= window.innerWidth * 0.4) {
+        lookId = t.identifier; lastLook = { x: t.clientX, y: t.clientY };
+        lookStart = { x: t.clientX, y: t.clientY, time: performance.now(), moved: 0 };
+      }
+    }
   }, { passive: true });
   window.addEventListener('touchmove', e => {
     for (const t of e.changedTouches) {
       if (t.identifier === stickId) setStick(t);
-      if (t.identifier === lookId) { look(t.clientX - lastLook.x, t.clientY - lastLook.y, 0.0055); lastLook = { x: t.clientX, y: t.clientY }; }
+      if (t.identifier === lookId) {
+        look(t.clientX - lastLook.x, t.clientY - lastLook.y, 0.0055);
+        lastLook = { x: t.clientX, y: t.clientY };
+        lookStart.moved = Math.max(lookStart.moved, Math.hypot(t.clientX - lookStart.x, t.clientY - lookStart.y));
+      }
     }
     if (playing()) e.preventDefault();
   }, { passive: false });
   const endTouch = e => {
     for (const t of e.changedTouches) {
-      if (t.identifier === stickId) { stickId = null; input.moveX = input.moveY = 0; knob.style.transform = ''; }
-      if (t.identifier === lookId) lookId = null;
+      if (t.identifier === stickId) { stickId = null; resetStick(); }
+      if (t.identifier === lookId) {
+        lookId = null;
+        // a quick tap without dragging shoots
+        if (e.type === 'touchend' && lookStart && lookStart.moved < 14 && performance.now() - lookStart.time < 300) input.tapFire = clock + 0.3;
+      }
     }
   };
   window.addEventListener('touchend', endTouch); window.addEventListener('touchcancel', endTouch);
@@ -1810,6 +2276,7 @@ resize();
 syncPlayTab();
 buildLoadoutTab();
 buildAvatarTab();
+buildCasesTab();
 refreshPreview();
 requestAnimationFrame(frame);
 // for automated checks
