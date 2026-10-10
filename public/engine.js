@@ -143,7 +143,7 @@
           // pets someone is wearing show to everyone; the rest of their Cyber pets stay hidden
           pets: noCyber(s.pets), worn: s.worn, mutations, avatar: hideRobo(s.avatar) };
       }),
-      customers: msg.customers.filter(c => !isCyber(c.flavor)).map(hideCyberMutations) };
+      customers: msg.customers.filter(c => !isCyber(c.flavor)).map(c => hideCyberMutations({ ...c, robo: false })) };
   }
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -298,6 +298,9 @@
     const customers = new Map();  // id -> customer
     // ⚡ the Cyber Event is on for one week (admins can switch it on or off to test with /cyber on|off|auto)
     let cyberOverride = null;
+    // ⚡ Cyber Storms: during the event the Cyber mutation starts by itself every 30 minutes, for 3 minutes
+    const STORM_EVERY = 30 * 60, STORM_LENGTH = 3 * 60;
+    let stormNext = 5 * 60; // the first one 5 minutes after the server starts
     const cyberOn = () => CYBER && (cyberOverride ?? (Date.now() >= CYBER_EVENT.start && Date.now() < CYBER_EVENT.end));
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
     let nextId = 1;
@@ -420,6 +423,7 @@
         standId: stand.id,
         flavor: null,
         golden: Math.random() < 0.05, // lucky customer pays triple
+        robo: cyberOn() && Math.random() < 0.15, // ⚡ during the Cyber Event some customers are robots that pay double
         mutation: null,
         state: 'walking',
         look: Math.floor(Math.random() * 6),
@@ -445,6 +449,7 @@
       if (toppingById[c.topping]) amount *= 1 + toppingById[c.topping].bonus;
       amount *= 1 + petBoost(stand.worn); // every pet you wear adds its boost
       if (c.golden) amount *= 3;
+      if (c.robo && seesCyber(stand)) amount *= 2;
       // every mutation going on gets its own chance; several can stack on one scoop
       c.mutations = event.active.filter(e => (seesCyber(stand) || !isCyber(e.id)) && Math.random() < MUTATION_CHANCE).map(e => e.id);
       for (const id of c.mutations) {
@@ -496,6 +501,17 @@
       } else {
         event.next -= dt;
         if (event.next <= 0) startMutation();
+      }
+      if (cyberOn()) {
+        stormNext -= dt;
+        if (stormNext <= 0) {
+          stormNext = STORM_EVERY;
+          const running = event.active.find(e => e.id === 'cyber');
+          if (running) running.left = Math.max(running.left, STORM_LENGTH);
+          else event.active.push({ id: 'cyber', left: STORM_LENGTH }); // joins any mutation already going on
+          broadcast({ type: 'mutationStart', mutation: 'cyber' });
+          broadcast({ type: 'chat', id: 0, from: '⚡ Cyber Storm', admin: false, text: 'A CYBER STORM is here! Scoops can turn Cyber (x50 money) for 3 minutes!' }, true);
+        }
       }
       shop.left -= dt;
       if (shop.left <= 0) restock();
@@ -581,7 +597,7 @@
         })),
         customers: [...customers.values()].map(c => ({
           id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor, topping: c.topping,
-          golden: c.golden, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
+          golden: c.golden, robo: !!c.robo, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
           served: !!c.served,
         })),
       });

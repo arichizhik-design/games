@@ -1149,7 +1149,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // ---------- ⚡ Cyber Event (online: admins only for now) ----------
   // The event lasts one week. The Cyber Block (and with it the Cyber Whale) is only in the Pet Shop
   // while it's on; pets you got from it stay yours. The Cyber mutation and Robo Ice Cream stay for good.
-  const CYBER_EVENT = { start: Date.UTC(2026, 9, 5), end: Date.UTC(2026, 9, 12) }; // Oct 5 to Oct 12, 2026
+  const CYBER_EVENT = { start: Date.UTC(2026, 9, 10), end: Date.UTC(2026, 9, 17) }; // Oct 10 to Oct 17, 2026
   if (CYBER) {
     FLAVORS.push({ id: 'robo', name: 'Robo Ice Cream', rarity: 'cyber', price: 25000, cost: 50e6, color: '#c3ccd6', effect: 'robo' });
     // the Cyber Block has its own pets (block: 'cyber'): cyber versions of new animals, made of dark armor
@@ -1464,7 +1464,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           // pets someone is wearing show to everyone; the rest of their Cyber pets stay hidden
           pets: noCyber(s.pets), worn: s.worn, mutations, avatar: hideRobo(s.avatar) };
       }),
-      customers: msg.customers.filter(c => !isCyber(c.flavor)).map(hideCyberMutations) };
+      customers: msg.customers.filter(c => !isCyber(c.flavor)).map(c => hideCyberMutations({ ...c, robo: false })) };
   }
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -1619,6 +1619,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const customers = new Map();  // id -> customer
     // ⚡ the Cyber Event is on for one week (admins can switch it on or off to test with /cyber on|off|auto)
     let cyberOverride = null;
+    // ⚡ Cyber Storms: during the event the Cyber mutation starts by itself every 30 minutes, for 3 minutes
+    const STORM_EVERY = 30 * 60, STORM_LENGTH = 3 * 60;
+    let stormNext = 5 * 60; // the first one 5 minutes after the server starts
     const cyberOn = () => CYBER && (cyberOverride ?? (Date.now() >= CYBER_EVENT.start && Date.now() < CYBER_EVENT.end));
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
     let nextId = 1;
@@ -1741,6 +1744,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         standId: stand.id,
         flavor: null,
         golden: Math.random() < 0.05, // lucky customer pays triple
+        robo: cyberOn() && Math.random() < 0.15, // ⚡ during the Cyber Event some customers are robots that pay double
         mutation: null,
         state: 'walking',
         look: Math.floor(Math.random() * 6),
@@ -1766,6 +1770,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       if (toppingById[c.topping]) amount *= 1 + toppingById[c.topping].bonus;
       amount *= 1 + petBoost(stand.worn); // every pet you wear adds its boost
       if (c.golden) amount *= 3;
+      if (c.robo && seesCyber(stand)) amount *= 2;
       // every mutation going on gets its own chance; several can stack on one scoop
       c.mutations = event.active.filter(e => (seesCyber(stand) || !isCyber(e.id)) && Math.random() < MUTATION_CHANCE).map(e => e.id);
       for (const id of c.mutations) {
@@ -1817,6 +1822,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       } else {
         event.next -= dt;
         if (event.next <= 0) startMutation();
+      }
+      if (cyberOn()) {
+        stormNext -= dt;
+        if (stormNext <= 0) {
+          stormNext = STORM_EVERY;
+          const running = event.active.find(e => e.id === 'cyber');
+          if (running) running.left = Math.max(running.left, STORM_LENGTH);
+          else event.active.push({ id: 'cyber', left: STORM_LENGTH }); // joins any mutation already going on
+          broadcast({ type: 'mutationStart', mutation: 'cyber' });
+          broadcast({ type: 'chat', id: 0, from: '⚡ Cyber Storm', admin: false, text: 'A CYBER STORM is here! Scoops can turn Cyber (x50 money) for 3 minutes!' }, true);
+        }
       }
       shop.left -= dt;
       if (shop.left <= 0) restock();
@@ -1902,7 +1918,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         })),
         customers: [...customers.values()].map(c => ({
           id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor, topping: c.topping,
-          golden: c.golden, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
+          golden: c.golden, robo: !!c.robo, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
           served: !!c.served,
         })),
       });
@@ -6192,6 +6208,24 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.fillStyle = `rgba(255, 215, 0, ${0.35 + 0.2 * Math.sin(time * 6)})`;
       ctx.beginPath(); ctx.arc(x, y - 6, 20, 0, Math.PI * 2); ctx.fill();
     }
+    if (c.robo) {
+      // ⚡ a robot customer (pays double): a metal body, a square head, a glowing visor and an antenna
+      glow(x, y - 6, 22, '46, 232, 255', 0.25);
+      const g = ctx.createLinearGradient(x - 9, y - 6, x + 9, y + 12);
+      g.addColorStop(0, '#8d9aa6'); g.addColorStop(1, '#2c343c');
+      ctx.fillStyle = g;
+      roundRect(x - 9, y - 6, 18, 18, 4); ctx.fill();
+      cyberRing(x, y + 2, 2);
+      ctx.fillStyle = '#4a5763';
+      roundRect(x - 7.5, y - 21, 15, 14, 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(x - 6.5, y - 20, 5, 2.5);
+      ctx.fillStyle = '#1b2430'; roundRect(x - 5.5, y - 17, 11, 4.5, 1.5); ctx.fill();
+      ctx.fillStyle = CYAN; ctx.fillRect(x - 4 + (Math.sin(time * 3 + c.id) + 1) * 3, y - 16, 2.5, 2.5);
+      ctx.fillStyle = '#6b7a88'; ctx.fillRect(x - 0.5, y - 27, 1, 6);
+      cyberRing(x, y - 28, 1.4);
+      ctx.fillStyle = CYAN; ctx.font = 'bold 7px Trebuchet MS'; ctx.textAlign = 'center';
+      ctx.fillText('x2', x + 12, y - 22);
+    } else {
     ctx.fillStyle = c.golden ? '#ffd700' : SHIRTS[c.look % SHIRTS.length];
     roundRect(x - 9, y - 6, 18, 18, 6); ctx.fill();
     ctx.fillStyle = SKINS[c.look % SKINS.length];
@@ -6199,6 +6233,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.fillStyle = '#222';
     ctx.fillRect(x - 3.5, y - 15, 2, 2.5);
     ctx.fillRect(x + 1.5, y - 15, 2, 2.5);
+    }
     if (c.golden) {
       ctx.fillStyle = '#ffb700';
       ctx.beginPath();

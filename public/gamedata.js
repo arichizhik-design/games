@@ -116,7 +116,7 @@
   // ---------- ⚡ Cyber Event (online: admins only for now) ----------
   // The event lasts one week. The Cyber Block (and with it the Cyber Whale) is only in the Pet Shop
   // while it's on; pets you got from it stay yours. The Cyber mutation and Robo Ice Cream stay for good.
-  const CYBER_EVENT = { start: Date.UTC(2026, 9, 5), end: Date.UTC(2026, 9, 12) }; // Oct 5 to Oct 12, 2026
+  const CYBER_EVENT = { start: Date.UTC(2026, 9, 10), end: Date.UTC(2026, 9, 17) }; // Oct 10 to Oct 17, 2026
   if (CYBER) {
     FLAVORS.push({ id: 'robo', name: 'Robo Ice Cream', rarity: 'cyber', price: 25000, cost: 50e6, color: '#c3ccd6', effect: 'robo' });
     // the Cyber Block has its own pets (block: 'cyber'): cyber versions of new animals, made of dark armor

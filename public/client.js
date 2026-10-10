@@ -3742,6 +3742,24 @@
       ctx.fillStyle = `rgba(255, 215, 0, ${0.35 + 0.2 * Math.sin(time * 6)})`;
       ctx.beginPath(); ctx.arc(x, y - 6, 20, 0, Math.PI * 2); ctx.fill();
     }
+    if (c.robo) {
+      // ⚡ a robot customer (pays double): a metal body, a square head, a glowing visor and an antenna
+      glow(x, y - 6, 22, '46, 232, 255', 0.25);
+      const g = ctx.createLinearGradient(x - 9, y - 6, x + 9, y + 12);
+      g.addColorStop(0, '#8d9aa6'); g.addColorStop(1, '#2c343c');
+      ctx.fillStyle = g;
+      roundRect(x - 9, y - 6, 18, 18, 4); ctx.fill();
+      cyberRing(x, y + 2, 2);
+      ctx.fillStyle = '#4a5763';
+      roundRect(x - 7.5, y - 21, 15, 14, 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(x - 6.5, y - 20, 5, 2.5);
+      ctx.fillStyle = '#1b2430'; roundRect(x - 5.5, y - 17, 11, 4.5, 1.5); ctx.fill();
+      ctx.fillStyle = CYAN; ctx.fillRect(x - 4 + (Math.sin(time * 3 + c.id) + 1) * 3, y - 16, 2.5, 2.5);
+      ctx.fillStyle = '#6b7a88'; ctx.fillRect(x - 0.5, y - 27, 1, 6);
+      cyberRing(x, y - 28, 1.4);
+      ctx.fillStyle = CYAN; ctx.font = 'bold 7px Trebuchet MS'; ctx.textAlign = 'center';
+      ctx.fillText('x2', x + 12, y - 22);
+    } else {
     ctx.fillStyle = c.golden ? '#ffd700' : SHIRTS[c.look % SHIRTS.length];
     roundRect(x - 9, y - 6, 18, 18, 6); ctx.fill();
     ctx.fillStyle = SKINS[c.look % SKINS.length];
@@ -3749,6 +3767,7 @@
     ctx.fillStyle = '#222';
     ctx.fillRect(x - 3.5, y - 15, 2, 2.5);
     ctx.fillRect(x + 1.5, y - 15, 2, 2.5);
+    }
     if (c.golden) {
       ctx.fillStyle = '#ffb700';
       ctx.beginPath();
