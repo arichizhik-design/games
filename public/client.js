@@ -175,14 +175,29 @@
     const password = $('passwordInput').value;
     ws.onopen = () => send({ type: 'join', name, device: deviceId(), adminCode, backup: loadBackup(name),
       password, token: password ? '' : savedToken(name) });
-    ws.onmessage = e => onMessage(JSON.parse(e.data));
+    ws.onmessage = e => {
+      try { onMessage(JSON.parse(e.data)); } catch (err) { console.error('Message problem (the game keeps going):', err); }
+    };
     ws.onclose = () => {
-      if (myId) { toast('Disconnected from server. Refresh to rejoin.'); }
+      if (myId) reconnect();
       else {
         joining = false;
         if (!$('joinError').textContent) $('joinError').textContent = 'Could not connect to the server.';
       }
     };
+  }
+
+  // the server restarted (an update) or the internet blinked: wait until the server is back, then
+  // reload the page (so everyone gets the newest version) and join again by themselves
+  function reconnect() {
+    $('reconnecting').classList.remove('hidden');
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const tryNow = () => {
+      const test = new WebSocket(`${proto}://${location.host}`);
+      test.onopen = () => { test.close(); location.href = location.pathname + '?rejoin=1'; };
+      test.onerror = () => setTimeout(tryNow, 2000);
+    };
+    setTimeout(tryNow, 1500);
   }
 
   // Single-file version: run the game engine right here in the browser, saving to this device
@@ -329,6 +344,20 @@
         toast(msg.amount > 0 ? `💎 +${msg.amount.toLocaleString()} shards! Thank you!` : `💎 ${(-msg.amount).toLocaleString()} shards were taken back (refund).`);
         if (msg.amount > 0) confetti(player.x, player.y - 30, 40);
         break;
+      case 'adminSpawned': {
+        // 👑 whatever an admin spawns pops up on everyone's screen
+        const thing = msg.pet ? petById[msg.pet] : itemById[msg.item];
+        if (!thing) break;
+        const where = msg.where === 'block' ? ' from a lucky block' : msg.where === 'stand' ? ' on their stand' : '';
+        const el = $('spawnPop');
+        el.querySelector('.spIcon').innerHTML = msg.pet ? petIcon(thing) : iconHtml(thing.id);
+        el.querySelector('.spText').textContent = `👑 ${msg.by} spawned ${msg.count > 1 ? msg.count + ' ' : ''}${thing.name}${where}!`;
+        el.classList.remove('hidden');
+        el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+        clearTimeout(el.t);
+        el.t = setTimeout(() => el.classList.add('hidden'), 4500);
+        break;
+      }
       case 'kicked':
         // this name logged in somewhere else (another window or device), so this one stops
         myId = null;
@@ -4444,7 +4473,19 @@
   }
 
   let last = performance.now();
+  // draw every frame; if something goes wrong in one frame, the game keeps going instead of freezing
+  let frameErrors = 0;
   function frame(now) {
+    try {
+      drawFrame(now);
+    } catch (e) {
+      if (frameErrors++ < 3) console.error('Drawing problem (the game keeps going):', e);
+      last = now;
+      if (ctx.reset) ctx.reset(); else ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    requestAnimationFrame(frame);
+  }
+  function drawFrame(now) {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     const time = now / 1000;
@@ -4590,7 +4631,6 @@
     ctx.restore();
     drawEventBanner(time);
     drawAvatarPreview(time);
-    requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
   window.__icecream = { view, player, home: () => myStandPos(), send, // for automated tests

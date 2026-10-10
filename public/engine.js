@@ -1009,6 +1009,7 @@
         const left = addItem(stand.storage, f.id, addItem(stand.hotbar, f.id, count));
         if (flavorById[f.id] && !stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Gave you ${count - left} ${f.name}` + (left ? ` (${left} didn't fit)` : '') });
+        if (count > left) broadcast({ type: 'adminSpawned', by: stand.name, item: f.id, count: count - left });
       } else if (stand.admin && msg.type === 'adminAnnounce') {
         // All Server Talk: an admin's message pops up on everyone's screen
         const text = String(msg.text || '').replace(/\s+/g, ' ').trim().slice(0, 150);
@@ -1058,10 +1059,12 @@
           stand.pets.push(pet.id);
           const wearing = autoWear(stand, pet.id);
           conn.send({ type: 'petGot', pet: pet.id, block: block.id, equipped: wearing });
+          broadcast({ type: 'adminSpawned', by: stand.name, pet: pet.id, count: 1, where: 'block' });
         } else if (item) {
           if (addItem(stand.storage, item.id, addItem(stand.hotbar, item.id, 1)) > 0) return err('Your inventory is full!');
           if (flavorById[item.id] && !stand.seen.includes(item.id)) stand.seen.push(item.id);
           conn.send({ type: 'blockGot', item: item.id, block: block.id });
+          broadcast({ type: 'adminSpawned', by: stand.name, item: item.id, count: 1, where: 'block' });
         } else return err('Nothing with that name. Try a pet like dragon, or an ice cream like void.');
       } else if (stand.admin && msg.type === 'adminRefreshAll') {
         // 🔄 everyone's game reloads (progress is saved first) and they come right back in
@@ -1085,6 +1088,7 @@
         for (let k = 0; k < n; k++) stand.pets.push(pet.id);
         for (let k = 0; k < n; k++) autoWear(stand, pet.id);
         conn.send({ type: 'admin', text: `Spawned ${n} ${pet.emoji} ${pet.name} in your pets` });
+        broadcast({ type: 'adminSpawned', by: stand.name, pet: pet.id, count: n });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();
       } else if (stand.admin && msg.type === 'adminMutations') {
@@ -1103,6 +1107,7 @@
         if (!placed) return err('Your stand is full! Take a tub off or buy Extra Space.');
         if (!stand.seen.includes(f.id)) stand.seen.push(f.id);
         conn.send({ type: 'admin', text: `Spawned ${placed} ${f.name} on your stand` });
+        if (placed) broadcast({ type: 'adminSpawned', by: stand.name, item: f.id, count: placed, where: 'stand' });
       } else if (stand.admin && msg.type === 'testMutation') {
         // test button: start a (new) mutation event right away
         startMutation(msg.id);
