@@ -778,7 +778,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       <button id="shardShopBtn" type="button" class="hidden">💎 Shard Shop</button>
       <div id="cyberBtns" class="hidden">
         <button id="passBtn" type="button">⚡ Pass</button>
-        <button id="giftBtn" type="button" class="hidden">🎁 Daily Gift</button>
+        <button id="giftBtn" type="button" class="hidden">🎁 Free Gift</button>
         <button id="storeBtn" type="button">💎 Game Passes</button>
       </div>
 
@@ -2271,14 +2271,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (!stand.admin) stand.shards -= price;
         conn.send({ type: 'gamePassDone', id, flavor: msg.flavor, price });
       } else if (CYBER && seesCyber(stand) && msg.type === 'eventGift') {
-        // ⚡ a free lucky block once a day during the event (the Cyber Block on the last day!)
+        // ⚡ a free lucky block as many times as you want during the event (the Cyber Block on the last day!)
         if (!cyberOn()) return err('The Cyber Event is over.');
-        const day = Math.floor(Date.now() / 86400e3);
-        if (stand.giftDay === day) return err('You already got today\'s gift. Come back tomorrow!');
-        const lastDay = Date.now() >= CYBER_EVENT.end - 86400e3;
+        const now = Date.now();
+        if (now - (stand.lastGiftBlock || 0) < 2000) return; // one every 2 seconds, so the reveal can finish
+        const lastDay = now >= CYBER_EVENT.end - 86400e3;
         const error = givePrize(stand, { block: lastDay ? 'cyber' : 'gold' });
         if (error) return err(error);
-        stand.giftDay = day;
+        stand.lastGiftBlock = now;
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
         cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
@@ -3749,8 +3749,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const s = me();
     if (s && seeCyber) $('storeBtn').textContent = `💎 ${shardText(s)} · Game Passes`;
     $('passBtn').classList.toggle('hidden', !cyberIsOn());
-    const today = Math.floor(Date.now() / 86400e3), meNow = me();
-    $('giftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
+    $('giftBtn').classList.toggle('hidden', !cyberIsOn());
     if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
   }
