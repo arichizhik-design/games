@@ -112,7 +112,7 @@ const CASES = {
 
 // ---------- saved settings ----------
 const save = { look: { ...DEFAULT_LOOK }, loadout: { primary: 'ar', secondary: 'handgun', melee: 'katana', utility: 'grenade' },
-  sens: 1, diff: 'normal', mode: 'duel', coins: 300, owned: { wraps: ['default'], charms: ['none'] }, wraps: {}, charms: {} };
+  sens: 1, diff: 'normal', mode: 'duel', autoShoot: true, coins: 300, owned: { wraps: ['default'], charms: ['none'] }, wraps: {}, charms: {} };
 try {
   const s = JSON.parse(localStorage.getItem('blockyRivals') || 'null');
   if (s) {
@@ -120,6 +120,7 @@ try {
     if (s.loadout) for (const sl of SLOTS) if (sl.list.includes(s.loadout[sl.key])) save.loadout[sl.key] = s.loadout[sl.key];
     if (s.sens >= 0.2 && s.sens <= 3) save.sens = s.sens;
     if (DIFF[s.diff]) save.diff = s.diff;
+    if (typeof s.autoShoot === 'boolean') save.autoShoot = s.autoShoot;
     if (s.mode === 'duel' || s.mode === 'ffa') save.mode = s.mode;
     if (s.coins >= 0) save.coins = Math.floor(s.coins);
     if (s.owned) for (const k of ['wraps', 'charms']) if (Array.isArray(s.owned[k])) {
@@ -1147,6 +1148,7 @@ function updateHud(dt) {
   const scoped = w.scope && adsAmt > 0.85;
   $('scope').style.display = scoped ? 'block' : 'none';
   const showCh = f.alive && w.type !== 'medkit' && !scoped;
+  $('crosshair').classList.toggle('target', onTarget);
   $('crosshair').style.display = showCh ? '' : 'none';
   if (showCh) {
     const sp = w.type === 'gun' ? currentSpread(w) : 0.01;
@@ -1339,6 +1341,18 @@ function explode(pos, owner) {
   }
 }
 
+// ---------- auto shoot ----------
+let onTarget = false;
+function enemyInSights(w) {
+  const f = player;
+  camPos.set(f.pos.x, f.pos.y + EYE, f.pos.z);
+  camDir.set(-Math.sin(f.yaw) * Math.cos(f.pitch), Math.sin(f.pitch), -Math.cos(f.yaw) * Math.cos(f.pitch));
+  ray.set(camPos, camDir);
+  ray.far = w.type === 'melee' ? w.reach : Math.min(w.range, (w.eff || 60) * 2.5);
+  const h = ray.intersectObjects(hittables(f), false)[0];
+  return !!(h && h.object.userData.fighter);
+}
+
 // ---------- player update ----------
 function updatePlayer(dt) {
   const f = player, key = curKey(f), w = WEAPONS[key];
@@ -1369,6 +1383,9 @@ function updatePlayer(dt) {
     if (healT <= 0) { f.hp = Math.min(100, f.hp + 50); f.util--; sfx.heal(); updateSlotsHud(); if (f.util <= 0) setSlot(f, 0); }
   }
   const canAct = !frozen && f.swapT <= 0 && healT <= 0;
+  // auto shoot on touch screens: fire by itself while the crosshair is on an enemy (head or body)
+  onTarget = (w.type === 'gun' || w.type === 'melee') && !frozen && enemyInSights(w);
+  const auto = isTouch && save.autoShoot && onTarget && f.reloadT <= 0;
   const wantAds = input.aim && w.type === 'gun' && f.reloadT <= 0 && f.swapT <= 0;
   adsAmt = clamp(adsAmt + (wantAds ? 1 : -1) * dt * (w.scope ? 6 : 9), 0, 1);
 
@@ -1376,7 +1393,7 @@ function updatePlayer(dt) {
     if (f.ammo[key] > 0) playerFire();
     f.burstLeft--; f.burstNext = clock + w.burstGap;
   }
-  if ((input.fire || clock < input.tapFire) && canAct && clock >= f.nextFire && f.burstLeft === 0) {
+  if ((input.fire || clock < input.tapFire || auto) && canAct && clock >= f.nextFire && f.burstLeft === 0) {
     input.tapFire = 0;
     if (w.type === 'gun') {
       if (f.reloadT > 0) { /* still reloading */ } else if (f.ammo[key] > 0) {
@@ -1845,6 +1862,7 @@ function buildAvatarTab() {
   el.appendChild(row);
 }
 function syncPlayTab() {
+  document.querySelectorAll('#autoRow button').forEach(b => b.classList.toggle('on', (b.dataset.auto === 'on') === save.autoShoot));
   document.querySelectorAll('#modeRow button').forEach(b => b.classList.toggle('on', b.dataset.mode === save.mode));
   document.querySelectorAll('#diffRow button').forEach(b => b.classList.toggle('on', b.dataset.diff === save.diff));
   $('sens').value = save.sens; $('sensVal').textContent = save.sens.toFixed(1);
@@ -1856,6 +1874,7 @@ document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
 });
 document.querySelectorAll('#modeRow button').forEach(b => b.onclick = () => { save.mode = b.dataset.mode; persist(); syncPlayTab(); });
 document.querySelectorAll('#diffRow button').forEach(b => b.onclick = () => { save.diff = b.dataset.diff; persist(); syncPlayTab(); });
+document.querySelectorAll('#autoRow button').forEach(b => b.onclick = () => { save.autoShoot = b.dataset.auto === 'on'; persist(); syncPlayTab(); });
 $('sens').oninput = e => { save.sens = parseFloat(e.target.value); persist(); syncPlayTab(); };
 $('startBtn').onclick = () => { ac(); $('menu').classList.add('hidden'); startMatch(); };
 $('againBtn').onclick = () => { $('endScreen').classList.add('hidden'); startMatch(); };
@@ -1874,7 +1893,7 @@ window.addEventListener('pointerup', () => { pDrag = null; });
 let isTouch = matchMedia('(pointer: coarse)').matches;
 function setTouchMode() {
   isTouch = true;
-  $('help').innerHTML = 'Drag on the left side to move. Drag on the right side to look, tap it to shoot (or hold FIRE). Tap AIM to aim, tap it again to stop. ⇄ switches weapon.';
+  $('help').innerHTML = 'Drag on the left side to move. Drag on the right side to look, tap it to shoot (or hold FIRE). With auto shoot on, your gun fires by itself when the crosshair is on an enemy. Tap AIM to aim, tap it again to stop. ⇄ switches weapon.';
   if (!$('hud').classList.contains('hidden')) $('touch').classList.remove('hidden');
 }
 if (isTouch) setTouchMode();

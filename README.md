@@ -280,6 +280,8 @@ Open **`blocky-rivals.html`** in a browser. It's one file that works without a s
   1–4 or mouse wheel switch weapon, Q last weapon, G throw grenade, Esc pause.
   On phones and tablets: drag on the left side to move, drag on the right side to look, tap the screen to shoot
   (or hold FIRE), and tap AIM once to aim (tap again to stop).
+  **Auto shoot** (on by default, switch it in the Play tab) fires by itself while your crosshair is on an enemy.
+  The crosshair turns red when it's on someone.
 
 Files are in `shooter/`: `game.js` (the game), `index.html`, `style.css`, `three.min.js` (the 3D library, three.js r128).
 After changing them run `npm run build:shooter` to remake `blocky-rivals.html`.

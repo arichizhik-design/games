@@ -186,3 +186,4 @@ input[type=range] { width: 100%; accent-color: #ff4d5a; }
 .coinsWon { color: #ffd166; font-weight: 800; }
 @media (prefers-reduced-motion: reduce) { .reelItem.won { animation: none; } }
 #tAim.on { background: rgba(255,77,90,.7); border-color: #fff; }
+#crosshair.target .ch, #crosshair.target .dot { background: #ff3b4a; }
