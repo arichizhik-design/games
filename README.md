@@ -276,7 +276,7 @@ Open **`blocky-rivals.html`** in a browser. It's one file that works without a s
   Gold, Galaxy, Inferno) and a Charm Case (100) gives a charm that hangs off your weapon (Bowling Pin, Rubber Duck,
   Heart, Fire, Skull, Star, Diamond). Put them on any weapon in the **Loadout** tab.
 - **Headshots** do extra damage. Sniper headshots eliminate in one shot.
-- **Controls:** WASD move, mouse look, click shoot, right click aim, Space jump, Shift sprint, R reload,
+- **Controls:** WASD or arrow keys move, mouse look (if the mouse can't be locked, hold a mouse button and drag to look), click shoot, right click aim, Space jump, Shift sprint, R reload,
   1–4 or mouse wheel switch weapon, Q last weapon, G throw grenade, Esc pause.
   On phones and tablets: drag on the left side to move, drag on the right side to look, tap the screen to shoot
   (or hold FIRE), and tap AIM once to aim (tap again to stop).

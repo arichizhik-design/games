@@ -789,7 +789,8 @@ function buildArena() {
   for (let i = 1; i <= 4; i++) sym(7 + (5 - i) * 1.3 - 0.65, 0, 0, 1.3, i, 5, '#f7c35c');
   block(0, 5, 5.6, 7, 2.6, 1, '#d98a1a'); block(0, 5, -5.6, 7, 2.6, 1, '#d98a1a');
   // spawn cover
-  sym(61, 0, 0, 1.5, 3.4, 12, '#e05d5d');
+  // spawn cover with a gap in the middle so you can run straight out
+  sym(61, 0, 4.5, 1.5, 3.4, 4, '#e05d5d'); sym(61, 0, -4.5, 1.5, 3.4, 4, '#e05d5d');
   sym(66, 0, 22, 8, 6, 1.5, '#5b7bd5'); sym(66, 0, -22, 8, 6, 1.5, '#5b7bd5');
   // big walls make lanes
   sym(32, 0, 20, 3, 12, 18, '#5b7bd5'); sym(32, 0, -22, 3, 12, 14, '#5b7bd5');
@@ -928,7 +929,11 @@ function startMatch() {
     showBig('FREE FOR ALL', 'First to 15 eliminations');
   }
   showHud(true);
+  // keys go to the game, not the button you just clicked
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  try { window.focus(); } catch (e) { /* not allowed */ }
   if (isTouch) setAimToggle(false);
+  else setTimeout(() => { if (lockBlocked && playing()) killNotice('Hold the mouse button and drag to look around. Move with WASD or the arrow keys.', 6); }, 400);
   updateSlotsHud();
   lockPointer();
 }
@@ -1081,7 +1086,7 @@ function eliminate(victim, killer, key, head) {
 let vigT = 0, hmT = 0, killT = 0, bigT = 0;
 function showHud(on) { $('hud').classList.toggle('hidden', !on); $('touch').classList.toggle('hidden', !(on && isTouch)); }
 function showBig(big, small, time = 2.2) { $('bigMsg').textContent = big; $('smallMsg').textContent = small; bigT = time; }
-function killNotice(text) { const k = $('killMsg'); k.textContent = text; killT = 1.6; }
+function killNotice(text, time = 1.6) { const k = $('killMsg'); k.textContent = text; killT = time; }
 function hitmarker(head) { $('hitmarker').classList.toggle('head', !!head); hmT = 0.18; }
 function flashVignette() { vigT = 0.5; }
 function damageDir(attacker) {
@@ -1339,8 +1344,9 @@ function updatePlayer(dt) {
   const f = player, key = curKey(f), w = WEAPONS[key];
   const frozen = game.state === 'countdown';
   // moving
-  let mx = (input.keys.KeyD ? 1 : 0) - (input.keys.KeyA ? 1 : 0) + input.moveX;
-  let mz = (input.keys.KeyW ? 1 : 0) - (input.keys.KeyS ? 1 : 0) + input.moveY;
+  const k = input.keys;
+  let mx = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0) + input.moveX;
+  let mz = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) + input.moveY;
   const len = Math.hypot(mx, mz); if (len > 1) { mx /= len; mz /= len; }
   const sy = Math.sin(f.yaw), cy = Math.cos(f.yaw);
   const wx = -sy * mz + cy * mx, wz = -cy * mz - sy * mx;
@@ -1864,10 +1870,23 @@ window.addEventListener('pointermove', e => { if (pDrag) pSpin = pDrag.spin + (e
 window.addEventListener('pointerup', () => { pDrag = null; });
 
 // ---------- input: keyboard and mouse ----------
-const isTouch = matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
-if (isTouch) $('help').innerHTML = 'Drag on the left side to move. Drag on the right side to look, tap it to shoot (or hold FIRE). Tap AIM to aim, tap it again to stop. ⇄ switches weapon.';
+// phones and tablets start in touch mode; any touch switches it on later too
+let isTouch = matchMedia('(pointer: coarse)').matches;
+function setTouchMode() {
+  isTouch = true;
+  $('help').innerHTML = 'Drag on the left side to move. Drag on the right side to look, tap it to shoot (or hold FIRE). Tap AIM to aim, tap it again to stop. ⇄ switches weapon.';
+  if (!$('hud').classList.contains('hidden')) $('touch').classList.remove('hidden');
+}
+if (isTouch) setTouchMode();
 const playing = () => game.state !== 'menu' && game.state !== 'over';
-function lockPointer() { if (!isTouch && canvas.requestPointerLock) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* not allowed */ } } }
+// Some pages (like the shared game link) don't allow locking the mouse.
+// Then you hold a mouse button and drag to look instead.
+let lockBlocked = false, lastTouch = 0;
+function lockPointer() {
+  if (isTouch || lockBlocked || !canvas.requestPointerLock) return;
+  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => { lockBlocked = true; }); } catch (e) { lockBlocked = true; }
+}
+document.addEventListener('pointerlockerror', () => { lockBlocked = true; });
 function unlockPointer() { if (document.pointerLockElement) document.exitPointerLock(); }
 function pause() { if (!playing() || game.paused) return; game.paused = true; input.fire = false; if (!isTouch) input.aim = false; $('pause').classList.remove('hidden'); }
 function resume() { game.paused = false; $('pause').classList.add('hidden'); lockPointer(); }
@@ -1880,9 +1899,14 @@ function look(dx, dy, scale) {
   player.yaw -= dx * scale * save.sens / z;
   player.pitch = clamp(player.pitch - dy * scale * save.sens / z, -1.5, 1.5);
 }
-document.addEventListener('mousemove', e => { if (document.pointerLockElement === canvas) look(e.movementX, e.movementY, 0.0022); });
+const fromTouch = () => performance.now() - lastTouch < 1000;
+document.addEventListener('mousemove', e => {
+  if (document.pointerLockElement === canvas) look(e.movementX, e.movementY, 0.0022);
+  else if (playing() && e.buttons && !fromTouch()) look(e.movementX, e.movementY, 0.004);
+});
 canvas.addEventListener('mousedown', e => {
-  if (!playing() || !document.pointerLockElement) return;
+  if (!playing() || game.paused || fromTouch()) return;
+  if (!document.pointerLockElement && !lockBlocked) return; // this click asks to lock the mouse
   if (e.button === 0) input.fire = true;
   if (e.button === 2) input.aim = true;
 });
@@ -1896,6 +1920,7 @@ window.addEventListener('keydown', e => {
   if (!playing()) return;
   input.keys[e.code] = true;
   if (e.code === 'Space') { input.jump = true; e.preventDefault(); }
+  if (e.code.startsWith('Arrow')) e.preventDefault();
   if (!player || !player.alive || game.paused) return;
   if (e.code === 'KeyR') startReload(player);
   const n = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
@@ -1905,11 +1930,11 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyP') pause();
 });
 window.addEventListener('keyup', e => { input.keys[e.code] = false; });
-window.addEventListener('blur', () => { input.keys = {}; input.fire = input.aim = false; if (isTouch) pause(); });
+window.addEventListener('blur', () => { input.keys = {}; input.fire = false; if (!isTouch) input.aim = false; });
 
 // ---------- input: touch ----------
 function setAimToggle(on) { input.aim = on; $('tAim').classList.toggle('on', on); }
-if (isTouch) {
+{
   const stick = $('stick'), knob = $('knob');
   let stickId = null, lookId = null, lastLook = null, lookStart = null;
   const btn = (id, down, up) => {
@@ -1936,6 +1961,8 @@ if (isTouch) {
   };
   const resetStick = () => { stick.style.left = stick.style.top = stick.style.bottom = ''; knob.style.transform = ''; input.moveX = input.moveY = 0; };
   window.addEventListener('touchstart', e => {
+    lastTouch = performance.now();
+    if (!isTouch) setTouchMode();
     if (!playing() || game.paused) return;
     ac();
     for (const t of e.changedTouches) {
@@ -1952,6 +1979,7 @@ if (isTouch) {
     }
   }, { passive: true });
   window.addEventListener('touchmove', e => {
+    lastTouch = performance.now();
     for (const t of e.changedTouches) {
       if (t.identifier === stickId) setStick(t);
       if (t.identifier === lookId) {
