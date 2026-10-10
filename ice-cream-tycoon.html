@@ -1063,11 +1063,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   <script>
 // Shared game data, used by both the server (require) and the browser (window.GameData).
 (function (root) {
-  // ⚡ The Cyber Event is in every game. In the online game only admins can see it for now;
-  // the test file (build.js) shows it to everyone. To show it to everyone online, start the server with CYBER=1.
+  // ⚡ The Cyber Event is live for everyone (it dropped Oct 10, 2026).
+  // To hide it from regular players again (admins only), start the server with CYBER=admins.
   const CYBER = true;
-  const CYBER_ADMINS_ONLY = !(root && root.CYBER_TEST) &&
-    !(typeof process !== 'undefined' && !!process.env && process.env.CYBER === '1');
+  const CYBER_ADMINS_ONLY = typeof process !== 'undefined' && !!process.env && process.env.CYBER === 'admins';
 
   // growSec: how long a placed tub takes to grow before customers can buy it
   // stock: chance the shop has this rarity after a restock, and how many tubs

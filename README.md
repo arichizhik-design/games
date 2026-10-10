@@ -107,15 +107,17 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - Up to 12 players share the park. A leaderboard ranks everyone by total money earned.
 - Progress is saved by name: come back with the same name to keep your money and flavors.
 
-## ⚡ Cyber Event (admins only online for now)
+## ⚡ Cyber Event (live for everyone, Oct 10 to Oct 17, 2026)
 
-In the single-file test version (`ice-cream-tycoon.html`) everyone sees the Cyber Event. In the online game only
-admins can see it: everyone else never sees the Cyber Block, Cyber pets (except ones an admin is wearing, which
+The Cyber Event is live for everyone. (To hide it from regular players again, set `CYBER=admins` on the server; then everyone else never sees the Cyber Block, Cyber pets (except ones an admin is wearing, which
 follow them around for everyone to see), Robo Ice Cream, the Robo look, the
 Cyber mutation or the Passes (not even on an admin), keeps the old 14 stand spaces, and can't be gifted or traded
-Cyber stuff. To show it to everyone online, set `CYBER=1` on the server (an environment variable on Render).
+Cyber stuff.)
 
-- **Cyber Block** in the Pet Shop ($1B), only during the event week (Oct 5 to Oct 12, 2026). It has these odds:
+Extras during the event: a glitchy launch screen, Cyber Storms (the Cyber mutation every 30 minutes for 3 minutes),
+Robo customers that pay x2, and a 🎁 Daily Gift (a free Gold Block, the Cyber Block on the last day).
+
+- **Cyber Block** in the Pet Shop ($1B), only during the event week (Oct 10 to Oct 17, 2026). It has these odds:
   Legendary 72.5%, Mythic 15%, Secret (the Tiger) 8%, Mammoth 2%, Dolphin 2%, Cyber Whale 0.5%. It has its own all-cyber pets that no other
   block gives: 🦂 Cyber Scorpion and 🦇 Cyber Bat (Legendary), 🦍 Cyber Gorilla and 🦕 Cyber Dino (Mythic),
   🐅 Cyber Tiger (Secret), 🦣 Cyber Mammoth and 🐬 Cyber Dolphin (Celestial). Each is made of dark armor with glowing
