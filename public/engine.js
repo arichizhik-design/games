@@ -906,14 +906,14 @@
         if (!stand.admin) stand.shards -= price;
         conn.send({ type: 'gamePassDone', id, flavor: msg.flavor, price });
       } else if (CYBER && seesCyber(stand) && msg.type === 'eventGift') {
-        // ⚡ a free lucky block as many times as you want during the event (the Cyber Block on the last day!)
+        // ⚡ a free lucky block once a day during the event (the Cyber Block on the last day!)
         if (!cyberOn()) return err('The Cyber Event is over.');
-        const now = Date.now();
-        if (now - (stand.lastGiftBlock || 0) < 2000) return; // one every 2 seconds, so the reveal can finish
-        const lastDay = now >= CYBER_EVENT.end - 86400e3;
+        const day = Math.floor(Date.now() / 86400e3);
+        if (stand.giftDay === day) return err('You already got today\'s gift. Come back tomorrow!');
+        const lastDay = Date.now() >= CYBER_EVENT.end - 86400e3;
         const error = givePrize(stand, { block: lastDay ? 'cyber' : 'gold' });
         if (error) return err(error);
-        stand.lastGiftBlock = now;
+        stand.giftDay = day;
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
         cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });

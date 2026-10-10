@@ -115,7 +115,7 @@ Cyber mutation or the Passes (not even on an admin), keeps the old 14 stand spac
 Cyber stuff.)
 
 Extras during the event: a glitchy launch screen, Cyber Storms (the Cyber mutation every 30 minutes for 3 minutes),
-Robo customers that pay x2, and a 🎁 Free Gift button (a free Gold Block as often as you like, the Cyber Block on the last day).
+Robo customers that pay x2, and a 🎁 Daily Gift (a free Gold Block, the Cyber Block on the last day).
 
 - **Cyber Block** in the Pet Shop ($1B), only during the event week (Oct 10 to Oct 17, 2026). It has these odds:
   Legendary 72.5%, Mythic 15%, Secret (the Tiger) 8%, Mammoth 2%, Dolphin 2%, Cyber Whale 0.5%. It has its own all-cyber pets that no other
