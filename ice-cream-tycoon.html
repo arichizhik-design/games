@@ -2016,9 +2016,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const name = String(msg.name || '').replace(/[^\w \-]/g, '').trim().slice(0, 16);
         if (!name) return err('Please pick a name.');
         const key = name.toLowerCase();
-        if ([...stands.values()].some(s => s.key === key)) {
-          return err('Someone with that name is already playing.');
-        }
+        // the same player logging in again (a refresh, or another window): the server has checked their
+        // password and says takeOver, so the new login replaces the old one
+        const existing = [...stands.values()].find(s => s.key === key);
+        if (existing && !msg.takeOver) return err('Someone with that name is already playing.');
         // the server lost this player's progress (an update wiped it): bring it back from their backup
         let restored = false;
         if (backup && !saves[key] && msg.backup) {
@@ -2035,6 +2036,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (isAdminName && !adminCodeOk(key, msg.adminCode)) {
           return conn.send({ type: 'error', needCode: true,
             text: msg.adminCode ? 'Wrong admin code.' : 'That name needs the secret admin code.' });
+        }
+        if (existing) {
+          existing.conn.send({ type: 'kicked' });
+          leave(existing.conn); // saves their progress first
+          existing.conn.standId = null;
         }
         const s = createStand(conn, name);
         if (!s) return err('The park is full (12 stands). Try again later!');
@@ -2837,6 +2843,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'shardsChanged':
         toast(msg.amount > 0 ? `💎 +${msg.amount.toLocaleString()} shards! Thank you!` : `💎 ${(-msg.amount).toLocaleString()} shards were taken back (refund).`);
         if (msg.amount > 0) confetti(player.x, player.y - 30, 40);
+        break;
+      case 'kicked':
+        // this name logged in somewhere else (another window or device), so this one stops
+        myId = null;
+        $('joinError').textContent = 'You joined with this name in another window or device, so this one stopped.';
+        $('game').classList.add('hidden');
+        $('join').classList.remove('hidden');
+        joining = false;
+        if (ws) ws.close();
         break;
       case 'refresh':
         // 🔄 an admin refreshed everyone: reload and join again right away

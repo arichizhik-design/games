@@ -666,9 +666,10 @@
         const name = String(msg.name || '').replace(/[^\w \-]/g, '').trim().slice(0, 16);
         if (!name) return err('Please pick a name.');
         const key = name.toLowerCase();
-        if ([...stands.values()].some(s => s.key === key)) {
-          return err('Someone with that name is already playing.');
-        }
+        // the same player logging in again (a refresh, or another window): the server has checked their
+        // password and says takeOver, so the new login replaces the old one
+        const existing = [...stands.values()].find(s => s.key === key);
+        if (existing && !msg.takeOver) return err('Someone with that name is already playing.');
         // the server lost this player's progress (an update wiped it): bring it back from their backup
         let restored = false;
         if (backup && !saves[key] && msg.backup) {
@@ -685,6 +686,11 @@
         if (isAdminName && !adminCodeOk(key, msg.adminCode)) {
           return conn.send({ type: 'error', needCode: true,
             text: msg.adminCode ? 'Wrong admin code.' : 'That name needs the secret admin code.' });
+        }
+        if (existing) {
+          existing.conn.send({ type: 'kicked' });
+          leave(existing.conn); // saves their progress first
+          existing.conn.standId = null;
         }
         const s = createStand(conn, name);
         if (!s) return err('The park is full (12 stands). Try again later!');

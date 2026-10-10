@@ -99,7 +99,8 @@ function createShop({ game, store, accounts, persist, baseUrl }) {
         // a new player, or one whose password an admin reset (they keep their parent settings)
         fresh = { ...(acc || { created: Date.now() }), pw: await hashSecret(password), tokens: [] };
       }
-      game.handle(conn, msg); // the game checks everything else (admin code, park full, name already playing)
+      // the password is right, so if this name is still playing somewhere (a refresh, another window) this login replaces it
+      game.handle(conn, { ...msg, takeOver: true }); // the game checks everything else (admin code, park full)
       if (!conn.standId) return; // the game said no, and told the player why
       conn.key = key;
       conns.add(conn);

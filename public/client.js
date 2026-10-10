@@ -329,6 +329,15 @@
         toast(msg.amount > 0 ? `💎 +${msg.amount.toLocaleString()} shards! Thank you!` : `💎 ${(-msg.amount).toLocaleString()} shards were taken back (refund).`);
         if (msg.amount > 0) confetti(player.x, player.y - 30, 40);
         break;
+      case 'kicked':
+        // this name logged in somewhere else (another window or device), so this one stops
+        myId = null;
+        $('joinError').textContent = 'You joined with this name in another window or device, so this one stopped.';
+        $('game').classList.add('hidden');
+        $('join').classList.remove('hidden');
+        joining = false;
+        if (ws) ws.close();
+        break;
       case 'refresh':
         // 🔄 an admin refreshed everyone: reload and join again right away
         toast(`🔄 ${msg.by} is refreshing the game for everyone…`);
