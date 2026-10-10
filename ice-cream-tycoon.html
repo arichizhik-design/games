@@ -587,9 +587,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .passTile { background: linear-gradient(rgba(10,14,18,.75), rgba(10,14,18,.85)), var(--cyber-plates) 0 0 / 120px 80px !important; }
 .passTile.ready { border-color: #2ee8ff !important; box-shadow: 0 0 12px rgba(46,232,255,.8) !important; }
 .badge.cyber { background: #0b1116 !important; color: #7ff6ff !important; box-shadow: 0 0 6px #2ee8ff; }
-.fx-robo.scoop, .fx-robo .ball { background: var(--cyber-ring) center / 100% 100% no-repeat !important;
-  box-shadow: 0 0 9px 3px rgba(46,232,255,.8) !important; }
-.avOpt.swatch.robo { background: var(--cyber-ring) center / 100% 100% no-repeat !important; box-shadow: 0 0 6px rgba(46,232,255,.8); }
+.fx-robo.scoop, .fx-robo .ball { background: var(--robo-scoop, #8d9aa6) center / 100% 100% no-repeat !important;
+  box-shadow: 0 0 6px 1px rgba(46,232,255,.55) !important; }
+.avOpt.swatch.robo { background: var(--robo-metal, #4a5763) center / 100% 100% no-repeat !important; border-color: #5c6b7a !important;
+  box-shadow: 0 0 5px rgba(46,232,255,.55); }
 .eventTag { background: #0b1116; color: #7ff6ff; box-shadow: 0 0 5px #2ee8ff; }
 /* 🎁 Give in Lucky Block (admins) */
 #adminBlockInput { flex: 1; min-width: 0; }
@@ -2928,6 +2929,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // ---------- side panel ----------
   function buildPanel() {
+    makeRoboArt();
     const fl = $('flavors');
     fl.innerHTML = '';
     for (const f of guideFlavors()) {
@@ -4155,7 +4157,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
     hat: { cap: 'Cap', none: 'No hat', tophat: 'Top hat', beanie: 'Beanie', party: 'Party hat',
-      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat', robo: '🤖 Robo antenna' },
+      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat', robo: '📡 Robo antennas' },
     face: { happy: 'Happy', cool: 'Sunglasses', wink: 'Wink', silly: 'Silly', wow: 'Wow', robo: '🤖 Robo visor' },
   };
   const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
@@ -4199,7 +4201,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
         b.className = 'avOpt' + (isColor ? ' swatch' : '') + (avatarDraft[part] === value ? ' on' : '');
         if (isColor) {
-          if (value === 'robo') b.classList.add('robo'); // the cyber ring look
+          if (value === 'robo') b.classList.add('robo'); // a piece of polished robot armor
           else b.style.background = value === 'stand' ? s.color : value;
           b.title = value === 'stand' ? 'Your stand color' : value === 'robo' ? 'Robo' : '';
         } else b.textContent = AVATAR_LABELS[part][value];
@@ -5634,6 +5636,103 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const SHERBET = ['#ff8a5c', '#ffd56b', '#ff9ad5', '#9be08a'];
   let nowSec = 0; // set every frame
 
+  // ⚡ Robo Ice Cream: a polished chrome ball with panel lines, little bolts, one glowing crack
+  // and a glowing core, lit from the top left like real metal
+  function drawRoboScoop(x, y, r, outline) {
+    ctx.save();
+    // chrome: bright highlight, the sky reflected on top, a dark horizon band, the ground reflected underneath
+    const g = ctx.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.05, x, y, r * 1.05);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.18, '#dfe7ee'); g.addColorStop(0.45, '#8d9aa6');
+    g.addColorStop(0.7, '#3d4852'); g.addColorStop(0.9, '#1a2026'); g.addColorStop(1, '#0d1115');
+    ctx.fillStyle = g;
+    outline(); ctx.fill();
+    outline(); ctx.clip();
+    const band = ctx.createLinearGradient(0, y - r, 0, y + r);
+    band.addColorStop(0, 'rgba(255,255,255,0)'); band.addColorStop(0.46, 'rgba(255,255,255,0)');
+    band.addColorStop(0.5, 'rgba(10,14,18,0.55)'); band.addColorStop(0.58, 'rgba(10,14,18,0.15)');
+    band.addColorStop(0.8, 'rgba(140,160,175,0.25)'); band.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = band;
+    ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+    // panel lines: one around the middle and one over the top, each with a light edge so they look cut in
+    const lw = Math.max(0.4, r * 0.05);
+    const line = (draw, dark) => { ctx.beginPath(); draw(); ctx.strokeStyle = dark ? 'rgba(8,10,12,0.75)' : 'rgba(255,255,255,0.35)'; ctx.lineWidth = lw; ctx.stroke(); };
+    for (const [dy, dark] of [[0, true], [lw, false]]) {
+      line(() => ctx.ellipse(x, y + r * 0.12 + dy, r, r * 0.32, 0, 0, Math.PI), dark);
+      line(() => ctx.ellipse(x - r * 0.08 + dy, y, r * 0.38, r, 0, -Math.PI / 2, Math.PI / 2), dark);
+    }
+    // bolts along the panel lines
+    if (r > 6) {
+      for (const a of [0.55, 1.45, 2.35]) {
+        const bx = x + Math.cos(a) * r * 0.86, by = y + r * 0.12 + Math.sin(a) * r * 0.28;
+        ctx.fillStyle = '#20272e'; ctx.beginPath(); ctx.arc(bx, by, r * 0.07, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#c9d3dc'; ctx.beginPath(); ctx.arc(bx - r * 0.02, by - r * 0.02, r * 0.035, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // one thin glowing crack
+    seam([[x + r * 0.25, y - r], [x + r * 0.35, y - r * 0.55], [x + r * 0.62, y - r * 0.35]], Math.max(0.3, r * 0.06));
+    // cyan light bouncing off the bottom edge
+    ctx.strokeStyle = 'rgba(46,232,255,0.55)'; ctx.lineWidth = r * 0.12;
+    ctx.beginPath(); ctx.arc(x, y, r * 0.97, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+    ctx.restore();
+    // the glowing core: a little lens with light inside
+    const cx = x + r * 0.18, cy = y + r * 0.42, cr = r * 0.22;
+    ctx.save();
+    ctx.fillStyle = '#0b1116';
+    ctx.beginPath(); ctx.arc(cx, cy, cr * 1.3, 0, Math.PI * 2); ctx.fill();
+    const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
+    core.addColorStop(0, '#ffffff'); core.addColorStop(0.35, '#b8faff'); core.addColorStop(0.7, CYAN); core.addColorStop(1, 'rgba(46,232,255,0.2)');
+    ctx.shadowColor = CYAN; ctx.shadowBlur = r * 0.6;
+    ctx.fillStyle = core;
+    ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // the shiny spot where the light hits
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath(); ctx.ellipse(x - r * 0.42, y - r * 0.5, r * 0.2, r * 0.11, -0.6, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // pictures of the Robo things for the shops (made once, the same drawing as in the park)
+  let roboArt = null;
+  function makeRoboArt() {
+    if (roboArt) return roboArt;
+    const paint = (w, h, draw) => {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const saved = ctx;
+      ctx = c.getContext('2d');
+      draw();
+      ctx = saved;
+      return c.toDataURL();
+    };
+    roboArt = {
+      // the Robo Ice Cream ball for the shop, hotbar and Inventory
+      scoop: paint(72, 72, () => drawRoboScoop(36, 36, 32, () => { ctx.beginPath(); ctx.arc(36, 36, 32, 0, Math.PI * 2); })),
+      // a round piece of armor for the Avatar Shop swatches
+      metal: paint(72, 72, () => {
+        const g = ctx.createLinearGradient(6, 6, 66, 66);
+        g.addColorStop(0, '#9aa7b4'); g.addColorStop(0.35, '#4a5763'); g.addColorStop(0.65, '#2c343c'); g.addColorStop(1, '#151b21');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(36, 36, 34, 0, Math.PI * 2); ctx.fill();
+        ctx.save(); ctx.beginPath(); ctx.arc(36, 36, 34, 0, Math.PI * 2); ctx.clip();
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1; // brushed metal
+        for (let i = -72; i < 72; i += 3) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + 72, 72); ctx.stroke(); }
+        ctx.strokeStyle = 'rgba(8,10,12,0.8)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, 30); ctx.lineTo(72, 42); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, 32); ctx.lineTo(72, 44); ctx.stroke();
+        seam([[14, 54], [24, 46], [22, 38]], 1.4);
+        ctx.restore();
+        for (const [bx, by] of [[18, 20], [54, 24], [50, 56]]) {
+          ctx.fillStyle = '#151b21'; ctx.beginPath(); ctx.arc(bx, by, 3.2, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#c9d3dc'; ctx.beginPath(); ctx.arc(bx - 0.8, by - 0.8, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+        cyberRing(40, 46, 5);
+      }),
+    };
+    document.documentElement.style.setProperty('--robo-scoop', `url(${roboArt.scoop})`);
+    document.documentElement.style.setProperty('--robo-metal', `url(${roboArt.metal})`);
+    return roboArt;
+  }
+
   // a scoop: full circle, or the top half (ice cream in a tub)
   function fillScoop(f, x, y, r, half) {
     const outline = () => { ctx.beginPath(); if (half) ctx.arc(x, y, r, Math.PI, 0); else ctx.arc(x, y, r, 0, Math.PI * 2); };
@@ -5649,23 +5748,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.restore();
       return;
     }
-    if (f.effect === 'robo') {
-      // ⚡ Robo Ice Cream: dark armor plates with glowing cyan cracks and a glowing ring core
-      const g = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
-      g.addColorStop(0, '#4a545e'); g.addColorStop(0.5, '#262d34'); g.addColorStop(1, '#11161a');
-      ctx.fillStyle = g;
-      outline(); ctx.fill();
-      ctx.save();
-      outline(); ctx.clip();
-      const w = Math.max(0.35, r * 0.09);
-      seam([[x - r, y - r * 0.35], [x - r * 0.4, y - r * 0.3], [x - r * 0.1, y - r * 0.55], [x + r * 0.5, y - r * 0.4], [x + r, y - r * 0.5]], w);
-      seam([[x - r * 0.1, y - r * 0.55], [x, y - r]], w);
-      seam([[x - r * 0.75, y - r * 0.3], [x - r * 0.8, y + r]], w);
-      seam([[x + r * 0.7, y - r * 0.45], [x + r * 0.75, y + r]], w);
-      ctx.restore();
-      cyberRing(x, y - r * 0.05, r * 0.32);
-      return;
-    }
+    if (f.effect === 'robo') { drawRoboScoop(x, y, r, outline); return; }
     if (f.effect === 'infinity') {
       // Infinity Swirl: every color swirling around and slowly spinning
       const spin = nowSec * 1.5;

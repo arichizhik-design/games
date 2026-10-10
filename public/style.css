@@ -580,9 +580,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .passTile { background: linear-gradient(rgba(10,14,18,.75), rgba(10,14,18,.85)), var(--cyber-plates) 0 0 / 120px 80px !important; }
 .passTile.ready { border-color: #2ee8ff !important; box-shadow: 0 0 12px rgba(46,232,255,.8) !important; }
 .badge.cyber { background: #0b1116 !important; color: #7ff6ff !important; box-shadow: 0 0 6px #2ee8ff; }
-.fx-robo.scoop, .fx-robo .ball { background: var(--cyber-ring) center / 100% 100% no-repeat !important;
-  box-shadow: 0 0 9px 3px rgba(46,232,255,.8) !important; }
-.avOpt.swatch.robo { background: var(--cyber-ring) center / 100% 100% no-repeat !important; box-shadow: 0 0 6px rgba(46,232,255,.8); }
+.fx-robo.scoop, .fx-robo .ball { background: var(--robo-scoop, #8d9aa6) center / 100% 100% no-repeat !important;
+  box-shadow: 0 0 6px 1px rgba(46,232,255,.55) !important; }
+.avOpt.swatch.robo { background: var(--robo-metal, #4a5763) center / 100% 100% no-repeat !important; border-color: #5c6b7a !important;
+  box-shadow: 0 0 5px rgba(46,232,255,.55); }
 .eventTag { background: #0b1116; color: #7ff6ff; box-shadow: 0 0 5px #2ee8ff; }
 /* 🎁 Give in Lucky Block (admins) */
 #adminBlockInput { flex: 1; min-width: 0; }
