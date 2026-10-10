@@ -696,3 +696,5 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #giftBtn { background: linear-gradient(135deg, #0a1f2e, #f08c00); color: #fff3bf; border: 2px solid #ffd43b; font-size: 15px; padding: 8px 14px;
   box-shadow: 0 0 10px rgba(255,212,59,.7); animation: passGlow 1.2s ease-in-out infinite alternate; }
 #giftBtn.hidden { display: none; }
+
+.refreshAllBtn { background: #1c7ed6; }

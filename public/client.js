@@ -150,7 +150,7 @@
   // back from Stripe's payment page: join again right away if this device is remembered
   const backFromStripe = new URLSearchParams(location.search);
   const stripeReturn = backFromStripe.has('paid') ? 'paid' : backFromStripe.has('cancelled') ? 'cancelled' : null;
-  if (stripeReturn) {
+  if (stripeReturn || backFromStripe.has('rejoin')) {
     history.replaceState(null, '', location.pathname);
     if (!window.SOLO && $('nameInput').value && savedToken($('nameInput').value)) setTimeout(join, 50);
   }
@@ -328,6 +328,11 @@
       case 'shardsChanged':
         toast(msg.amount > 0 ? `💎 +${msg.amount.toLocaleString()} shards! Thank you!` : `💎 ${(-msg.amount).toLocaleString()} shards were taken back (refund).`);
         if (msg.amount > 0) confetti(player.x, player.y - 30, 40);
+        break;
+      case 'refresh':
+        // 🔄 an admin refreshed everyone: reload and join again right away
+        toast(`🔄 ${msg.by} is refreshing the game for everyone…`);
+        setTimeout(() => { location.href = location.pathname + (window.SOLO ? '' : '?rejoin=1'); }, 1500);
         break;
       case 'shardsGift':
         toast(`🎁 ${msg.from} gave you 💎 ${msg.amount.toLocaleString()} shards!`);
@@ -1939,6 +1944,9 @@
   }
   $('adminBlockBtn').addEventListener('click', giveInBlock);
   $('adminBlockInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); giveInBlock(); } });
+  $('refreshAllBtn').addEventListener('click', () => {
+    if (confirm('Refresh the game for everyone playing? Their progress is saved, and they come right back in.')) send({ type: 'adminRefreshAll' });
+  });
   $('adminShopBtn').addEventListener('click', () =>
     send({ type: 'adminShopSpawn', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('talkBtn').addEventListener('click', () => {

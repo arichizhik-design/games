@@ -1057,6 +1057,10 @@
           if (flavorById[item.id] && !stand.seen.includes(item.id)) stand.seen.push(item.id);
           conn.send({ type: 'blockGot', item: item.id, block: block.id });
         } else return err('Nothing with that name. Try a pet like dragon, or an ice cream like void.');
+      } else if (stand.admin && msg.type === 'adminRefreshAll') {
+        // 🔄 everyone's game reloads (progress is saved first) and they come right back in
+        for (const s of stands.values()) sendBackup(s);
+        broadcast({ type: 'refresh', by: stand.name });
       } else if (stand.admin && msg.type === 'adminShopSpawn') {
         // 🏪 put any ice cream in the Supplies Shop for everyone (until the next restock)
         const f = flavorById[msg.flavor];

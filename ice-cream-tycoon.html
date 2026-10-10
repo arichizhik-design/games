@@ -703,6 +703,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #giftBtn { background: linear-gradient(135deg, #0a1f2e, #f08c00); color: #fff3bf; border: 2px solid #ffd43b; font-size: 15px; padding: 8px 14px;
   box-shadow: 0 0 10px rgba(255,212,59,.7); animation: passGlow 1.2s ease-in-out infinite alternate; }
 #giftBtn.hidden { display: none; }
+
+.refreshAllBtn { background: #1c7ed6; }
 </style>
 </head>
 <body>
@@ -998,6 +1000,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <button id="adminGiveBtn">Give</button>
           <button id="adminSpawnBtn" title="Put it straight on your stand, fully grown">Spawn</button>
         </div>
+        <button id="refreshAllBtn" class="refreshAllBtn" type="button" title="Reload the game for everyone playing (their progress is saved)">🔄 Refresh Everyone</button>
         <button id="adminShopBtn" class="adminShopBtn" type="button" title="Put the ice cream picked above in the Supplies Shop for everyone">🏪 Spawn in Shop</button>
         <div class="adminRow">
           <input id="adminBlockInput" placeholder="Pet or ice cream" autocomplete="off">
@@ -2405,6 +2408,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           if (flavorById[item.id] && !stand.seen.includes(item.id)) stand.seen.push(item.id);
           conn.send({ type: 'blockGot', item: item.id, block: block.id });
         } else return err('Nothing with that name. Try a pet like dragon, or an ice cream like void.');
+      } else if (stand.admin && msg.type === 'adminRefreshAll') {
+        // 🔄 everyone's game reloads (progress is saved first) and they come right back in
+        for (const s of stands.values()) sendBackup(s);
+        broadcast({ type: 'refresh', by: stand.name });
       } else if (stand.admin && msg.type === 'adminShopSpawn') {
         // 🏪 put any ice cream in the Supplies Shop for everyone (until the next restock)
         const f = flavorById[msg.flavor];
@@ -2653,7 +2660,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // back from Stripe's payment page: join again right away if this device is remembered
   const backFromStripe = new URLSearchParams(location.search);
   const stripeReturn = backFromStripe.has('paid') ? 'paid' : backFromStripe.has('cancelled') ? 'cancelled' : null;
-  if (stripeReturn) {
+  if (stripeReturn || backFromStripe.has('rejoin')) {
     history.replaceState(null, '', location.pathname);
     if (!window.SOLO && $('nameInput').value && savedToken($('nameInput').value)) setTimeout(join, 50);
   }
@@ -2831,6 +2838,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'shardsChanged':
         toast(msg.amount > 0 ? `💎 +${msg.amount.toLocaleString()} shards! Thank you!` : `💎 ${(-msg.amount).toLocaleString()} shards were taken back (refund).`);
         if (msg.amount > 0) confetti(player.x, player.y - 30, 40);
+        break;
+      case 'refresh':
+        // 🔄 an admin refreshed everyone: reload and join again right away
+        toast(`🔄 ${msg.by} is refreshing the game for everyone…`);
+        setTimeout(() => { location.href = location.pathname + (window.SOLO ? '' : '?rejoin=1'); }, 1500);
         break;
       case 'shardsGift':
         toast(`🎁 ${msg.from} gave you 💎 ${msg.amount.toLocaleString()} shards!`);
@@ -4442,6 +4454,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   }
   $('adminBlockBtn').addEventListener('click', giveInBlock);
   $('adminBlockInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); giveInBlock(); } });
+  $('refreshAllBtn').addEventListener('click', () => {
+    if (confirm('Refresh the game for everyone playing? Their progress is saved, and they come right back in.')) send({ type: 'adminRefreshAll' });
+  });
   $('adminShopBtn').addEventListener('click', () =>
     send({ type: 'adminShopSpawn', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('talkBtn').addEventListener('click', () => {
