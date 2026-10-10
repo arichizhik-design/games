@@ -1,0 +1,157 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; color: #fff;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; user-select: none; -webkit-user-select: none;
+  touch-action: none; }
+#game, #game canvas { position: fixed; inset: 0; display: block; }
+.hidden { display: none !important; }
+button { font: inherit; cursor: pointer; border: 0; border-radius: 10px; color: #fff; }
+
+/* ---------- menu ---------- */
+#menu { position: fixed; inset: 0; display: flex; align-items: stretch; pointer-events: none; }
+#menuPanel { pointer-events: auto; width: 440px; max-width: 100%; height: 100%; overflow-y: auto; padding: 22px 22px 30px;
+  background: linear-gradient(90deg, rgba(14,18,34,.94), rgba(14,18,34,.82)); }
+#menu h1 { margin: 0 0 14px; font-size: 40px; font-weight: 900; letter-spacing: 1px; line-height: 1;
+  text-shadow: 0 4px 0 #000; }
+#menu h1 span { color: #ff4d5a; }
+#tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+#tabs button { flex: 1; padding: 10px 0; background: #2a3150; font-weight: 800; }
+#tabs button.on { background: #ff4d5a; }
+.label { margin: 14px 0 6px; font-size: 13px; font-weight: 800; color: #9fb0d8; text-transform: uppercase; letter-spacing: .5px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.card-btn { flex: 1 1 150px; text-align: left; padding: 12px; background: #232a45; border: 2px solid transparent; }
+.card-btn b { display: block; font-size: 17px; }
+.card-btn small { display: block; color: #aab6d8; margin-top: 4px; }
+.card-btn.on { border-color: #ff4d5a; background: #2f2340; }
+.pills button { flex: 1; padding: 9px 0; background: #232a45; font-weight: 700; border: 2px solid transparent; }
+.pills button.on { border-color: #ff4d5a; background: #2f2340; }
+button.big { display: block; width: 100%; margin-top: 20px; padding: 16px; font-size: 22px; font-weight: 900;
+  background: #ff4d5a; box-shadow: 0 5px 0 #a3222c; letter-spacing: 1px; }
+button.big:active { transform: translateY(3px); box-shadow: 0 2px 0 #a3222c; }
+.help { margin-top: 16px; font-size: 13px; color: #aab6d8; line-height: 1.6; }
+input[type=range] { width: 100%; accent-color: #ff4d5a; }
+#previewHint { position: fixed; right: 18px; bottom: 14px; font-size: 13px; color: rgba(0,0,0,.45); }
+
+.wgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.wcard { text-align: left; padding: 10px; background: #232a45; border: 2px solid transparent; }
+.wcard.on { border-color: #ff4d5a; background: #2f2340; }
+.wcard b { display: block; font-size: 15px; }
+.wcard small { color: #aab6d8; font-size: 12px; }
+.stat { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aab6d8; margin-top: 4px; }
+.stat span { width: 44px; }
+.stat i { flex: 1; height: 5px; border-radius: 3px; background: #11152a; overflow: hidden; }
+.stat i em { display: block; height: 100%; background: #ff4d5a; }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw { width: 34px; height: 34px; border-radius: 8px; border: 3px solid transparent; }
+.sw.on { border-color: #fff; }
+.opt { padding: 7px 11px; background: #232a45; border: 2px solid transparent; font-size: 14px; }
+.opt.on { border-color: #ff4d5a; background: #2f2340; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; }
+#scoreTop { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center;
+  font-weight: 900; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+.sbox { min-width: 60px; padding: 6px 12px; border-radius: 10px; text-align: center; font-size: 22px; background: rgba(0,0,0,.45); }
+.sbox small { display: block; font-size: 11px; opacity: .8; }
+.sbox.me { background: rgba(40,120,255,.75); }
+.sbox.them { background: rgba(230,50,60,.75); }
+.sround { font-size: 13px; padding: 4px 10px; border-radius: 8px; background: rgba(0,0,0,.45); }
+#killfeed { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+#killfeed div { background: rgba(0,0,0,.5); padding: 4px 9px; border-radius: 6px; font-size: 14px; font-weight: 700; }
+#killfeed .me { color: #7fc1ff; }
+#killfeed .w { color: #ffd166; margin: 0 6px; font-weight: 600; }
+
+#crosshair { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+#crosshair .ch { position: absolute; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+#crosshair .t, #crosshair .b { width: 2px; height: 9px; left: -1px; }
+#crosshair .l, #crosshair .r { height: 2px; width: 9px; top: -1px; }
+#crosshair .dot { position: absolute; width: 3px; height: 3px; left: -1.5px; top: -1.5px; background: #fff; border-radius: 2px; }
+#hitmarker { position: absolute; left: 50%; top: 50%; opacity: 0; }
+#hitmarker i { position: absolute; width: 2px; height: 9px; background: #fff; left: -1px; top: -4.5px; }
+#hitmarker i:nth-child(1) { transform: rotate(45deg) translateY(-10px); }
+#hitmarker i:nth-child(2) { transform: rotate(135deg) translateY(-10px); }
+#hitmarker i:nth-child(3) { transform: rotate(225deg) translateY(-10px); }
+#hitmarker i:nth-child(4) { transform: rotate(315deg) translateY(-10px); }
+#hitmarker.head i { background: #ff4d5a; }
+
+#scope { position: absolute; inset: 0; display: none;
+  background: radial-gradient(circle at center, transparent 0, transparent 33vmin, #000 33.4vmin); }
+#scope::before, #scope::after { content: ""; position: absolute; background: #000; }
+#scope::before { left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; }
+#scope::after { top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; }
+#vignette { position: absolute; inset: 0; opacity: 0;
+  background: radial-gradient(circle at center, transparent 45%, rgba(220,0,0,.75) 100%); }
+#dmgDirs { position: absolute; left: 50%; top: 50%; }
+.ddir { position: absolute; left: -60px; top: -140px; width: 120px; height: 30px; transform-origin: 60px 140px;
+  background: radial-gradient(ellipse at center, rgba(255,40,40,.85), transparent 70%); }
+#center { position: absolute; left: 0; right: 0; top: 26%; text-align: center; text-shadow: 0 3px 0 rgba(0,0,0,.55); }
+#bigMsg { font-size: 54px; font-weight: 900; }
+#smallMsg { font-size: 20px; font-weight: 700; margin-top: 6px; }
+#killMsg { position: absolute; left: 0; right: 0; top: 62%; text-align: center; font-size: 20px; font-weight: 900;
+  color: #ffd166; text-shadow: 0 2px 0 rgba(0,0,0,.6); opacity: 0; }
+
+#health { position: absolute; left: 16px; bottom: 16px; width: 230px; }
+#health .label { margin: 0 0 4px; color: #fff; font-size: 12px; text-shadow: 0 1px 0 #000; }
+#health .bar { height: 16px; border-radius: 8px; background: rgba(0,0,0,.5); overflow: hidden; }
+#hpFill { height: 100%; width: 100%; background: linear-gradient(#5cf08a, #23b552); transition: width .1s; }
+#hpNum { position: absolute; right: 0; top: -4px; font-size: 22px; font-weight: 900; text-shadow: 0 2px 0 #000; }
+#ammo { position: absolute; right: 16px; bottom: 16px; text-align: right; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+#wName { font-size: 14px; font-weight: 800; opacity: .9; }
+#ammoNum { font-size: 38px; font-weight: 900; line-height: 1; }
+#ammoNum small { font-size: 18px; opacity: .7; }
+#reloadBar { width: 140px; height: 5px; margin: 4px 0 0 auto; border-radius: 3px; background: rgba(0,0,0,.4); overflow: hidden; visibility: hidden; }
+#reloadFill { height: 100%; width: 0; background: #ffd166; }
+#slots { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+.slot { width: 76px; padding: 5px 4px; border-radius: 8px; background: rgba(0,0,0,.4); text-align: center; font-size: 11px;
+  font-weight: 700; border: 2px solid transparent; }
+.slot .ic { font-size: 20px; display: block; }
+.slot .k { position: absolute; margin: -3px 0 0 -2px; font-size: 10px; opacity: .7; }
+.slot.on { border-color: #fff; background: rgba(255,77,90,.55); }
+.slot.empty { opacity: .4; }
+#dmgNums div { position: absolute; font-weight: 900; font-size: 18px; text-shadow: 0 2px 0 #000; transform: translate(-50%, -50%); }
+#dmgNums .head { color: #ff4d5a; font-size: 22px; }
+
+/* ---------- overlays ---------- */
+#pause, #endScreen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(10,14,30,.6); }
+.card { width: 340px; max-width: calc(100% - 32px); padding: 22px; border-radius: 16px; background: #171c33; text-align: center; }
+.card h2 { margin: 0 0 12px; font-size: 32px; }
+.card > button:not(.big) { width: 100%; margin-top: 10px; padding: 12px; background: #2a3150; font-weight: 800; }
+#endBody table { width: 100%; border-collapse: collapse; font-size: 15px; }
+#endBody td { padding: 5px 4px; border-bottom: 1px solid #2a3150; text-align: left; }
+#endBody td:last-child { text-align: right; font-weight: 800; }
+#endBody tr.me td { color: #7fc1ff; }
+
+/* ---------- touch ---------- */
+#touch { position: fixed; inset: 0; pointer-events: none; }
+#stick { position: absolute; left: 30px; bottom: 90px; width: 130px; height: 130px; border-radius: 50%;
+  background: rgba(255,255,255,.15); border: 2px solid rgba(255,255,255,.35); pointer-events: auto; }
+#knob { position: absolute; left: 40px; top: 40px; width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,.55); }
+.tbtn { position: absolute; pointer-events: auto; width: 64px; height: 64px; border-radius: 50%; font-weight: 900;
+  background: rgba(0,0,0,.35); border: 2px solid rgba(255,255,255,.5); font-size: 14px; }
+#tFire { right: 30px; bottom: 120px; width: 86px; height: 86px; background: rgba(255,77,90,.55); }
+#tAim { right: 130px; bottom: 150px; }
+#tJump { right: 40px; bottom: 225px; }
+#tReload { right: 130px; bottom: 70px; width: 52px; height: 52px; }
+#tSwap { right: 200px; bottom: 100px; width: 52px; height: 52px; }
+#tPause { right: 16px; top: 70px; width: 44px; height: 44px; font-size: 12px; }
+
+@media (max-width: 1000px) {
+  #slots { bottom: 64px; }
+}
+@media (max-width: 700px) {
+  #menu { flex-direction: column; justify-content: flex-end; }
+  #menuPanel { width: 100%; height: 62%; padding: 16px; }
+  #menu h1 { font-size: 30px; }
+  #previewHint { display: none; }
+  .wgrid { grid-template-columns: 1fr; }
+  #health { width: 150px; }
+  #bigMsg { font-size: 38px; }
+  .slot { width: 58px; }
+  #slots { bottom: auto; top: 64px; }
+}
+@media (max-height: 500px) {
+  #slots { bottom: auto; top: 64px; }
+  .slot { width: 58px; padding: 3px; font-size: 10px; }
+  .slot .ic { font-size: 15px; }
+}

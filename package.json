@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "node build.js"
+    "build": "node build.js",
+    "build:shooter": "node shooter/build.js"
   },
   "dependencies": {
     "pg": "^8.23.1",

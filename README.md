@@ -1,3 +1,8 @@
+# 🎮 Games
+
+- [🔫 Blocky Rivals](#-blocky-rivals): a first-person arena shooter (open `blocky-rivals.html`)
+- 🍦 Ice Cream Tycoon: the multiplayer tycoon below
+
 # 🍦 Ice Cream Tycoon
 
 A multiplayer browser game where every player runs their own ice cream stand in a shared park.
@@ -253,3 +258,25 @@ The full plan is in `docs/shards-payments-plan.pdf`.
 - `public/gamedata.js`: flavors, rarities, prices, grow times, shop stock, upgrades and mutations (shared by server and browser)
 - `public/client.js`: drawing the park and the shop panel in the browser
 - `public/index.html`, `public/style.css`: page layout and styles
+
+# 🔫 Blocky Rivals
+
+A first-person arena shooter with guns like Roblox Rivals and full-size blocky avatars.
+Open **`blocky-rivals.html`** in a browser. It's one file that works without a server or internet.
+
+- **Modes:** ⚔️ **Duel** (1v1 against a bot, first to 5 rounds) and 💥 **Free for All** (you and 5 bots, first to 15 eliminations).
+- **Bot skill:** Easy, Normal or Hard.
+- **Loadout:** pick 4 weapons:
+  - Primary: Assault Rifle, Burst Rifle, Shotgun, Sniper (it has a scope)
+  - Secondary: Handgun, Revolver, Uzi
+  - Melee: Katana, Knife
+  - Utility: 2 Grenades or a Medkit
+- **Avatar:** skin, shirt, sleeves, pants, hair or hat (bacon hair, spiky, long hair, cap, beanie, cowboy hat, crown,
+  headphones, ninja band), hair color and face. Your look and loadout are saved in your browser.
+- **Headshots** do extra damage. Sniper headshots eliminate in one shot.
+- **Controls:** WASD move, mouse look, click shoot, right click aim, Space jump, Shift sprint, R reload,
+  1–4 or mouse wheel switch weapon, Q last weapon, G throw grenade, Esc pause.
+  On phones and tablets there's a joystick, drag to look, and buttons.
+
+Files are in `shooter/`: `game.js` (the game), `index.html`, `style.css`, `three.min.js` (the 3D library, three.js r128).
+After changing them run `npm run build:shooter` to remake `blocky-rivals.html`.
