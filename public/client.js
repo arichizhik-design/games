@@ -1206,7 +1206,7 @@
     clearTimeout(showCyberLaunch.t);
     showCyberLaunch.t = setTimeout(() => el.classList.add('hidden'), 6000);
   }
-  $('giftBtn').addEventListener('click', () => send({ type: 'eventGift' }));
+  $('dailyGiftBtn').addEventListener('click', () => send({ type: 'eventGift' }));
   $('cyberLaunch').addEventListener('click', () => $('cyberLaunch').classList.add('hidden'));
   function updateCyber() {
     if (!launchShown && seeCyber && cyberIsOn() && myId) showCyberLaunch();
@@ -1215,7 +1215,7 @@
     if (s && seeCyber) $('storeBtn').textContent = `💎 ${shardText(s)} · Game Passes`;
     $('passBtn').classList.toggle('hidden', !cyberIsOn());
     const today = Math.floor(Date.now() / 86400e3), meNow = me();
-    $('giftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
+    $('dailyGiftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
     if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
   }

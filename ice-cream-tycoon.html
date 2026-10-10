@@ -700,9 +700,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 @keyframes clGlitch { 0% { transform: translate(0); } 20% { transform: translate(-4px, 2px); } 40% { transform: translate(3px, -2px); }
   60% { transform: translate(-2px, 1px); } 80% { transform: translate(4px, 0); } 100% { transform: translate(0); } }
 
-#giftBtn { background: linear-gradient(135deg, #0a1f2e, #f08c00); color: #fff3bf; border: 2px solid #ffd43b; font-size: 15px; padding: 8px 14px;
+#dailyGiftBtn { background: linear-gradient(135deg, #0a1f2e, #f08c00); color: #fff3bf; border: 2px solid #ffd43b; font-size: 15px; padding: 8px 14px;
   box-shadow: 0 0 10px rgba(255,212,59,.7); animation: passGlow 1.2s ease-in-out infinite alternate; }
-#giftBtn.hidden { display: none; }
+#dailyGiftBtn.hidden { display: none; }
 
 .refreshAllBtn { background: #1c7ed6; }
 
@@ -778,7 +778,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       <button id="shardShopBtn" type="button" class="hidden">💎 Shard Shop</button>
       <div id="cyberBtns" class="hidden">
         <button id="passBtn" type="button">⚡ Pass</button>
-        <button id="giftBtn" type="button" class="hidden">🎁 Daily Gift</button>
+        <button id="dailyGiftBtn" type="button" class="hidden">🎁 Daily Gift</button>
         <button id="storeBtn" type="button">💎 Game Passes</button>
       </div>
 
@@ -3741,7 +3741,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     clearTimeout(showCyberLaunch.t);
     showCyberLaunch.t = setTimeout(() => el.classList.add('hidden'), 6000);
   }
-  $('giftBtn').addEventListener('click', () => send({ type: 'eventGift' }));
+  $('dailyGiftBtn').addEventListener('click', () => send({ type: 'eventGift' }));
   $('cyberLaunch').addEventListener('click', () => $('cyberLaunch').classList.add('hidden'));
   function updateCyber() {
     if (!launchShown && seeCyber && cyberIsOn() && myId) showCyberLaunch();
@@ -3750,7 +3750,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (s && seeCyber) $('storeBtn').textContent = `💎 ${shardText(s)} · Game Passes`;
     $('passBtn').classList.toggle('hidden', !cyberIsOn());
     const today = Math.floor(Date.now() / 86400e3), meNow = me();
-    $('giftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
+    $('dailyGiftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
     if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
   }
