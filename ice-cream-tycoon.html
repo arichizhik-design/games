@@ -681,6 +681,28 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .shopSection h3 { margin: 0 0 6px; font-size: 15px; color: #5f3dc4; }
 .purchaseRow { font-size: 13px; padding: 3px 0; border-bottom: 1px solid #eee; }
 .purchaseRow .refunded { color: #c92a2a; }
+
+/* ⚡ the Cyber Event launch moment */
+#cyberLaunch { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle, rgba(4,18,28,.82), rgba(2,6,10,.94)); cursor: pointer; text-align: center; padding: 16px; animation: clIn .4s ease-out; }
+#cyberLaunch.hidden { display: none; }
+.clFlash { position: absolute; inset: 0; background: #d9fdff; pointer-events: none; animation: clFlash .7s ease-out forwards; }
+.clTitle { position: relative; font: 900 clamp(26px, 6vw, 56px) 'Trebuchet MS', sans-serif; color: #7ff6ff; letter-spacing: 2px;
+  text-shadow: 0 0 10px #2ee8ff, 0 0 30px #2ee8ff; animation: clPulse 1s ease-in-out infinite alternate; }
+.clTitle::before, .clTitle::after { content: attr(data-text); position: absolute; inset: 0; pointer-events: none; }
+.clTitle::before { color: #ff2fd8; animation: clGlitch 1.6s steps(2) infinite; clip-path: inset(0 0 55% 0); }
+.clTitle::after { color: #2effc3; animation: clGlitch 1.3s steps(2) infinite reverse; clip-path: inset(55% 0 0 0); }
+.clSub { margin-top: 14px; color: #d9fdff; font-weight: bold; font-size: clamp(13px, 2.4vw, 18px); max-width: 640px; }
+.clTap { margin-top: 18px; color: #2ee8ff; font-size: 13px; opacity: .8; }
+@keyframes clIn { from { opacity: 0; transform: scale(1.08); } }
+@keyframes clFlash { from { opacity: .95; } to { opacity: 0; } }
+@keyframes clPulse { to { text-shadow: 0 0 18px #2ee8ff, 0 0 50px #2ee8ff; } }
+@keyframes clGlitch { 0% { transform: translate(0); } 20% { transform: translate(-4px, 2px); } 40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, 1px); } 80% { transform: translate(4px, 0); } 100% { transform: translate(0); } }
+
+#giftBtn { background: linear-gradient(135deg, #0a1f2e, #f08c00); color: #fff3bf; border: 2px solid #ffd43b; font-size: 15px; padding: 8px 14px;
+  box-shadow: 0 0 10px rgba(255,212,59,.7); animation: passGlow 1.2s ease-in-out infinite alternate; }
+#giftBtn.hidden { display: none; }
 </style>
 </head>
 <body>
@@ -732,9 +754,14 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       </div>
 
       <!-- ⚡ Cyber Event buttons (test file only for now) -->
+      <!-- ⚡ the big Cyber Event launch moment -->
+      <div id="cyberLaunch" class="hidden"><div class="clFlash"></div>
+        <div class="clTitle" data-text="⚡ CYBER EVENT IS HERE! ⚡">⚡ CYBER EVENT IS HERE! ⚡</div>
+        <div class="clSub"></div><div class="clTap">tap to play</div></div>
       <button id="shardShopBtn" type="button" class="hidden">💎 Shard Shop</button>
       <div id="cyberBtns" class="hidden">
         <button id="passBtn" type="button">⚡ Pass</button>
+        <button id="giftBtn" type="button" class="hidden">🎁 Daily Gift</button>
         <button id="storeBtn" type="button">💎 Game Passes</button>
       </div>
 
@@ -1637,7 +1664,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
         upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn,
         ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
-        shards: s.shards, shardWeek: s.shardWeek, shardScoops: s.shardScoops,
+        shards: s.shards, shardWeek: s.shardWeek, shardScoops: s.shardScoops, giftDay: s.giftDay,
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -1686,6 +1713,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         shards: Math.max(0, Math.floor(saved.shards || 0)),        // 💎
         shardWeek: saved.shardWeek || { week: 0, earned: 0 },      // shards earned by playing this week
         shardScoops: saved.shardScoops || 0,                       // scoops toward the next shard
+        giftDay: saved.giftDay || 0,                               // ⚡ the day the daily event gift was last claimed
         worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(id => id === 'hydra' ? 'cyberwhale' : id), // the pets following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
@@ -1913,7 +1941,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           pets: s.pets, worn: s.worn,
           ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
-          shards: s.shards,
+          shards: s.shards, giftDay: s.giftDay,
           serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
@@ -2219,6 +2247,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         } else return;
         if (!stand.admin) stand.shards -= price;
         conn.send({ type: 'gamePassDone', id, flavor: msg.flavor, price });
+      } else if (CYBER && seesCyber(stand) && msg.type === 'eventGift') {
+        // ⚡ a free lucky block once a day during the event (the Cyber Block on the last day!)
+        if (!cyberOn()) return err('The Cyber Event is over.');
+        const day = Math.floor(Date.now() / 86400e3);
+        if (stand.giftDay === day) return err('You already got today\'s gift. Come back tomorrow!');
+        const lastDay = Date.now() >= CYBER_EVENT.end - 86400e3;
+        const error = givePrize(stand, { block: lastDay ? 'cyber' : 'gold' });
+        if (error) return err(error);
+        stand.giftDay = day;
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
         cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
@@ -3619,11 +3656,26 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     }
   }
 
+  // ⚡ the launch moment: once per visit, when the event is on (or the moment it starts)
+  let launchShown = false;
+  function showCyberLaunch() {
+    launchShown = true;
+    const el = $('cyberLaunch');
+    el.querySelector('.clSub').textContent = `Cyber Block · Cyber Whale · Robo Ice Cream · Cyber Storms · Robo customers pay x2 · ends in ${timeLeft(cyberState.endsAt)}`;
+    el.classList.remove('hidden');
+    clearTimeout(showCyberLaunch.t);
+    showCyberLaunch.t = setTimeout(() => el.classList.add('hidden'), 6000);
+  }
+  $('giftBtn').addEventListener('click', () => send({ type: 'eventGift' }));
+  $('cyberLaunch').addEventListener('click', () => $('cyberLaunch').classList.add('hidden'));
   function updateCyber() {
+    if (!launchShown && seeCyber && cyberIsOn() && myId) showCyberLaunch();
     $('cyberBtns').classList.toggle('hidden', !seeCyber);
     const s = me();
     if (s && seeCyber) $('storeBtn').textContent = `💎 ${shardText(s)} · Game Passes`;
     $('passBtn').classList.toggle('hidden', !cyberIsOn());
+    const today = Math.floor(Date.now() / 86400e3), meNow = me();
+    $('giftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
     if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
   }

@@ -1153,11 +1153,26 @@
     }
   }
 
+  // ⚡ the launch moment: once per visit, when the event is on (or the moment it starts)
+  let launchShown = false;
+  function showCyberLaunch() {
+    launchShown = true;
+    const el = $('cyberLaunch');
+    el.querySelector('.clSub').textContent = `Cyber Block · Cyber Whale · Robo Ice Cream · Cyber Storms · Robo customers pay x2 · ends in ${timeLeft(cyberState.endsAt)}`;
+    el.classList.remove('hidden');
+    clearTimeout(showCyberLaunch.t);
+    showCyberLaunch.t = setTimeout(() => el.classList.add('hidden'), 6000);
+  }
+  $('giftBtn').addEventListener('click', () => send({ type: 'eventGift' }));
+  $('cyberLaunch').addEventListener('click', () => $('cyberLaunch').classList.add('hidden'));
   function updateCyber() {
+    if (!launchShown && seeCyber && cyberIsOn() && myId) showCyberLaunch();
     $('cyberBtns').classList.toggle('hidden', !seeCyber);
     const s = me();
     if (s && seeCyber) $('storeBtn').textContent = `💎 ${shardText(s)} · Game Passes`;
     $('passBtn').classList.toggle('hidden', !cyberIsOn());
+    const today = Math.floor(Date.now() / 86400e3), meNow = me();
+    $('giftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
     if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
   }

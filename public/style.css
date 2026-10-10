@@ -674,3 +674,25 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .shopSection h3 { margin: 0 0 6px; font-size: 15px; color: #5f3dc4; }
 .purchaseRow { font-size: 13px; padding: 3px 0; border-bottom: 1px solid #eee; }
 .purchaseRow .refunded { color: #c92a2a; }
+
+/* ⚡ the Cyber Event launch moment */
+#cyberLaunch { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle, rgba(4,18,28,.82), rgba(2,6,10,.94)); cursor: pointer; text-align: center; padding: 16px; animation: clIn .4s ease-out; }
+#cyberLaunch.hidden { display: none; }
+.clFlash { position: absolute; inset: 0; background: #d9fdff; pointer-events: none; animation: clFlash .7s ease-out forwards; }
+.clTitle { position: relative; font: 900 clamp(26px, 6vw, 56px) 'Trebuchet MS', sans-serif; color: #7ff6ff; letter-spacing: 2px;
+  text-shadow: 0 0 10px #2ee8ff, 0 0 30px #2ee8ff; animation: clPulse 1s ease-in-out infinite alternate; }
+.clTitle::before, .clTitle::after { content: attr(data-text); position: absolute; inset: 0; pointer-events: none; }
+.clTitle::before { color: #ff2fd8; animation: clGlitch 1.6s steps(2) infinite; clip-path: inset(0 0 55% 0); }
+.clTitle::after { color: #2effc3; animation: clGlitch 1.3s steps(2) infinite reverse; clip-path: inset(55% 0 0 0); }
+.clSub { margin-top: 14px; color: #d9fdff; font-weight: bold; font-size: clamp(13px, 2.4vw, 18px); max-width: 640px; }
+.clTap { margin-top: 18px; color: #2ee8ff; font-size: 13px; opacity: .8; }
+@keyframes clIn { from { opacity: 0; transform: scale(1.08); } }
+@keyframes clFlash { from { opacity: .95; } to { opacity: 0; } }
+@keyframes clPulse { to { text-shadow: 0 0 18px #2ee8ff, 0 0 50px #2ee8ff; } }
+@keyframes clGlitch { 0% { transform: translate(0); } 20% { transform: translate(-4px, 2px); } 40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, 1px); } 80% { transform: translate(4px, 0); } 100% { transform: translate(0); } }
+
+#giftBtn { background: linear-gradient(135deg, #0a1f2e, #f08c00); color: #fff3bf; border: 2px solid #ffd43b; font-size: 15px; padding: 8px 14px;
+  box-shadow: 0 0 10px rgba(255,212,59,.7); animation: passGlow 1.2s ease-in-out infinite alternate; }
+#giftBtn.hidden { display: none; }

@@ -316,7 +316,7 @@
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
         upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn,
         ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
-        shards: s.shards, shardWeek: s.shardWeek, shardScoops: s.shardScoops,
+        shards: s.shards, shardWeek: s.shardWeek, shardScoops: s.shardScoops, giftDay: s.giftDay,
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -365,6 +365,7 @@
         shards: Math.max(0, Math.floor(saved.shards || 0)),        // 💎
         shardWeek: saved.shardWeek || { week: 0, earned: 0 },      // shards earned by playing this week
         shardScoops: saved.shardScoops || 0,                       // scoops toward the next shard
+        giftDay: saved.giftDay || 0,                               // ⚡ the day the daily event gift was last claimed
         worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(id => id === 'hydra' ? 'cyberwhale' : id), // the pets following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
@@ -592,7 +593,7 @@
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
           pets: s.pets, worn: s.worn,
           ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
-          shards: s.shards,
+          shards: s.shards, giftDay: s.giftDay,
           serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
@@ -898,6 +899,15 @@
         } else return;
         if (!stand.admin) stand.shards -= price;
         conn.send({ type: 'gamePassDone', id, flavor: msg.flavor, price });
+      } else if (CYBER && seesCyber(stand) && msg.type === 'eventGift') {
+        // ⚡ a free lucky block once a day during the event (the Cyber Block on the last day!)
+        if (!cyberOn()) return err('The Cyber Event is over.');
+        const day = Math.floor(Date.now() / 86400e3);
+        if (stand.giftDay === day) return err('You already got today\'s gift. Come back tomorrow!');
+        const lastDay = Date.now() >= CYBER_EVENT.end - 86400e3;
+        const error = givePrize(stand, { block: lastDay ? 'cyber' : 'gold' });
+        if (error) return err(error);
+        stand.giftDay = day;
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
         cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
