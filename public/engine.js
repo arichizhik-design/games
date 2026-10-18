@@ -22,7 +22,7 @@
   const ADMIN_CODES = {
     coolkid: '1aazefnqiv3',
     james: '8itvkdxe00',
-    daniel9: 'ohopusl37z',
+    daniel9: ['1i1iyxpw7uv', '1jin57im9jg'], // two ways to type the same code
   };
   const ADMIN_NAMES = Object.keys(ADMIN_CODES);
 
@@ -38,7 +38,7 @@
     h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
     return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
   }
-  const adminCodeOk = (name, code) => scramble(String(code || '').toLowerCase().replace(/\s+/g, '')) === ADMIN_CODES[name];
+  const adminCodeOk = (name, code) => [].concat(ADMIN_CODES[name]).includes(scramble(String(code || '').toLowerCase().replace(/\s+/g, '')));
   const ADMIN_MONEY = 1e12;          // admins start with $1 trillion
   const MAX_QUEUE = 5;
   const WALK_SPEED = 170;            // customers
