@@ -22,7 +22,7 @@
   const ADMIN_CODES = {
     coolkid: '1aazefnqiv3',
     james: '8itvkdxe00',
-    daniel9: ['1i1iyxpw7uv', '1jin57im9jg'], // two ways to type the same code
+    daniel9: '1i1iyxpw7uv',
   };
   const ADMIN_NAMES = Object.keys(ADMIN_CODES);
 
