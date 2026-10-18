@@ -22,6 +22,7 @@
   const ADMIN_CODES = {
     coolkid: '1aazefnqiv3',
     james: '8itvkdxe00',
+    daniel9: 'ohopusl37z',
   };
   const ADMIN_NAMES = Object.keys(ADMIN_CODES);
 

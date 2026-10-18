@@ -148,7 +148,7 @@ Robo customers that pay x2, and a 🎁 Daily Gift (a free Gold Block, the Cyber 
 
 ## Admin mode
 
-There are two admins: **coolkid** and **James** (any capitals). Each has their own secret code. The first
+There are three admins: **coolkid**, **James** and **Daniel9** (any capitals). Each has their own secret code. The first
 time on a device, a box asks for that admin's code; once it's right, the device remembers it and just the name is
 enough. (The codes aren't written anywhere in the game files, only scrambled versions of them, in `ADMIN_CODES`
 in `public/engine.js`.) In admin mode, you start with **$1 trillion**, wear a

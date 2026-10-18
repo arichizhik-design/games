@@ -1387,6 +1387,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const ADMIN_CODES = {
     coolkid: '1aazefnqiv3',
     james: '8itvkdxe00',
+    daniel9: 'ohopusl37z',
   };
   const ADMIN_NAMES = Object.keys(ADMIN_CODES);
 
@@ -2631,7 +2632,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // (plain click/Enter handlers instead of a <form>: preview windows often block form submits)
   let joining = false;
   let adminCode = ''; // the secret admin code; saved on this device once it's right
-  const ADMIN_NAMES = ['coolkid', 'james'];
+  const ADMIN_NAMES = ['coolkid', 'james', 'daniel9'];
   // each admin's code is saved on this device under their own name
   const typedName = () => $('nameInput').value.trim().toLowerCase();
   const codeKey = () => 'icecream-admin-code:' + typedName();
