@@ -22,7 +22,7 @@
   const ADMIN_CODES = {
     coolkid: '1aazefnqiv3',
     james: '8itvkdxe00',
-    daniel9: '1i1iyxpw7uv',
+    daniel9: '1a0cgvkqt5f',
   };
   const ADMIN_NAMES = Object.keys(ADMIN_CODES);
 
