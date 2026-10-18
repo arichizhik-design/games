@@ -146,6 +146,25 @@ Robo customers that pay x2, and a 🎁 Daily Gift (a free Gold Block, the Cyber 
   tubs get smaller so they all fit.
 - Admins can test the event with `/cyber off`, `/cyber on` and `/cyber auto` (back to the calendar).
 
+## 🔮 Glass Event (next event: admins only online until it drops)
+
+Everything is made of glass: see-through, with rainbow light bending through it and sparkles. Online only admins can see
+it (regular players see none of it, except Glass pets an admin is wearing); the test file shows it to everyone. To drop it
+for everyone, set `GLASS=everyone` on the server and give `GLASS_EVENT` in `public/gamedata.js` its dates.
+
+- **Glass Block** in the Pet Shop ($1.2B) with its own glass pets: 🦋 Glass Butterfly and 🐸 Glass Frog (Legendary),
+  🦌 Glass Deer and 🦩 Glass Flamingo (Mythic), 🦒 Glass Giraffe (Secret), 🐘 Glass Elephant and 🦢 Glass Swan
+  (Celestial), and the best one, the **🦚 Glass Peacock** (Glass rarity, +6000%, 0.5%): a giant fan of rainbow light,
+  orbiting glass shards, light from the sky, and every few seconds it shatters into shards and puts itself back together.
+  Glass pets are see-through with rainbow light inside; their effects (shards, rainbow beams, light from the sky) grow with rarity.
+- **🔮 Glass mutation** (x75): see-through rainbow scoops. **Glass Storms** start it every 30 minutes during the event
+  (falling glass shards and rainbow light sweeping across the park); admins can start it too.
+- **Glass Ice Cream** (Glass rarity, $30,000 a scoop, $60M a tub, 0.1% in the shop): a see-through glass ball with a rainbow edge.
+- **Glass look** in the Avatar Shop: see-through glass shirt, pants and skin, a 👑 crystal crown and a 🔮 prism mask.
+- **🔮 Glass Pass** (frosted window) and the **Premium Glass Pass** (💎 499 shards), a **🎁 Glass Gift** once a day,
+  **glass customers** that pay x2, and a **launch screen**.
+- Admins: `/glass on`, `/glass off`, `/glass auto` to test it.
+
 ## Admin mode
 
 There are three admins: **coolkid**, **James** (any capitals, each with a secret admin code) and **Daniel 9** (no admin code: the online game only lets that name in with its own set password). Each has their own secret code. The first

@@ -4,6 +4,9 @@
   // To hide it from regular players again (admins only), start the server with CYBER=admins.
   const CYBER = true;
   const CYBER_ADMINS_ONLY = typeof process !== 'undefined' && !!process.env && process.env.CYBER === 'admins';
+  // 🔮 The Glass Event (the next event): in the online game only admins can see it until it drops.
+  // The test file shows it to everyone. To drop it for everyone, start the server with GLASS=everyone.
+  const GLASS_ADMINS_ONLY = typeof process !== 'undefined' && !!process.env && process.env.GLASS !== 'everyone';
 
   // growSec: how long a placed tub takes to grow before customers can buy it
   // stock: chance the shop has this rarity after a restock, and how many tubs
@@ -25,6 +28,8 @@
     infinity:  { name: 'Infinity',  color: '#d61fff', order: 10, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
     // ⚡ Cyber: the Cyber Whale pet and the Robo Ice Cream (0.1% chance to be in the shop)
     cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1800, stock: { chance: 0.001, min: 1, max: 1 } },
+    // 🔮 Glass: the Glass Peacock pet and Glass Ice Cream (0.1% chance to be in the shop)
+    glass:     { name: 'Glass',     color: '#74c0fc', order: 12, growSec: 2100, stock: { chance: 0.001, min: 1, max: 1 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -97,7 +102,7 @@
   // 💰 Sell Shop: what a pet sells for, by rarity. Always less than the lucky block costs on average,
   // so buying blocks just to sell the pets never makes money.
   const PET_SELL = { common: 200, uncommon: 800, rare: 4000, epic: 40000, legendary: 400000, mythic: 3e6, secret: 15e6,
-    celestial: 40e6, divine: 100e6, infinity: 300e6, cyber: 600e6 };
+    celestial: 40e6, divine: 100e6, infinity: 300e6, cyber: 600e6, glass: 700e6 };
   const MAX_PETS = 200; // when you're full, let go of pets you don't want in My Pets
 
   // Lucky blocks at the Pet Shop: `odds` = chance of each rarity (they add up to 100)
@@ -133,6 +138,52 @@
     LUCKY_BLOCKS.push({ id: 'cyber', name: 'Cyber Block', cost: 1e9, color: 'cyber', event: 'cyber', ownPets: true,
       odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, cyber: 0.5 } }); // Mammoth and Dolphin 2% each
   }
+
+  // ---------- 🔮 Glass Event (online: admins only until it drops) ----------
+  // Everything is made of glass: see-through, with rainbow light bending through it and sparkles.
+  // GLASS_EVENT dates: none yet = on for testing (only admins can see it online); set them when it drops.
+  const GLASS_EVENT = { start: null, end: null };
+  FLAVORS.push({ id: 'glassice', name: 'Glass Ice Cream', rarity: 'glass', price: 30000, cost: 60e6, color: '#e7f5ff', effect: 'glass', event: 'glass' });
+  // the Glass Block's own pets: new animals made of glass (no other block gives them)
+  PETS.push(
+    { id: 'glassbutterfly', name: 'Glass Butterfly', emoji: '🦋', rarity: 'legendary', boost: 1.35, fx: 'glass', kind: 'fly',  event: 'glass', block: 'glass' },
+    { id: 'glassfrog',      name: 'Glass Frog',      emoji: '🐸', rarity: 'legendary', boost: 1.45, fx: 'glass', kind: 'hop',  event: 'glass', block: 'glass' },
+    { id: 'glassdeer',      name: 'Glass Deer',      emoji: '🦌', rarity: 'mythic',    boost: 2.75, fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glassflamingo',  name: 'Glass Flamingo',  emoji: '🦩', rarity: 'mythic',    boost: 2.85, fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glassgiraffe',   name: 'Glass Giraffe',   emoji: '🦒', rarity: 'secret',    boost: 5.6,  fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glasselephant',  name: 'Glass Elephant',  emoji: '🐘', rarity: 'celestial', boost: 8.6,  fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glassswan',      name: 'Glass Swan',      emoji: '🦢', rarity: 'celestial', boost: 9.2,  fx: 'glass', kind: 'swim', event: 'glass', block: 'glass' },
+    { id: 'glasspeacock',   name: 'Glass Peacock',   emoji: '🦚', rarity: 'glass',     boost: 60,   fx: 'glasspeacock', kind: 'walk', event: 'glass', block: 'glass' },
+  );
+  LUCKY_BLOCKS.push({ id: 'glass', name: 'Glass Block', cost: 1.2e9, color: 'glass', event: 'glass', ownPets: true,
+    odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Swan 2% each
+  // 🔮 Glass Pass: sell scoops during the Glass Event to unlock prizes (the bottom row needs the Premium Glass Pass)
+  const GLASS_PASS = {
+    free: [
+      { at: 10,   money: 8000 },
+      { at: 30,   item: 'syrup', count: 3 },
+      { at: 60,   block: 'iron' },
+      { at: 100,  money: 200000 },
+      { at: 160,  item: 'galaxy', count: 2 },
+      { at: 250,  block: 'gold' },
+      { at: 400,  money: 8e6 },
+      { at: 600,  item: 'cherry', count: 3 },
+      { at: 850,  block: 'diamond' },
+      { at: 1200, block: 'glass' },
+    ],
+    premium: [
+      { at: 10,   money: 80000 },
+      { at: 30,   item: 'goldflakes', count: 2 },
+      { at: 60,   block: 'gold' },
+      { at: 100,  money: 5e6 },
+      { at: 160,  item: 'dragonfruit', count: 2 },
+      { at: 250,  block: 'rainbow' },
+      { at: 400,  money: 200e6 },
+      { at: 600,  item: 'stardust', count: 3 },
+      { at: 850,  item: 'glassice', count: 1 },
+      { at: 1200, block: 'glass', count: 3 },
+    ],
+  };
 
   // ⚡ Cyber Pass: sell scoops during the event to unlock prizes. The bottom row needs the Premium Pass.
   // prize kinds: money, item (ice cream or topping tubs), block (opens a lucky block for a pet)
@@ -171,6 +222,7 @@
   const GAME_PASSES = [
     { id: 'starter', name: 'Starter Bundle', emoji: '🎁', shards: 199, desc: '$20,000, 2 Strawberry and 2 Mint Chip tubs' },
     { id: 'premium', name: 'Premium Cyber Pass', emoji: '⚡', shards: 499, desc: 'Unlocks the better prize row in the Cyber Pass' },
+    { id: 'premiumGlass', name: 'Premium Glass Pass', emoji: '🔮', shards: 499, desc: 'Unlocks the better prize row in the Glass Pass', event: 'glass' },
     { id: 'fillall', name: 'Fill All', emoji: '🧺', shards: 99, desc: 'Every empty space on your stand gets a fully grown ice cream' },
     { id: 'icecream', name: 'Buy an Ice Cream', emoji: '🍦', desc: 'Pick any ice cream from the shop list, even if it\'s sold out' },
     { id: 'restock', name: 'Restock the Shop', emoji: '🛒', shards: 99, desc: 'New stock in the Supplies Shop for everyone, right now' },
@@ -189,7 +241,7 @@
   const MAX_LIMIT_USD = 500;      // the highest a parent can set it
 
   // shards for one ice cream (the Buy an Ice Cream pass), by rarity
-  const ICE_CREAM_PRICES = { common: 49, uncommon: 49, rare: 99, epic: 99, legendary: 149, mythic: 199, secret: 249, cyber: 299 };
+  const ICE_CREAM_PRICES = { common: 49, uncommon: 49, rare: 99, epic: 99, legendary: 149, mythic: 199, secret: 249, cyber: 299, glass: 349 };
 
   // list them from most common to rarest, cheapest first (for the shop and the Flavor guide)
   FLAVORS.sort((a, b) => RARITIES[a.rarity].order - RARITIES[b.rarity].order || a.price - b.price);
@@ -253,6 +305,9 @@
   // ⚡ Cyber: the second best mutation. It never starts by itself (weight 0); only admins can turn it on.
   MUTATIONS.push({ id: 'cyber', name: 'Cyber', emoji: '🤖', mult: 50, weight: 0, adminOnly: true,
     colors: ['#2ee8ff', '#d9fdff', '#7ff6ff'] });
+  // 🔮 Glass: a sparkling see-through mutation (x75). It starts in Glass Storms during the Glass Event, or when an admin turns it on.
+  MUTATIONS.push({ id: 'glass', name: 'Glass', emoji: '🔮', mult: 75, weight: 0, adminOnly: true, event: 'glass',
+    colors: ['#e7f5ff', '#a5d8ff', '#f3d9fa', '#c3fae8'] });
   MUTATIONS.sort((a, b) => a.mult - b.mult); // lowest to highest money, for the Mutations list
   const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
@@ -273,12 +328,14 @@
   };
   // ⚡ the Robo look: a robo choice for every part (shiny metal, an antenna, glowing visor eyes)
   for (const part of Object.keys(AVATAR)) AVATAR[part].push('robo');
+  // 🔮 the Glass look: see-through glass with rainbow light, a crystal crown and a prism mask
+  for (const part of Object.keys(AVATAR)) AVATAR[part].push('glass');
 
   const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY, SHARD_PACKS, MONTHLY_LIMIT_USD, MAX_LIMIT_USD,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY, SHARD_PACKS, MONTHLY_LIMIT_USD, MAX_LIMIT_USD,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;

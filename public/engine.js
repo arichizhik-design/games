@@ -5,7 +5,7 @@
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice } = GameData;
 
@@ -107,44 +107,61 @@
   }
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
 
-  // ---------- ⚡ who can see the Cyber stuff ----------
-  // In the online game only admins can see it for now (CYBER_ADMINS_ONLY). Everyone else never
-  // gets the Cyber Block, Cyber pets (except ones someone is wearing, which follow them around for all to see), Robo Ice Cream, the Robo look, the Cyber mutation or the Passes,
-  // and the messages they get from the server have all of it taken out.
-  const seesCyber = s => !CYBER_ADMINS_ONLY || !!s.admin;
-  const isCyber = id => id === 'cyber' || (flavorById[id] || petById[id] || {}).rarity === 'cyber' || petById[id]?.event === 'cyber';
-  const noCyber = list => (list || []).filter(id => !isCyber(id));
-  const bundleHasCyber = b => Object.keys(b.items).some(isCyber) || Object.keys(b.pets).some(isCyber);
-  function hideRobo(avatar) {
+  // ---------- ⚡🔮 who can see each event's stuff ----------
+  // In the online game an event can be for admins only (CYBER_ADMINS_ONLY, GLASS_ADMINS_ONLY). Everyone else never
+  // gets that event's block, pets (except ones someone is wearing, which follow them around for all to see),
+  // ice cream, avatar look, mutation or pass, and the messages they get from the server have all of it taken out.
+  const EVENT_IDS = ['cyber', 'glass'];
+  const EVENT_LOOK = { cyber: 'robo', glass: 'glass' };      // each event's avatar look
+  const EVENT_ADMINS_ONLY = { cyber: CYBER_ADMINS_ONLY, glass: GLASS_ADMINS_ONLY };
+  const sees = (s, ev) => !EVENT_ADMINS_ONLY[ev] || !!s.admin;
+  const seesCyber = s => sees(s, 'cyber');
+  // which event something belongs to (a pet, ice cream, mutation or block id), or null
+  const eventOf = id => {
+    if (id === 'cyber' || id === 'glass') return id;
+    const x = flavorById[id] || petById[id];
+    if (!x) return null;
+    return x.event || (x.rarity === 'cyber' ? 'cyber' : x.rarity === 'glass' ? 'glass' : null);
+  };
+  const isCyber = id => eventOf(id) === 'cyber';
+  const bundleEvents = b => [...Object.keys(b.items), ...Object.keys(b.pets)].map(eventOf).filter(Boolean);
+  function hideLook(avatar, look) {
     const out = { ...avatar };
-    for (const part of Object.keys(out)) if (out[part] === 'robo') out[part] = AVATAR[part][0];
+    for (const part of Object.keys(out)) if (out[part] === look) out[part] = AVATAR[part][0];
     return out;
   }
-  function hideCyberMutations(c) {
-    if (!(c.mutations || []).some(isCyber)) return c;
-    const mutations = noCyber(c.mutations);
-    return { ...c, mutations, mutation: mutations[0] || null };
-  }
-  // a server message the way someone who can't see the Cyber stuff gets it (null = they don't get it)
-  function hideCyber(msg) {
-    if (msg.type === 'mutationStart' || msg.type === 'mutationEnd') return isCyber(msg.mutation) ? null : msg;
-    if (msg.type === 'sale') return isCyber(msg.flavor) ? null : hideCyberMutations(msg);
+  const hideRobo = avatar => hideLook(avatar, 'robo');
+  // a server message the way someone who can't see event `ev` gets it (null = they don't get it)
+  function hideEvent(msg, ev) {
+    const isEv = id => eventOf(id) === ev;
+    const noEv = list => (list || []).filter(id => !isEv(id));
+    const hideMutations = c => {
+      if (!(c.mutations || []).some(isEv)) return c;
+      const mutations = noEv(c.mutations);
+      return { ...c, mutations, mutation: mutations[0] || null };
+    };
+    if (msg.type === 'mutationStart' || msg.type === 'mutationEnd') return isEv(msg.mutation) ? null : msg;
+    if (msg.type === 'sale') return isEv(msg.flavor) ? null : hideMutations(msg);
+    if (msg.type === 'adminSpawned') return isEv(msg.pet || msg.item) ? null : msg;
     if (msg.type !== 'state') return msg;
-    const ids = noCyber(msg.event.ids);
+    const ids = noEv(msg.event.ids);
     const stock = { ...msg.shop.stock };
-    for (const id of Object.keys(stock)) if (isCyber(id)) delete stock[id];
-    const slots = list => list.map(x => x && isCyber(x.flavor) ? null : x);
-    return { ...msg, cyber: null,
+    for (const id of Object.keys(stock)) if (isEv(id)) delete stock[id];
+    const slots = list => list.map(x => x && isEv(x.flavor) ? null : x);
+    const passFields = ev === 'cyber' ? ['passXP', 'passClaimed', 'premiumPass', 'shards'] : ['glassXP', 'glassClaimed', 'premiumGlass'];
+    return { ...msg, [ev]: null,
       event: { ...msg.event, id: ids[0] || null, ids },
       shop: { ...msg.shop, stock },
-      stands: msg.stands.map(({ passXP, passClaimed, premiumPass, shards, ...s }) => {
+      stands: msg.stands.map(st => {
+        const s = { ...st };
+        for (const f of passFields) delete s[f];
         const mutations = { ...s.mutations };
-        delete mutations.cyber;
-        return { ...s, tubs: slots(s.tubs), hotbar: slots(s.hotbar), storage: slots(s.storage), seen: noCyber(s.seen),
-          // pets someone is wearing show to everyone; the rest of their Cyber pets stay hidden
-          pets: noCyber(s.pets), worn: s.worn, mutations, avatar: hideRobo(s.avatar) };
+        delete mutations[ev];
+        return { ...s, tubs: slots(s.tubs), hotbar: slots(s.hotbar), storage: slots(s.storage), seen: noEv(s.seen),
+          // pets someone is wearing show to everyone; the rest of that event's pets stay hidden
+          pets: noEv(s.pets), worn: s.worn, mutations, avatar: hideLook(s.avatar, EVENT_LOOK[ev]) };
       }),
-      customers: msg.customers.filter(c => !isCyber(c.flavor)).map(c => hideCyberMutations({ ...c, robo: false })) };
+      customers: msg.customers.filter(c => !isEv(c.flavor)).map(c => hideMutations({ ...c, [ev === 'cyber' ? 'robo' : 'glass']: false })) };
   }
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -303,6 +320,11 @@
     const STORM_EVERY = 30 * 60, STORM_LENGTH = 3 * 60;
     let stormNext = 5 * 60; // the first one 5 minutes after the server starts
     const cyberOn = () => CYBER && (cyberOverride ?? (Date.now() >= CYBER_EVENT.start && Date.now() < CYBER_EVENT.end));
+    // 🔮 the Glass Event: before it has dates it's on for testing (only admins can see it online until it drops)
+    let glassOverride = null;
+    const glassOn = () => glassOverride ?? (GLASS_EVENT.start ? Date.now() >= GLASS_EVENT.start && Date.now() < GLASS_EVENT.end : true);
+    const eventOn = ev => ev === 'glass' ? glassOn() : cyberOn();
+    let glassStormNext = 15 * 60; // Glass Storms: like Cyber Storms, the first one 15 minutes after the server starts
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
     let nextId = 1;
 
@@ -318,6 +340,7 @@
         upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn,
         ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
         shards: s.shards, shardWeek: s.shardWeek, shardScoops: s.shardScoops, giftDay: s.giftDay,
+        glassXP: s.glassXP, glassClaimed: s.glassClaimed, premiumGlass: s.premiumGlass, glassGiftDay: s.glassGiftDay,
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -367,6 +390,10 @@
         shardWeek: saved.shardWeek || { week: 0, earned: 0 },      // shards earned by playing this week
         shardScoops: saved.shardScoops || 0,                       // scoops toward the next shard
         giftDay: saved.giftDay || 0,                               // ⚡ the day the daily event gift was last claimed
+        glassXP: saved.glassXP || 0,                               // 🔮 scoops sold during the Glass Event
+        glassClaimed: { free: [...(saved.glassClaimed?.free || [])], premium: [...(saved.glassClaimed?.premium || [])] },
+        premiumGlass: !!saved.premiumGlass,
+        glassGiftDay: saved.glassGiftDay || 0,
         worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(id => id === 'hydra' ? 'cyberwhale' : id), // the pets following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
@@ -391,6 +418,7 @@
         seen: [], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
         mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {},
         passXP: 0, passClaimed: { free: [], premium: [] }, premiumPass: false, hand: -1, serveProgress: 0,
+        glassXP: 0, glassClaimed: { free: [], premium: [] }, premiumGlass: false, glassGiftDay: 0,
         shards: 0, shardWeek: { week: 0, earned: 0 }, shardScoops: 0,
       };
     }
@@ -426,10 +454,12 @@
         flavor: null,
         golden: Math.random() < 0.05, // lucky customer pays triple
         robo: cyberOn() && Math.random() < 0.15, // ⚡ during the Cyber Event some customers are robots that pay double
+        glass: false,
         mutation: null,
         state: 'walking',
         look: Math.floor(Math.random() * 6),
       };
+      if (!c.robo) c.glass = glassOn() && Math.random() < 0.15; // 🔮 during the Glass Event some customers are made of glass (pay double)
       c.flavor = tub.flavor;
       c.topping = tub.topping || null; // toppings make the scoop worth more
       customers.set(c.id, c);
@@ -452,8 +482,9 @@
       amount *= 1 + petBoost(stand.worn); // every pet you wear adds its boost
       if (c.golden) amount *= 3;
       if (c.robo && seesCyber(stand)) amount *= 2;
+      if (c.glass && sees(stand, 'glass')) amount *= 2;
       // every mutation going on gets its own chance; several can stack on one scoop
-      c.mutations = event.active.filter(e => (seesCyber(stand) || !isCyber(e.id)) && Math.random() < MUTATION_CHANCE).map(e => e.id);
+      c.mutations = event.active.filter(e => (!eventOf(e.id) || sees(stand, eventOf(e.id))) && Math.random() < MUTATION_CHANCE).map(e => e.id);
       for (const id of c.mutations) {
         amount *= mutationById[id].mult;
         stand.mutations[id] = (stand.mutations[id] || 0) + 1;
@@ -464,6 +495,7 @@
       stand.totalEarned += amount;
       stand.sold++;
       if (cyberOn()) stand.passXP++;
+      if (glassOn()) stand.glassXP++;
       earnShard(stand);
       c.served = true;
       sendOffCustomer(c);
@@ -513,6 +545,18 @@
           else event.active.push({ id: 'cyber', left: STORM_LENGTH }); // joins any mutation already going on
           broadcast({ type: 'mutationStart', mutation: 'cyber' });
           broadcast({ type: 'chat', id: 0, from: '⚡ Cyber Storm', admin: false, text: 'A CYBER STORM is here! Scoops can turn Cyber (x50 money) for 3 minutes!' }, true);
+        }
+      }
+      if (glassOn()) {
+        // 🔮 Glass Storms: the Glass mutation (x75) every 30 minutes for 3 minutes
+        glassStormNext -= dt;
+        if (glassStormNext <= 0) {
+          glassStormNext = STORM_EVERY;
+          const running = event.active.find(e => e.id === 'glass');
+          if (running) running.left = Math.max(running.left, STORM_LENGTH);
+          else event.active.push({ id: 'glass', left: STORM_LENGTH });
+          broadcast({ type: 'mutationStart', mutation: 'glass' });
+          broadcast({ type: 'chat', id: 0, from: '🔮 Glass Storm', admin: false, text: 'A GLASS STORM is here! Scoops can turn Glass (x75 money) for 3 minutes!' }, 'glass');
         }
       }
       shop.left -= dt;
@@ -586,6 +630,7 @@
         },
         shop: { stock: shop.stock, left: Math.ceil(shop.left) },
         cyber: CYBER ? { on: cyberOn(), endsAt: CYBER_EVENT.end, override: cyberOverride } : null,
+        glass: { on: glassOn(), endsAt: GLASS_EVENT.end, override: glassOverride },
         stands: [...stands.values()].map(s => ({
           id: s.id, name: s.name, slot: s.slot, color: s.color,
           money: s.money, totalEarned: s.totalEarned, sold: s.sold,
@@ -595,11 +640,12 @@
           pets: s.pets, worn: s.worn,
           ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
           shards: s.shards, giftDay: s.giftDay,
+          glassXP: s.glassXP, glassClaimed: s.glassClaimed, premiumGlass: s.premiumGlass, glassGiftDay: s.glassGiftDay,
           serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
           id: c.id, x: Math.round(c.x), y: Math.round(c.y), flavor: c.flavor, topping: c.topping,
-          golden: c.golden, robo: !!c.robo, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
+          golden: c.golden, robo: !!c.robo, glass: !!c.glass, mutation: c.mutation, mutations: c.mutations, state: c.state, look: c.look,
           served: !!c.served,
         })),
       });
@@ -617,7 +663,7 @@
     }
 
     // ⚡ give a Cyber Pass prize; returns an error message if it doesn't fit
-    function givePrize(stand, prize) {
+    function givePrize(stand, prize, ev = 'cyber') {
       if (prize.item) {
         const copy = { hotbar: stand.hotbar.map(x => x && { ...x }), storage: stand.storage.map(x => x && { ...x }) };
         if (addItem(copy.storage, prize.item, addItem(copy.hotbar, prize.item, prize.count || 1)) > 0) return 'Make room in your inventory first.';
@@ -633,8 +679,8 @@
           const wearing = autoWear(stand, pet.id);
           stand.conn.send({ type: 'petGot', pet: pet.id, block: prize.block, equipped: wearing });
           if (RARITIES[pet.rarity].order >= 5) {
-            broadcast({ type: 'chat', id: 0, from: '⚡ Cyber Pass', admin: false,
-              text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` }, true);
+            broadcast({ type: 'chat', id: 0, from: ev === 'glass' ? '🔮 Glass Event' : '⚡ Cyber Event', admin: false,
+              text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` }, eventOf(pet.id) || ev);
           }
         }
       }
@@ -646,15 +692,17 @@
       if (backup) s.conn.send({ type: 'backup', key: s.key, blob: backup.seal(s.key, toSave(s)) });
     }
 
-    // cyberOnly = only for players who can see the Cyber stuff
-    function broadcast(msg, cyberOnly = false) {
-      let hidden; // the message without the Cyber stuff, worked out once if someone needs it
+    // onlyFor = only for players who can see that event's stuff (true = the Cyber Event)
+    function broadcast(msg, onlyFor = false) {
+      if (onlyFor === true) onlyFor = 'cyber';
+      const hidden = {}; // the message without the events someone can't see, worked out once per kind of player
       for (const s of stands.values()) {
-        if (seesCyber(s)) s.conn.send(msg);
-        else if (!cyberOnly) {
-          if (hidden === undefined) hidden = hideCyber(msg);
-          if (hidden) s.conn.send(hidden);
-        }
+        const cant = EVENT_IDS.filter(ev => !sees(s, ev));
+        if (onlyFor && cant.includes(onlyFor)) continue;
+        if (!cant.length) { s.conn.send(msg); continue; }
+        const key = cant.join();
+        if (!(key in hidden)) hidden[key] = cant.reduce((m, ev) => m && hideEvent(m, ev), msg);
+        if (hidden[key]) s.conn.send(hidden[key]);
       }
     }
 
@@ -701,7 +749,7 @@
         if (needsCode && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS, key: s.key,
-          returning: !!saves[s.key], restored, admin: s.admin, cyber: seesCyber(s) });
+          returning: !!saves[s.key], restored, admin: s.admin, cyber: seesCyber(s), glass: sees(s, 'glass') });
         sendBackup(s);
         return;
       }
@@ -717,7 +765,7 @@
         stand.hand = Number.isInteger(i) && i >= 0 && i < HOTBAR_SIZE ? i : -1;
       } else if (msg.type === 'setAvatar') {
         stand.avatar = fixAvatar({ ...stand.avatar, ...(msg.avatar || {}) });
-        if (!seesCyber(stand)) stand.avatar = hideRobo(stand.avatar);
+        for (const ev of EVENT_IDS) if (!sees(stand, ev)) stand.avatar = hideLook(stand.avatar, EVENT_LOOK[ev]);
       } else if (msg.type === 'scoop') {
         // Scoop! helps a little: each press takes a quarter second off the wait (up to 4 presses a second)
         const now = Date.now();
@@ -727,7 +775,7 @@
         }
       } else if (msg.type === 'buy') {
         const f = flavorById[msg.flavor];
-        if (!f || (isCyber(f.id) && !seesCyber(stand))) return;
+        if (!f || (eventOf(f.id) && !sees(stand, eventOf(f.id)))) return;
         if (!near(SHOP)) return err('Walk to the Supplies Shop to buy.');
         if ((shop.stock[f.id] || 0) - (stand.bought[f.id] || 0) <= 0) return err('Sold out! New stock soon.');
         const cost = shopCost(f);
@@ -825,9 +873,9 @@
       } else if (msg.type === 'buyBlock') {
         // 🐾 open a lucky block for a random pet
         const b = blockById[msg.block];
-        if (!b || (b.event && !seesCyber(stand))) return;
+        if (!b || (b.event && !sees(stand, b.event))) return;
         if (!near(PET_SHOP)) return err('Walk to the Pet Shop to buy lucky blocks.');
-        if (b.event && !cyberOn()) return err('The Cyber Event is over, so the Cyber Block is gone!');
+        if (b.event && !eventOn(b.event)) return err(`The event is over, so the ${b.name} is gone!`);
         if (stand.money < b.cost) return err('Not enough money!');
         if (stand.pets.length >= MAX_PETS) return err(`You have too many pets (the most is ${MAX_PETS}).`);
         stand.money -= b.cost;
@@ -837,7 +885,7 @@
         conn.send({ type: 'petGot', pet: pet.id, block: b.id, equipped: wearing });
         if (RARITIES[pet.rarity].order >= 5) {
           broadcast({ type: 'chat', id: 0, from: '🐾 Pet Shop', admin: false,
-            text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` }, isCyber(pet.id) || !!b.event);
+            text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` }, eventOf(pet.id) || b.event || false);
         }
       } else if (msg.type === 'equipPet') {
         // wear one more of this pet, or take one off
@@ -851,20 +899,23 @@
           if (countOf(stand.worn, id) >= countOf(stand.pets, id)) return;
           stand.worn.push(id);
         }
-      } else if (CYBER && seesCyber(stand) && msg.type === 'passClaim') {
-        // ⚡ claim a Cyber Pass prize you've unlocked
-        if (!cyberOn()) return err('The Cyber Event is over.');
+      } else if (msg.type === 'passClaim' && sees(stand, msg.event === 'glass' ? 'glass' : 'cyber')) {
+        // ⚡🔮 claim a Cyber Pass or Glass Pass prize you've unlocked
+        const ev = msg.event === 'glass' ? 'glass' : 'cyber';
+        const glass = ev === 'glass';
+        if (!eventOn(ev)) return err('That event is over.');
         const row = msg.row === 'premium' ? 'premium' : 'free';
         const i = Number(msg.tier);
-        const prize = CYBER_PASS[row][i];
+        const prize = (glass ? GLASS_PASS : CYBER_PASS)[row][i];
         if (!prize) return;
-        if (row === 'premium' && !stand.premiumPass) return err('This row needs the ⚡ Premium Cyber Pass.');
-        if (stand.passXP < prize.at) return err(`Sell ${prize.at - stand.passXP} more scoops to unlock this prize.`);
-        if (stand.passClaimed[row].includes(i)) return;
-        const error = givePrize(stand, prize);
+        const xp = glass ? stand.glassXP : stand.passXP, claimed = glass ? stand.glassClaimed : stand.passClaimed;
+        if (row === 'premium' && !(glass ? stand.premiumGlass : stand.premiumPass)) return err(`This row needs the ${glass ? '🔮 Premium Glass Pass' : '⚡ Premium Cyber Pass'}.`);
+        if (xp < prize.at) return err(`Sell ${prize.at - xp} more scoops to unlock this prize.`);
+        if (claimed[row].includes(i)) return;
+        const error = givePrize(stand, prize, ev);
         if (error) return err(error);
-        stand.passClaimed[row].push(i);
-        conn.send({ type: 'passPrize', row, tier: i });
+        claimed[row].push(i);
+        conn.send({ type: 'passPrize', row, tier: i, event: ev });
       } else if (CYBER && seesCyber(stand) && msg.type === 'gamePass') {
         // 💎 Game Passes cost shards (admins have unlimited shards)
         const id = msg.id;
@@ -885,6 +936,10 @@
         } else if (id === 'premium') {
           if (stand.premiumPass) return err('You already have the Premium Cyber Pass!');
           stand.premiumPass = true;
+        } else if (id === 'premiumGlass') {
+          if (!sees(stand, 'glass')) return;
+          if (stand.premiumGlass) return err('You already have the Premium Glass Pass!');
+          stand.premiumGlass = true;
         } else if (id === 'fillall') {
           // every empty space gets a fully grown ice cream (common ones more often, like the shop)
           const empty = stand.tubs.map((t, i) => t ? -1 : i).filter(i => i >= 0);
@@ -907,15 +962,21 @@
         } else return;
         if (!stand.admin) stand.shards -= price;
         conn.send({ type: 'gamePassDone', id, flavor: msg.flavor, price });
-      } else if (CYBER && seesCyber(stand) && msg.type === 'eventGift') {
-        // ⚡ a free lucky block once a day during the event (the Cyber Block on the last day!)
-        if (!cyberOn()) return err('The Cyber Event is over.');
+      } else if (msg.type === 'eventGift' && sees(stand, msg.event === 'glass' ? 'glass' : 'cyber')) {
+        // ⚡🔮 a free lucky block once a day during an event (the event's own block on the last day!)
+        const ev = msg.event === 'glass' ? 'glass' : 'cyber';
+        if (!eventOn(ev)) return err('That event is over.');
         const day = Math.floor(Date.now() / 86400e3);
-        if (stand.giftDay === day) return err('You already got today\'s gift. Come back tomorrow!');
-        const lastDay = Date.now() >= CYBER_EVENT.end - 86400e3;
-        const error = givePrize(stand, { block: lastDay ? 'cyber' : 'gold' });
+        const dayKey = ev === 'glass' ? 'glassGiftDay' : 'giftDay';
+        if (stand[dayKey] === day) return err('You already got today\'s gift. Come back tomorrow!');
+        const end = (ev === 'glass' ? GLASS_EVENT : CYBER_EVENT).end;
+        const lastDay = !!end && Date.now() >= end - 86400e3;
+        const error = givePrize(stand, { block: lastDay ? ev : 'gold' }, ev);
         if (error) return err(error);
-        stand.giftDay = day;
+        stand[dayKey] = day;
+      } else if (stand.admin && msg.type === 'adminGlass') {
+        glassOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
+        conn.send({ type: 'admin', text: `🔮 Glass Event is ${glassOn() ? 'ON' : 'OFF'}` + (glassOverride === null ? ' (following the calendar)' : '') });
       } else if (CYBER && stand.admin && msg.type === 'adminCyber') {
         cyberOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `⚡ Cyber Event is ${cyberOn() ? 'ON' : 'OFF'}` + (cyberOverride === null ? ' (following the calendar)' : '') });
@@ -951,8 +1012,9 @@
         if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second.');
         const give = cleanBundle(msg.give);
         const get = msg.type === 'gift' ? cleanBundle(null) : cleanBundle(msg.get);
-        if ((bundleHasCyber(give) || bundleHasCyber(get)) && !(seesCyber(stand) && seesCyber(target))) {
-          return err(`${target.name} can't have Cyber stuff yet. Only admins can see it for now!`);
+        const evs = [...bundleEvents(give), ...bundleEvents(get)];
+        if (evs.some(ev => !(sees(stand, ev) && sees(target, ev)))) {
+          return err(`${target.name} can't have ${evs.includes('glass') ? 'Glass' : 'Cyber'} stuff yet. Only admins can see it for now!`);
         }
         if (msg.type === 'gift') {
           if (bundleEmpty(give)) return err('Pick something to gift first.');
@@ -1079,7 +1141,7 @@
         const n = Math.min(99, Math.max(1, Math.floor(Number(msg.count) || 1)));
         shop.stock[f.id] = (shop.stock[f.id] || 0) + n;
         broadcast({ type: 'chat', id: 0, from: '🛒 Supplies Shop', admin: false,
-          text: `${stand.name} put ${n} ${f.name} in the shop! Go get it before the next restock.` }, isCyber(f.id));
+          text: `${stand.name} put ${n} ${f.name} in the shop! Go get it before the next restock.` }, eventOf(f.id) || false);
         conn.send({ type: 'admin', text: `🏪 Put ${n} ${f.name} in the Supplies Shop` });
       } else if (stand.admin && msg.type === 'adminSpawnPet') {
         // 🐾 admins can put any pet in their own pet inventory

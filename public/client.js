@@ -1,7 +1,7 @@
 (() => {
   const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, PET_SELL, sellPrice, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
+    CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, PET_SELL, sellPrice, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
   const mutationById = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
   const flavorById = Object.fromEntries(FLAVORS.map(f => [f.id, f]));
@@ -40,7 +40,9 @@
   // flavors shown in the Flavor guide, and flavors sold in the shop
   // ⚡ in the online game only admins can see the Cyber stuff for now (the server says so when you join)
   let seeCyber = !CYBER_ADMINS_ONLY;
-  const canSee = x => seeCyber || (x.rarity !== 'cyber' && x.id !== 'cyber' && x.event !== 'cyber');
+  let seeGlass = !GLASS_ADMINS_ONLY; // 🔮 the Glass Event (online: admins only until it drops)
+  const canSee = x => (seeCyber || (x.rarity !== 'cyber' && x.id !== 'cyber' && x.event !== 'cyber')) &&
+    (seeGlass || (x.rarity !== 'glass' && x.id !== 'glass' && x.event !== 'glass'));
   const guideFlavors = () => FLAVORS.filter(f => (!f.adminOnly || iAmAdmin) && canSee(f));
   const shopFlavors = () => FLAVORS.filter(canSee); // admin ice creams only show up when an admin puts them in the shop
 
@@ -235,6 +237,8 @@
         $('game').classList.remove('hidden');
         iAmAdmin = !!msg.admin;
         seeCyber = msg.cyber !== false;
+        seeGlass = msg.glass !== false;
+        buildStore();
         buildPanel();
         buildHotbar();
         $('testTools').classList.toggle('hidden', !msg.admin); // test buttons are for admins only
@@ -405,6 +409,7 @@
         gameEvent = msg.event;
         shop = msg.shop;
         if (msg.cyber) cyberState = msg.cyber;
+        if (msg.glass) glassState = msg.glass;
         if (CYBER) updateCyber();
         if (!player.placed && me()) {
           player.x = me().x; player.y = me().y; player.placed = true;
@@ -649,7 +654,7 @@
     const ev = evs[0];
     box.classList.toggle('active', !!ev);
     // light-colored mutations get dark text so it stays readable
-    const light = evs.length === 1 && ['diamond', 'gold', 'sakura', 'cyber'].includes(ev.id);
+    const light = evs.length === 1 && ['diamond', 'gold', 'sakura', 'cyber', 'glass'].includes(ev.id);
     box.style.color = light ? '#5a4300' : '';
     box.style.textShadow = light ? '0 1px 2px rgba(255,255,255,0.8)' : '';
     if (evs.length > 1) {
@@ -1062,10 +1067,14 @@
 
   // ---------- ⚡ Cyber Event: the Cyber Pass and Game Passes (online: admins only for now) ----------
   // lucky block colors (fancy ones get a CSS class instead)
-  const fancyBlock = b => ['rainbow', 'infinity', 'cyber'].includes(b.color) ? b.color : '';
+  const fancyBlock = b => ['rainbow', 'infinity', 'cyber', 'glass'].includes(b.color) ? b.color : '';
   const blockBg = b => fancyBlock(b) ? '' : `background:${b.color}`;
   let cyberState = { on: false, endsAt: 0 };
   const cyberIsOn = () => CYBER && cyberState.on;
+  let glassState = { on: false, endsAt: null };
+  const glassIsOn = () => seeGlass && glassState.on;
+  const evOn = ev => ev === 'glass' ? glassIsOn() : cyberIsOn();
+  const evEnds = ev => { const at = (ev === 'glass' ? glassState : cyberState).endsAt; return at ? 'ends in ' + timeLeft(at) : 'being tested by admins'; };
   function timeLeft(at) {
     const sec = Math.max(0, Math.floor((at - Date.now()) / 1000));
     const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
@@ -1084,29 +1093,44 @@
       name: `${p.count > 1 ? p.count + ' ' : ''}${b.name}${p.count > 1 ? 's' : ''}` };
   }
 
+  // the pass window works for both events: ⚡ Cyber Pass and 🔮 Glass Pass
+  let passEv = 'cyber';
+  const PASSES = { cyber: CYBER_PASS, glass: GLASS_PASS };
+  const passOf = (s, ev) => ev === 'glass'
+    ? { xp: s.glassXP || 0, claimed: s.glassClaimed, premium: !!s.premiumGlass }
+    : { xp: s.passXP || 0, claimed: s.passClaimed, premium: !!s.premiumPass };
+  const passTiles = { free: [], premium: [] };
   function buildPass() {
     for (const row of ['free', 'premium']) {
       const box = $(row === 'free' ? 'passFree' : 'passPremium');
       box.innerHTML = '';
-      CYBER_PASS[row].forEach((p, i) => {
+      passTiles[row] = [];
+      PASSES[passEv][row].forEach((p, i) => {
         const h = prizeHtml(p);
         const tile = document.createElement('div');
         tile.className = 'passTile';
         tile.innerHTML = `<div class="prizeIcon">${h.icon}</div><div class="prizeName">${h.name}</div>
           <div class="prizeAt">${p.at} scoops</div><button type="button"></button>`;
-        tile.querySelector('button').addEventListener('click', () => send({ type: 'passClaim', row, tier: i }));
+        const ev = passEv;
+        tile.querySelector('button').addEventListener('click', () => send({ type: 'passClaim', event: ev, row, tier: i }));
         box.appendChild(tile);
-        p.tile = tile;
+        passTiles[row][i] = tile;
       });
     }
+    const glass = passEv === 'glass';
+    $('passModal').classList.toggle('glassTheme', glass);
+    $('passModal').querySelector('.modalTitle').textContent = glass ? '🔮 Glass Pass' : '⚡ Cyber Pass';
+    $('passModal').querySelector('.passLabel.premium').firstChild.textContent = glass ? '🔮 PREMIUM PRIZES ' : '⚡ PREMIUM PRIZES ';
+    $('passPremiumNote').dataset.state = '';
   }
 
   function updatePass() {
     const s = me();
     if (!s) return;
-    $('passTimer').textContent = cyberIsOn() ? `Event ends in ${timeLeft(cyberState.endsAt)}` : 'The Cyber Event is over.';
-    $('passXP').textContent = `You've sold ${s.passXP || 0} scoops during the Cyber Event. Sell more to unlock prizes!`;
-    const premium = !!s.premiumPass;
+    const ps = passOf(s, passEv), evName = passEv === 'glass' ? 'Glass Event' : 'Cyber Event';
+    $('passTimer').textContent = evOn(passEv) ? `${evName} ${evEnds(passEv)}` : `The ${evName} is over.`;
+    $('passXP').textContent = `You've sold ${ps.xp} scoops during the ${evName}. Sell more to unlock prizes!`;
+    const premium = ps.premium;
     $('passPremium').classList.toggle('locked', !premium);
     const note = $('passPremiumNote');
     const want = premium ? '✅ You have it!' : '🔒 Needs the Premium Pass';
@@ -1117,26 +1141,28 @@
       if (b) b.addEventListener('click', openStore);
     }
     for (const row of ['free', 'premium']) {
-      CYBER_PASS[row].forEach((p, i) => {
-        const claimed = (s.passClaimed?.[row] || []).includes(i);
-        const unlocked = (s.passXP || 0) >= p.at && (row === 'free' || premium);
+      PASSES[passEv][row].forEach((p, i) => {
+        const claimed = (ps.claimed?.[row] || []).includes(i);
+        const unlocked = ps.xp >= p.at && (row === 'free' || premium);
         // a prize that won't fit: say so on the button instead of failing quietly
         const noRoom = p.item && ![...s.hotbar, ...s.storage].some(x => !x || (x.flavor === p.item && x.count < MAX_STACK));
         const noPets = p.block && s.pets.length + (p.count || 1) > MAX_PETS;
-        const text = claimed ? '✓ Claimed' : !unlocked ? (row === 'premium' && !premium ? '🔒 Premium' : `🔒 ${p.at - (s.passXP || 0)} more`)
+        const text = claimed ? '✓ Claimed' : !unlocked ? (row === 'premium' && !premium ? '🔒 Premium' : `🔒 ${p.at - ps.xp} more`)
           : noRoom ? '🎒 Make room' : noPets ? '🐾 Pets full' : 'Claim!';
-        const btn = p.tile.querySelector('button');
+        const tile = passTiles[row][i];
+        const btn = tile.querySelector('button');
         if (btn.textContent !== text) btn.textContent = text;
         btn.title = noRoom ? 'Your hotbar and Inventory are full. Move or use something, then claim it.' : noPets ? 'Let a pet go in My Pets first.' : '';
         btn.disabled = claimed || !unlocked || noRoom || noPets;
-        p.tile.classList.toggle('claimed', claimed);
-        p.tile.classList.toggle('ready', unlocked && !claimed);
+        tile.classList.toggle('claimed', claimed);
+        tile.classList.toggle('ready', unlocked && !claimed);
       });
     }
   }
 
-  function openPass() {
+  function openPass(ev = 'cyber') {
     closeWindows();
+    if (passEv !== ev || !passTiles.free.length) { passEv = ev; buildPass(); }
     openWindow = 'pass';
     $('passModal').classList.remove('hidden');
     updatePass();
@@ -1146,6 +1172,8 @@
     const list = $('storeList');
     list.innerHTML = '';
     for (const gp of GAME_PASSES) {
+      gp.row = null;
+      if (!canSee(gp)) continue;
       const row = document.createElement('div');
       row.className = 'row';
       row.innerHTML = `<div class="gpEmoji">${gp.emoji}</div>
@@ -1154,7 +1182,7 @@
       let pick = null;
       if (gp.id === 'icecream') {
         pick = document.createElement('select');
-        for (const f of FLAVORS.filter(f => !f.adminOnly && ICE_CREAM_PRICES[f.rarity])) {
+        for (const f of FLAVORS.filter(f => !f.adminOnly && ICE_CREAM_PRICES[f.rarity] && canSee(f))) {
           const o = document.createElement('option');
           o.value = f.id;
           o.textContent = `${f.name} (💎 ${ICE_CREAM_PRICES[f.rarity]})`;
@@ -1189,7 +1217,7 @@
       if (!gp.row) continue;
       const b = gp.row.querySelector('button');
       const price = gp.pick ? ICE_CREAM_PRICES[flavorById[gp.pick.value].rarity] : gp.shards;
-      const owned = gp.id === 'premium' && s.premiumPass;
+      const owned = (gp.id === 'premium' && s.premiumPass) || (gp.id === 'premiumGlass' && s.premiumGlass);
       const text = owned ? '✅ You have it' : `Buy 💎 ${price}`;
       if (b.textContent !== text) b.textContent = text;
       b.disabled = owned || (!iAmAdmin && (s.shards || 0) < price);
@@ -1197,33 +1225,44 @@
   }
 
   // ⚡ the launch moment: once per visit, when the event is on (or the moment it starts)
-  let launchShown = false;
-  function showCyberLaunch() {
-    launchShown = true;
+  let launchShown = false, glassLaunchShown = false;
+  function showCyberLaunch(ev = 'cyber') {
+    if (ev === 'glass') glassLaunchShown = true; else launchShown = true;
     const el = $('cyberLaunch');
-    el.querySelector('.clSub').textContent = `Cyber Block · Cyber Whale · Robo Ice Cream · Cyber Storms · Robo customers pay x2 · ends in ${timeLeft(cyberState.endsAt)}`;
+    const glass = ev === 'glass';
+    el.classList.toggle('glassLaunch', glass);
+    const title = el.querySelector('.clTitle');
+    title.textContent = title.dataset.text = glass ? '🔮 THE GLASS EVENT IS HERE! 🔮' : '⚡ CYBER EVENT IS HERE! ⚡';
+    el.querySelector('.clSub').textContent = glass
+      ? `Glass Block · Glass Peacock · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
+      : `Cyber Block · Cyber Whale · Robo Ice Cream · Cyber Storms · Robo customers pay x2 · ${evEnds('cyber')}`;
     el.classList.remove('hidden');
     clearTimeout(showCyberLaunch.t);
     showCyberLaunch.t = setTimeout(() => el.classList.add('hidden'), 6000);
   }
-  $('dailyGiftBtn').addEventListener('click', () => send({ type: 'eventGift' }));
+  $('dailyGiftBtn').addEventListener('click', () => send({ type: 'eventGift', event: 'cyber' }));
+  $('glassGiftBtn').addEventListener('click', () => send({ type: 'eventGift', event: 'glass' }));
+  $('glassPassBtn').addEventListener('click', () => openPass('glass'));
   $('cyberLaunch').addEventListener('click', () => $('cyberLaunch').classList.add('hidden'));
   function updateCyber() {
     if (!launchShown && seeCyber && cyberIsOn() && myId) showCyberLaunch();
+    else if (!glassLaunchShown && glassIsOn() && myId && $('cyberLaunch').classList.contains('hidden')) showCyberLaunch('glass');
     $('cyberBtns').classList.toggle('hidden', !seeCyber);
     const s = me();
     if (s && seeCyber) $('storeBtn').textContent = `💎 ${shardText(s)} · Game Passes`;
     $('passBtn').classList.toggle('hidden', !cyberIsOn());
     const today = Math.floor(Date.now() / 86400e3), meNow = me();
     $('dailyGiftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
-    if (openWindow === 'pass') { if (cyberIsOn()) updatePass(); else closeWindows(); }
+    $('glassPassBtn').classList.toggle('hidden', !glassIsOn());
+    $('glassGiftBtn').classList.toggle('hidden', !glassIsOn() || !meNow || meNow.glassGiftDay === today);
+    if (openWindow === 'pass') { if (evOn(passEv)) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
   }
 
   if (CYBER) {
     buildPass();
     buildStore();
-    $('passBtn').addEventListener('click', openPass);
+    $('passBtn').addEventListener('click', () => openPass('cyber'));
     $('passClose').addEventListener('click', closeWindows);
     $('storeBtn').addEventListener('click', openStore);
     $('storeClose').addEventListener('click', closeWindows);
@@ -1236,7 +1275,7 @@
     const odds = Object.entries(b.odds).map(([r, c]) =>
       `<b style="color:${RARITIES[r].color === '#111111' ? '#000' : RARITIES[r].color}">${RARITIES[r].name} ${c}%</b>`).join(' · ');
     row.innerHTML = `<div class="luckyBlock ${fancyBlock(b)}" style="${blockBg(b)}"></div>
-      <div class="info"><div class="name">${b.name} ${b.event ? '<span class="eventTag">⚡ CYBER EVENT · <span class="left"></span></span>' : ''}</div>
+      <div class="info"><div class="name">${b.name} ${b.event ? `<span class="eventTag ${b.event}">${b.event === 'glass' ? '🔮 GLASS EVENT' : '⚡ CYBER EVENT'} · <span class="left"></span></span>` : ''}</div>
         <div class="odds">${odds}</div></div>
       <button type="button">${fmt(b.cost)}</button>`;
     row.querySelector('button').addEventListener('click', () => send({ type: 'buyBlock', block: b.id }));
@@ -1263,9 +1302,9 @@
       btn.title = full ? `You have ${MAX_PETS} pets, the most you can have. Let some go in 🐾 My Pets to make room.` : '';
       // event blocks are only in the shop while their event is on
       if (b.event) {
-        b.row.classList.toggle('hidden', !cyberIsOn());
+        b.row.classList.toggle('hidden', !evOn(b.event));
         const left = b.row.querySelector('.left');
-        if (left) left.textContent = 'ends in ' + timeLeft(cyberState.endsAt);
+        if (left) left.textContent = evEnds(b.event);
       }
     }
   }
@@ -1300,9 +1339,10 @@
     revealTimer = setTimeout(() => {
       el.classList.add('hidden');
       const box = $('revealPet');
-      if (block && block.color === 'cyber') { // ⚡ the Cyber Block bursts open with a flash and shockwaves
-        const m = $('revealModal');
-        m.classList.remove('cyberBoom'); void m.offsetWidth; m.classList.add('cyberBoom');
+      if (block && (block.color === 'cyber' || block.color === 'glass')) {
+        // ⚡ the Cyber Block bursts open with a flash and shockwaves; 🔮 the Glass Block shatters into rainbow shards
+        const m = $('revealModal'), cls = block.color === 'glass' ? 'glassBoom' : 'cyberBoom';
+        m.classList.remove('cyberBoom', 'glassBoom'); void m.offsetWidth; m.classList.add(cls);
       }
       box.querySelector('.revealEmoji').innerHTML = show.icon;
       const badge = box.querySelector('.revealRarity');
@@ -1765,8 +1805,8 @@
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
     hat: { cap: 'Cap', none: 'No hat', tophat: 'Top hat', beanie: 'Beanie', party: 'Party hat',
-      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat', robo: '📡 Robo antennas' },
-    face: { happy: 'Happy', cool: 'Sunglasses', wink: 'Wink', silly: 'Silly', wow: 'Wow', robo: '🤖 Robo visor' },
+      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat', robo: '📡 Robo antennas', glass: '👑 Crystal crown' },
+    face: { happy: 'Happy', cool: 'Sunglasses', wink: 'Wink', silly: 'Silly', wow: 'Wow', robo: '🤖 Robo visor', glass: '🔮 Prism mask' },
   };
   const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
 
@@ -1803,15 +1843,16 @@
       row.innerHTML = `<div class="avLabel">${label}</div>`;
       const opts = document.createElement('div');
       opts.className = 'avOpts';
-      for (const value of AVATAR[part].filter(v => seeCyber || v !== 'robo')) {
+      for (const value of AVATAR[part].filter(v => (seeCyber || v !== 'robo') && (seeGlass || v !== 'glass'))) {
         const b = document.createElement('button');
         b.type = 'button';
         const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
         b.className = 'avOpt' + (isColor ? ' swatch' : '') + (avatarDraft[part] === value ? ' on' : '');
         if (isColor) {
           if (value === 'robo') b.classList.add('robo'); // a piece of polished robot armor
+          if (value === 'glass') b.classList.add('glass'); // a piece of rainbow glass
           else b.style.background = value === 'stand' ? s.color : value;
-          b.title = value === 'stand' ? 'Your stand color' : value === 'robo' ? 'Robo' : '';
+          b.title = value === 'stand' ? 'Your stand color' : value === 'robo' ? 'Robo' : value === 'glass' ? 'Glass' : '';
         } else b.textContent = AVATAR_LABELS[part][value];
         b.addEventListener('click', () => {
           avatarDraft[part] = value; // try it on in the preview; Save makes it your look
@@ -2068,6 +2109,11 @@
         const f = findFlavor(args.join(' '));
         if (!f) return toast('Try: /spawn void 3 (any flavor name)');
         return send({ type: 'adminSpawn', flavor: f.id, count });
+      }
+      case 'glass': { // /glass on, /glass off, /glass auto (turn the Glass Event on or off to test it)
+        const mode = (args[0] || '').toLowerCase();
+        if (!['on', 'off', 'auto'].includes(mode)) return toast('Try: /glass on, /glass off or /glass auto');
+        return send({ type: 'adminGlass', mode });
       }
       case 'cyber': { // /cyber on, /cyber off, /cyber auto (turn the Cyber Event on or off to test it)
         if (!CYBER) return toast('The Cyber Event is only in the test file for now.');
@@ -2548,7 +2594,7 @@
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { dragon: 1.45, cyberwhale: 1.8, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+  const PET_SIZE = { dragon: 1.45, cyberwhale: 1.8, glasspeacock: 1.8, glasselephant: 1.35, glassgiraffe: 1.35, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
   const CYAN = '#2ee8ff';
@@ -2685,8 +2731,61 @@
     ctx.restore();
   }
   // pets drawn as pictures instead of their emoji
+  // 🔮 the Glass look: the animal made of see-through glass, with rainbow light bending through it,
+  // bright streaks where the light hits, and a twinkle that slides across it
+  const glassSprites = {};
+  function makeGlassPet(emoji) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 160;
+    const saved = ctx;
+    ctx = c.getContext('2d');
+    ctx.font = `120px ${EMOJI_FONT}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.filter = 'grayscale(1) brightness(1.55) contrast(0.75)';
+    ctx.fillText(emoji, 80, 140);
+    ctx.filter = 'none';
+    ctx.globalCompositeOperation = 'source-atop'; // everything below only paints on the animal itself
+    ctx.fillStyle = 'rgba(165, 216, 255, 0.45)';    // a pale blue glass tint
+    ctx.fillRect(0, 0, 160, 160);
+    const rainbow = ctx.createLinearGradient(0, 160, 160, 0); // light splitting into colors inside the glass
+    [0, 50, 120, 200, 280, 330].forEach((h, i, a) => rainbow.addColorStop(i / (a.length - 1), `hsla(${h}, 100%, 70%, 0.3)`));
+    ctx.fillStyle = rainbow;
+    ctx.fillRect(0, 0, 160, 160);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';       // bright streaks where the light hits
+    ctx.beginPath(); ctx.moveTo(30, 20); ctx.lineTo(56, 20); ctx.lineTo(16, 150); ctx.lineTo(-10, 150); ctx.fill();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.beginPath(); ctx.moveTo(78, 20); ctx.lineTo(88, 20); ctx.lineTo(48, 150); ctx.lineTo(38, 150); ctx.fill();
+    ctx = saved;
+    return c;
+  }
+  function glassPetModel(id, emoji, best) {
+    return time => {
+      if (!glassSprites[id]) glassSprites[id] = makeGlassPet(emoji);
+      ctx.save();
+      ctx.globalAlpha = 0.8;                             // you can see through it
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.95)'; ctx.shadowBlur = 5; // its glassy edge
+      if (best) ctx.filter = `hue-rotate(${Math.sin(time * 1.5) * 40}deg) saturate(1.4)`; // the best one shimmers
+      ctx.drawImage(glassSprites[id], -20, -25, 40, 40);
+      ctx.restore();
+      // a twinkle sliding across the glass
+      const t = (time * 0.6) % 2;
+      if (t < 1) star(-14 + t * 28, -18 + t * 14, 2.2 + Math.sin(t * Math.PI) * 1.5, '#ffffff');
+    };
+  }
+  // a little piece of glass (for the glass pets, storms and the Glass Block)
+  function glassShard(x, y, s, rot, hue, alpha = 1) {
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(rot); ctx.globalAlpha *= alpha;
+    ctx.fillStyle = `hsla(${hue}, 100%, 85%, 0.55)`;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'; ctx.lineWidth = Math.max(0.6, s * 0.12);
+    ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(s * 0.55, s * 0.6); ctx.lineTo(-s * 0.45, s * 0.35); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
   const PET_MODELS = { cyberwhale: drawCyberWhale };
   for (const p of PETS) if (p.fx === 'cyber') PET_MODELS[p.id] = cyberPetModel(p.id, p.emoji);
+  for (const p of PETS) if (p.fx === 'glass' || p.fx === 'glasspeacock') PET_MODELS[p.id] = glassPetModel(p.id, p.emoji, p.fx === 'glasspeacock');
 
   // pictures of the low-poly pets for the pet lists (made once each)
   const petIcons = {};
@@ -2856,6 +2955,113 @@
         if (roar < 1) breathe(x, y, pp.facing, ['#fff3bf', '#ffd43b', '#ffa94d'], rnd);
         break;
       }
+      case 'glass': {
+        // 🔮 the Glass Block pets: sparkles, spinning shards and rainbow light (the rarer the pet, the more of it)
+        const lvl = { legendary: 1, mythic: 2, secret: 3, celestial: 4 }[pet.rarity] || 1;
+        const gx = pp.x, gy = pp.y + 9;
+        // light shining through it makes a rainbow spot on the ground
+        ctx.save();
+        ctx.translate(gx, gy); ctx.scale(1, 0.3);
+        for (let k = 0; k < 5; k++) {
+          ctx.strokeStyle = `hsla(${(k * 60 + time * 40) % 360}, 100%, 70%, ${0.22 + 0.04 * lvl})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(0, 0, 14 + k * 4 + lvl * 4, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+        glow(x, y - 12, 30 + 10 * lvl, '208, 235, 255', 0.25 + 0.04 * lvl);
+        // glass shards floating around it
+        for (let k = 0; k < lvl + 1; k++) {
+          const a = time * 1.4 + k * Math.PI * 2 / (lvl + 1) + seed;
+          glassShard(x + Math.cos(a) * (24 + 5 * lvl), y - 14 + Math.sin(a) * 10, 3 + lvl * 0.6, a * 2, (k * 70 + time * 50) % 360);
+        }
+        // rainbow light beams fanning out of it (mythic and up)
+        if (lvl >= 2) {
+          ctx.save();
+          ctx.globalAlpha = 0.18 + 0.1 * Math.sin(time * 3 + seed);
+          for (let k = 0; k < 6; k++) {
+            const a = -Math.PI / 2 + (k - 2.5) * 0.18 + Math.sin(time) * 0.1;
+            ctx.strokeStyle = `hsl(${k * 55}, 100%, 65%)`; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(x, y - 14); ctx.lineTo(x + Math.cos(a) * (40 + 10 * lvl), y - 14 + Math.sin(a) * (40 + 10 * lvl)); ctx.stroke();
+          }
+          ctx.restore();
+        }
+        if (chance(4 + 3 * lvl)) petSpark(x + rnd() * 44, y - 10 + rnd() * 30, { shape: 'star', color: Math.random() < 0.5 ? '#fff' : '#d0ebff', vy: -6, life: 0.9, size: 2.5 });
+        // secret and up: a chime of light now and then; celestial: a beam of light from the sky
+        const beat = (time + seed) % 4;
+        if (lvl >= 3 && beat < dt) {
+          petSpark(gx, gy, { shape: 'ring', color: '#e7f5ff', vy: 0, life: 0.8, size: 12, grow: 110 });
+          for (let k = 0; k < 6; k++) petSpark(x, y - 14, { shape: 'shard', vx: rnd() * 160, vy: rnd() * 140 - 40, life: 0.8, size: 3, hue: k * 60 });
+        }
+        if (lvl >= 4 && beat < 0.5) {
+          const g = ctx.createLinearGradient(x - 16, 0, x + 16, 0);
+          ['rgba(255,140,200,0)', 'rgba(255,255,255,0.45)', 'rgba(140,220,255,0)'].forEach((c, i) => g.addColorStop(i / 2, c));
+          ctx.fillStyle = g;
+          ctx.globalAlpha = 1 - beat / 0.5;
+          ctx.fillRect(x - 16, y - 220, 32, 205);
+          ctx.globalAlpha = 1;
+        }
+        break;
+      }
+      case 'glasspeacock': {
+        // 🔮 Glass Peacock, the best Glass pet: a giant fan of rainbow light, orbiting glass shards,
+        // light from the sky, and it shatters into shards and puts itself back together
+        const gx = pp.x, gy = pp.y + 9;
+        // a spinning prism circle of light on the ground
+        ctx.save();
+        ctx.translate(gx, gy); ctx.scale(1, 0.32);
+        for (let k = 0; k < 7; k++) {
+          ctx.strokeStyle = `hsla(${(k * 50 + time * 80) % 360}, 100%, 70%, 0.45)`;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.arc(0, 0, 30 + k * 7, time + k, time + k + Math.PI * 1.4); ctx.stroke();
+        }
+        ctx.restore();
+        // the peacock's tail: a huge fan of rainbow light rays
+        ctx.save();
+        const fan = 0.55 + 0.25 * Math.sin(time * 2);
+        for (let k = 0; k < 13; k++) {
+          const a = -Math.PI / 2 + (k - 6) * 0.2 + Math.sin(time * 0.8) * 0.05;
+          const len = 80 + 14 * Math.sin(time * 3 + k);
+          const g = ctx.createLinearGradient(x, y - 14, x + Math.cos(a) * len, y - 14 + Math.sin(a) * len);
+          g.addColorStop(0, `hsla(${(k * 28 + time * 60) % 360}, 100%, 75%, 0)`);
+          g.addColorStop(1, `hsla(${(k * 28 + time * 60) % 360}, 100%, 70%, ${0.5 * fan})`);
+          ctx.strokeStyle = g; ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.moveTo(x, y - 14); ctx.lineTo(x + Math.cos(a) * len, y - 14 + Math.sin(a) * len); ctx.stroke();
+          star(x + Math.cos(a) * len, y - 14 + Math.sin(a) * len, 2.5, '#ffffff'); // an "eye" at the end of each feather
+        }
+        ctx.restore();
+        glow(x, y - 14, 95, '208, 235, 255', 0.38);
+        glow(x, y - 14, 45, '255, 255, 255', 0.35);
+        // big glass shards orbiting it, joined by threads of light
+        const pts = [];
+        for (let k = 0; k < 6; k++) {
+          const a = time * 1.2 + k * Math.PI / 3 + seed;
+          const ox = x + Math.cos(a) * 62, oy = y - 16 + Math.sin(a) * 22;
+          pts.push([ox, oy]);
+          glassShard(ox, oy, 7, a * 1.5, (k * 60 + time * 60) % 360);
+        }
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'; ctx.lineWidth = 1;
+        ctx.beginPath(); pts.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); ctx.stroke();
+        if (chance(16)) petSpark(x + rnd() * 100, y - 10 + rnd() * 60, { shape: 'star', color: `hsl(${Math.random() * 360}, 100%, 85%)`, vy: -8, life: 1, size: 3 });
+        if (pp.moving && chance(10)) petSpark(pp.x + rnd() * 20, pp.y + 4, { shape: 'shard', vy: -20, vx: rnd() * 20, life: 1, size: 3, hue: Math.random() * 360 });
+        // light from the sky every few seconds
+        const beam = (time + seed * 0.7) % 4.5;
+        if (beam < 0.6) {
+          const g = ctx.createLinearGradient(x - 26, 0, x + 26, 0);
+          ['rgba(255,120,200,0)', 'rgba(255,255,255,0.6)', 'rgba(120,220,255,0)'].forEach((c, i) => g.addColorStop(i / 2, c));
+          ctx.fillStyle = g;
+          ctx.globalAlpha = 1 - beam / 0.6;
+          ctx.fillRect(x - 26, y - 260, 52, 245);
+          ctx.globalAlpha = 1;
+          if (beam < dt) petSpark(gx, gy, { shape: 'ring', color: '#ffffff', vy: 0, life: 1, size: 18, grow: 200 });
+        }
+        // it shatters into rainbow shards and puts itself back together
+        const shatter = (time + seed) % 6;
+        if (shatter < dt) {
+          for (let k = 0; k < 22; k++) petSpark(x, y - 16, { shape: 'shard', vx: rnd() * 320, vy: rnd() * 260 - 60, life: 0.9, size: 4 + Math.random() * 3, hue: k * 17, spin: 9 });
+          petSpark(x, y - 16, { shape: 'ring', color: '#e7f5ff', vy: 0, life: 0.7, size: 16, grow: 160 });
+        }
+        break;
+      }
       case 'cyber': {
         // ⚡ the Cyber Block pets: cyan cyber power (the rarer the pet, the more of it)
         const lvl = { legendary: 1, mythic: 2, secret: 3, celestial: 4 }[pet.rarity] || 1;
@@ -2988,6 +3194,7 @@
         ctx.restore();
       }
     }
+    if (pet.fx === 'glasspeacock' && (time + seed) % 6 < 0.35) ctx.globalAlpha *= 0.15; // shattered for a moment
     if (PET_MODELS[pet.id]) PET_MODELS[pet.id](time, seed, pet.kind === 'fly' || pet.kind === 'swim', pp.moving);
     else ctx.fillText(pet.emoji, 0, 10); // drawn from its feet, so squishing and sitting look right
     ctx.restore();
@@ -3052,6 +3259,9 @@
           break;
         case 'print': // a burning footprint
           ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+          break;
+        case 'shard': // a spinning piece of glass
+          glassShard(p.x, p.y, p.size, (p.rot || 0) + p.t * (p.spin || 5), p.hue || 200, 1);
           break;
         case 'hex': // a little glowing hexagon spark
           hexagon(p.x, p.y, p.size, p.t * 3, 0.6, a);
@@ -3301,6 +3511,41 @@
     ctx.beginPath(); ctx.ellipse(x - r * 0.42, y - r * 0.5, r * 0.2, r * 0.11, -0.6, 0, Math.PI * 2); ctx.fill();
   }
 
+  // 🔮 Glass Ice Cream: a see-through glass ball with a rainbow edge, facets, tiny bubbles and a bright shine
+  function drawGlassScoop(x, y, r, outline) {
+    ctx.save();
+    const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r);
+    g.addColorStop(0, 'rgba(255, 255, 255, 0.85)'); g.addColorStop(0.5, 'rgba(208, 235, 255, 0.55)');
+    g.addColorStop(1, 'rgba(116, 192, 252, 0.6)');
+    ctx.fillStyle = g;
+    outline(); ctx.fill();
+    outline(); ctx.clip();
+    // light splitting into a rainbow inside the glass
+    const rb = ctx.createLinearGradient(x - r, y + r, x + r, y - r);
+    [0, 60, 130, 200, 280].forEach((h, i, a) => rb.addColorStop(i / (a.length - 1), `hsla(${(h + nowSec * 30) % 360}, 100%, 70%, 0.3)`));
+    ctx.fillStyle = rb;
+    ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+    // facets (flat cut faces) and tiny bubbles
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; ctx.lineWidth = Math.max(0.4, r * 0.05);
+    ctx.beginPath(); ctx.moveTo(x - r, y + r * 0.1); ctx.lineTo(x - r * 0.2, y - r * 0.3); ctx.lineTo(x + r, y + r * 0.05);
+    ctx.moveTo(x - r * 0.2, y - r * 0.3); ctx.lineTo(x + r * 0.1, y + r); ctx.stroke();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    for (const [bx, by, br] of [[0.35, 0.35, 0.07], [0.5, 0.05, 0.05], [-0.2, 0.55, 0.06]]) {
+      ctx.beginPath(); ctx.arc(x + bx * r, y + by * r, br * r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    // a rainbow edge and a white rim, like the edge of real glass
+    ctx.save();
+    ctx.lineWidth = Math.max(0.6, r * 0.09);
+    ctx.strokeStyle = `hsla(${(nowSec * 90) % 360}, 100%, 70%, 0.7)`;
+    outline(); ctx.stroke();
+    ctx.lineWidth = Math.max(0.4, r * 0.04); ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    outline(); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.beginPath(); ctx.ellipse(x - r * 0.4, y - r * 0.45, r * 0.22, r * 0.11, -0.6, 0, Math.PI * 2); ctx.fill();
+  }
+
   // pictures of the Robo things for the shops (made once, the same drawing as in the park)
   let roboArt = null;
   function makeRoboArt() {
@@ -3339,6 +3584,25 @@
         cyberRing(40, 46, 5);
       }),
     };
+    // 🔮 the Glass things for the shops
+    roboArt.glassScoop = paint(72, 72, () => drawGlassScoop(36, 36, 32, () => { ctx.beginPath(); ctx.arc(36, 36, 32, 0, Math.PI * 2); }));
+    roboArt.glassPiece = paint(72, 72, () => {
+      const g = ctx.createLinearGradient(6, 6, 66, 66);
+      g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.5, 'rgba(208,235,255,0.75)'); g.addColorStop(1, 'rgba(116,192,252,0.85)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(36, 36, 34, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(36, 36, 34, 0, Math.PI * 2); ctx.clip();
+      const rb = ctx.createLinearGradient(0, 72, 72, 0);
+      [0, 60, 130, 200, 280].forEach((h, i, a) => rb.addColorStop(i / (a.length - 1), `hsla(${h}, 100%, 70%, 0.45)`));
+      ctx.fillStyle = rb; ctx.fillRect(0, 0, 72, 72);
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, 40); ctx.lineTo(30, 26); ctx.lineTo(72, 38); ctx.moveTo(30, 26); ctx.lineTo(40, 72); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.beginPath(); ctx.ellipse(22, 20, 10, 5, -0.6, 0, Math.PI * 2); ctx.fill();
+    });
+    document.documentElement.style.setProperty('--glass-scoop', `url(${roboArt.glassScoop})`);
+    document.documentElement.style.setProperty('--glass-piece', `url(${roboArt.glassPiece})`);
     document.documentElement.style.setProperty('--robo-scoop', `url(${roboArt.scoop})`);
     document.documentElement.style.setProperty('--robo-metal', `url(${roboArt.metal})`);
     return roboArt;
@@ -3360,6 +3624,7 @@
       return;
     }
     if (f.effect === 'robo') { drawRoboScoop(x, y, r, outline); return; }
+    if (f.effect === 'glass') { drawGlassScoop(x, y, r, outline); return; }
     if (f.effect === 'infinity') {
       // Infinity Swirl: every color swirling around and slowly spinning
       const spin = nowSec * 1.5;
@@ -3662,6 +3927,18 @@
           }
         }
         break;
+      case 'glass': // 🔮 Glass Ice Cream: a soft rainbow glow, little glass shards circling it, and twinkles
+        if (back) {
+          glow(x, y, r * 3.4, '208, 235, 255', 0.45 + 0.2 * pulse);
+          glow(x, y, r * 2, `${hueRgb((t * 60) % 360)}`, 0.18);
+        } else {
+          for (let k = 0; k < 3; k++) {
+            const a = t * 2 + k * 2.094;
+            glassShard(x + Math.cos(a) * r * 1.7, y + Math.sin(a) * r * 0.7, r * 0.32, a * 2, (k * 120 + t * 60) % 360);
+          }
+          if (Math.random() < 0.3) star(x + (Math.random() - 0.5) * r * 3, y + (Math.random() - 0.5) * r * 2.4, r * 0.25, '#ffffff');
+        }
+        break;
       case 'robo': // ⚡ Robo Ice Cream: a big cyan glow, two spinning energy rings with sparks on them, and lightning
         if (back) {
           glow(x, y, r * 3.8, '46, 232, 255', 0.4 + 0.25 * pulse);
@@ -3803,7 +4080,27 @@
       ctx.fillStyle = `rgba(255, 215, 0, ${0.35 + 0.2 * Math.sin(time * 6)})`;
       ctx.beginPath(); ctx.arc(x, y - 6, 20, 0, Math.PI * 2); ctx.fill();
     }
-    if (c.robo) {
+    if (c.glass) {
+      // 🔮 a glass customer (pays double): a see-through body and head with rainbow light inside, and sparkles
+      glow(x, y - 6, 22, '208, 235, 255', 0.35);
+      ctx.save();
+      ctx.globalAlpha = 0.75;
+      const g = ctx.createLinearGradient(x - 9, y - 22, x + 9, y + 12);
+      g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(0.5, `hsla(${(time * 60 + c.id * 40) % 360}, 100%, 85%, 0.7)`); g.addColorStop(1, 'rgba(116,192,252,0.8)');
+      ctx.fillStyle = g;
+      roundRect(x - 9, y - 6, 18, 18, 6); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y - 13, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 0.8;
+      ctx.stroke(); roundRect(x - 9, y - 6, 18, 18, 6); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = '#1c7ed6';
+      ctx.fillRect(x - 3.5, y - 15, 2, 2.5); ctx.fillRect(x + 1.5, y - 15, 2, 2.5);
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.ellipse(x - 3, y - 17, 2.5, 1.2, -0.6, 0, Math.PI * 2); ctx.fill();
+      if ((time * 2 + c.id) % 1 < 0.15) star(x + 7, y - 18, 2.5, '#ffffff');
+      ctx.fillStyle = '#1971c2'; ctx.font = 'bold 7px Trebuchet MS'; ctx.textAlign = 'center';
+      ctx.fillText('x2', x + 12, y - 22);
+    } else if (c.robo) {
       // ⚡ a robot customer (pays double): a metal body, a square head, a glowing visor and an antenna
       glow(x, y - 6, 22, '46, 232, 255', 0.25);
       const g = ctx.createLinearGradient(x - 9, y - 6, x + 9, y + 12);
@@ -3862,8 +4159,9 @@
   function drawPlayer(p, time) {
     const av = p.avatar || {};
     const ROBO = { shirt: '#2c343c', pants: '#1f262e', skin: '#3a444e' }; // ⚡ robo parts are dark armor with glowing cyan cracks
-    const shirt = !av.shirt || av.shirt === 'stand' ? p.color : av.shirt === 'robo' ? ROBO.shirt : av.shirt;
-    const skin = av.skin === 'robo' ? ROBO.skin : av.skin || '#f8d5b8';
+    const GLASS = 'rgba(200, 232, 255, 0.62)';                             // 🔮 glass parts are see-through
+    const shirt = !av.shirt || av.shirt === 'stand' ? p.color : av.shirt === 'robo' ? ROBO.shirt : av.shirt === 'glass' ? GLASS : av.shirt;
+    const skin = av.skin === 'robo' ? ROBO.skin : av.skin === 'glass' ? GLASS : av.skin || '#f8d5b8';
     const bounce = p.moving ? Math.abs(Math.sin(time * 12)) * 3 : 0;
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -3882,7 +4180,14 @@
     ctx.scale(1.7 * (p.facing || 1), 1.7);
     const y = -bounce / 1.7;
     const roboLegs = av.pants === 'robo', roboBody = av.shirt === 'robo', roboHead = av.skin === 'robo';
-    const pants = roboLegs ? ROBO.pants : av.pants || '#3b3b58';
+    const pants = roboLegs ? ROBO.pants : av.pants === 'glass' ? GLASS : av.pants || '#3b3b58';
+    const glassParts = ['shirt', 'pants', 'skin', 'hat', 'face'].filter(k => av[k] === 'glass').length;
+    if (glassParts) {
+      // 🔮 glass parts shine, and someone all made of glass twinkles with rainbow light
+      glow(0, y - 10, (24 + glassParts * 4) / 1.7, '208, 235, 255', 0.08 * glassParts);
+      if (glassParts >= 4 && Math.random() < 0.15) petSpark(p.x + (Math.random() - 0.5) * 30, p.y - 20 - Math.random() * 30,
+        { shape: 'star', color: `hsl(${Math.random() * 360}, 100%, 85%)`, vy: -10, life: 0.8, size: 2.5 });
+    }
     const swing = p.moving ? Math.sin(time * 12) : 0; // arms and legs swing while walking
     // a little shading makes everyone look rounder: lighter on top, darker underneath
     const shaded = (color, x1, y1, x2, y2, k = 0.22) => {
@@ -3934,6 +4239,18 @@
       ctx.beginPath(); ctx.moveTo(-3.5, y - 7); ctx.lineTo(0, y - 4.5); ctx.lineTo(3.5, y - 7); ctx.closePath(); ctx.fill();
     }
     arm(true);
+    if (av.shirt === 'glass') {
+      // light streaks and a rainbow shimmer on the glass shirt
+      ctx.save();
+      roundRect(-9, y - 7, 18, 15, 5); ctx.clip();
+      ctx.fillStyle = `hsla(${(time * 60) % 360}, 100%, 80%, 0.35)`;
+      ctx.fillRect(-9, y + 1, 18, 7);
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath(); ctx.moveTo(-6, y - 7); ctx.lineTo(-3, y - 7); ctx.lineTo(-8, y + 8); ctx.lineTo(-10, y + 8); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 0.7;
+      roundRect(-9, y - 7, 18, 15, 5); ctx.stroke();
+    }
     // head
     if (roboHead) {
       // ⚡ a square metal robot head with bolts, panel lines and glowing cyan cracks
@@ -4005,6 +4322,20 @@
   }
 
   function drawFace(face, y, time) {
+    if (face === 'glass') {
+      // 🔮 a prism mask: a band of glass across the eyes with rainbow light moving through it
+      const g = ctx.createLinearGradient(-1, 0, 9, 0);
+      const h = (nowSec * 90) % 360;
+      [0, 60, 140, 220].forEach((d, i, a) => g.addColorStop(i / (a.length - 1), `hsla(${(h + d) % 360}, 100%, 75%, 0.85)`));
+      ctx.fillStyle = g;
+      roundRect(-1, y - 17.5, 10, 4.5, 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.fillStyle = '#1c3b5a';
+      ctx.beginPath(); ctx.arc(3, y - 15.2, 0.9, 0, Math.PI * 2); ctx.arc(6.5, y - 15.2, 0.9, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 0.9;
+      ctx.beginPath(); ctx.arc(5, y - 11.5, 2, 0.2, Math.PI - 0.2); ctx.stroke();
+      return;
+    }
     if (face === 'robo') {
       // a glowing visor instead of eyes
       ctx.fillStyle = '#1b2430';
@@ -4054,6 +4385,18 @@
 
   function drawHat(hat, y, shirt) {
     switch (hat) {
+      case 'glass': { // 🔮 a crystal crown: see-through glass points with rainbow light and a twinkle
+        const pts = [[-7, -21], [-6, -28], [-3.5, -23.5], [0, -31], [3.5, -23.5], [6, -28], [7, -21]];
+        ctx.save();
+        const g = ctx.createLinearGradient(-7, y - 31, 7, y - 21);
+        g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(0.5, `hsla(${(nowSec * 80) % 360}, 100%, 82%, 0.75)`); g.addColorStop(1, 'rgba(116,192,252,0.85)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); pts.forEach(([px, py], i) => i ? ctx.lineTo(px, y + py) : ctx.moveTo(px, y + py)); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 0.6; ctx.stroke();
+        ctx.restore();
+        if (nowSec % 1.5 < 0.25) star(0, y - 31, 2, '#ffffff');
+        break;
+      }
       case 'robo': // two robot antennas with glowing tips that blink one after the other
         for (const [ax, tilt, ph] of [[-4, -0.25, 0], [4, 0.25, Math.PI]]) {
           ctx.save();
@@ -4281,7 +4624,7 @@
     if (m.id === 'rainbow') {
       drawSunShower(dt);
     } else if (m) {
-      const tint = ({ impossible: 0.1, sakura: 0.08, meteor: 0.12, cyber: 0.3 }[m.id] ?? 0.13) *
+      const tint = ({ impossible: 0.1, sakura: 0.08, meteor: 0.12, cyber: 0.3, glass: 0.12 }[m.id] ?? 0.13) *
         Math.max(share, 0.5);
       if (tint) {
         ctx.globalAlpha = tint;
@@ -4298,6 +4641,9 @@
         if (m.id === 'cyber') {                                                             // glowing cyan sparks floating up
           Object.assign(p, { y: world.height + 10, vy: -(30 + Math.random() * 50), color: Math.random() < 0.7 ? CYAN : '#d9fdff', r: 1.5 + Math.random() * 2.5 });
         }
+        if (m.id === 'glass') {                                                             // glass shards drifting down and spinning
+          Object.assign(p, { shape: 'shard', r: 3 + Math.random() * 4, vy: 35 + Math.random() * 40, hue: Math.random() * 360, rot: Math.random() * 6 });
+        }
         if (m.id === 'meteor') {                                                            // big flaming meteors
           Object.assign(p, { x: world.width * 0.2 + Math.random() * world.width, y: -20, vx: -220 - Math.random() * 80, vy: 340 + Math.random() * 80,
             shape: 'meteor', r: 6 + Math.random() * 6, life: 4 });
@@ -4312,6 +4658,7 @@
       }
       if (m.id === 'impossible') drawGlitch(time);
       if (m.id === 'cyber') drawCyberGrid(time, share);
+      if (m.id === 'glass') drawGlassStorm(time, share);
     }
   }
 
@@ -4323,7 +4670,9 @@
       if (p.y > world.height + 20 || p.y < -20 || p.life <= 0) { ambient.splice(i, 1); continue; }
       ctx.fillStyle = p.color;
       ctx.globalAlpha = p.life !== undefined ? Math.min(0.9, p.life) : 0.8;
-      if (p.shape === 'code') {
+      if (p.shape === 'shard') {
+        glassShard(p.x + Math.sin(time + i) * 10, p.y, p.r, p.rot + time * 2, (p.hue + time * 40) % 360);
+      } else if (p.shape === 'code') {
         ctx.font = `bold ${p.r * 1.6}px monospace`;
         ctx.textAlign = 'center';
         ctx.fillText(p.text, p.x, p.y);
@@ -4360,6 +4709,29 @@
   // ⚡ Cyber mutation: blue lightning striking all over the park
   const cyberBolts = [];
   let cyberFlash = 0;
+  // 🔮 Glass Storm: rainbow light beams sweep across the park and the ground twinkles
+  function drawGlassStorm(time, share) {
+    const k = Math.max(share, 0.5);
+    ctx.save();
+    for (let b = 0; b < 3; b++) {
+      const sx = ((time * 120 + b * 700) % (world.width + 800)) - 400;
+      const g = ctx.createLinearGradient(sx - 120, 0, sx + 120, 0);
+      [0, 60, 130, 200, 280].forEach((h, i, a) => g.addColorStop(i / (a.length - 1), `hsla(${(h + time * 30) % 360}, 100%, 75%, 0)`));
+      g.addColorStop(0.5, `hsla(${(b * 120 + time * 30) % 360}, 100%, 80%, ${0.16 * k})`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(sx - 60, 0); ctx.lineTo(sx + 60, 0); ctx.lineTo(sx + 260, world.height); ctx.lineTo(sx + 20, world.height);
+      ctx.fill();
+    }
+    ctx.restore();
+    if (Math.random() < 0.6 * k) star(Math.random() * world.width, Math.random() * world.height, 2 + Math.random() * 3, `hsl(${Math.random() * 360}, 100%, 88%)`);
+    if (Math.random() < 0.03 * k) {
+      const x2 = Math.random() * world.width, y2 = 200 + Math.random() * (world.height - 220);
+      petSpark(x2, y2, { shape: 'ring', color: '#e7f5ff', vy: 0, life: 1, size: 16, grow: 200 });
+      for (let i = 0; i < 12; i++) petSpark(x2, y2, { shape: 'shard', vx: (Math.random() - 0.5) * 300, vy: -Math.random() * 240, life: 0.9, size: 3.5, hue: i * 30 });
+    }
+  }
+
   function drawCyberGrid(time, share) {
     const k = Math.max(share, 0.5);
     // a glowing hexagon wave slowly sweeping across the whole park
