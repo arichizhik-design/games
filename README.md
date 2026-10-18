@@ -152,10 +152,11 @@ Everything is made of glass: see-through, with rainbow light bending through it 
 it (regular players see none of it, except Glass pets an admin is wearing); the test file shows it to everyone. To drop it
 for everyone, set `GLASS=everyone` on the server and give `GLASS_EVENT` in `public/gamedata.js` its dates.
 
-- **Glass Block** in the Pet Shop ($1.2B) with its own glass pets: 🦋 Glass Butterfly and 🐸 Glass Frog (Legendary),
-  🦌 Glass Deer and 🦩 Glass Flamingo (Mythic), 🦒 Glass Giraffe (Secret), 🐘 Glass Elephant and 🦢 Glass Swan
-  (Celestial), and the best one, the **🦚 Glass Peacock** (Glass rarity, +6000%, 0.5%): a giant fan of rainbow light,
-  orbiting glass shards, light from the sky, and every few seconds it shatters into shards and puts itself back together.
+- **Glass Block** in the Pet Shop ($1.2B) with its own glass pets: 🐍 Glass Cobra and 🐆 Glass Leopard (Legendary),
+  🦏 Glass Rhino and 🐻 Glass Bear (Mythic), 🐊 Glass Crocodile (Secret), 🐘 Glass Elephant and 🦑 Glass Squid
+  (Celestial), and the best one, the **🐉 Glass Dragon** (Glass rarity, +6000%, 0.5%): huge flapping crystal wings of
+  rainbow light, rainbow prism breath, orbiting glass shards, light from the sky, and every few seconds it shatters into
+  shards and puts itself back together.
   Glass pets are see-through with rainbow light inside; their effects (shards, rainbow beams, light from the sky) grow with rarity.
 - **🔮 Glass mutation** (x75): see-through rainbow scoops. **Glass Storms** start it every 30 minutes during the event
   (falling glass shards and rainbow light sweeping across the park); admins can start it too.

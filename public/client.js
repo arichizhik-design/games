@@ -1234,7 +1234,7 @@
     const title = el.querySelector('.clTitle');
     title.textContent = title.dataset.text = glass ? '🔮 THE GLASS EVENT IS HERE! 🔮' : '⚡ CYBER EVENT IS HERE! ⚡';
     el.querySelector('.clSub').textContent = glass
-      ? `Glass Block · Glass Peacock · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
+      ? `Glass Block · Glass Dragon · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
       : `Cyber Block · Cyber Whale · Robo Ice Cream · Cyber Storms · Robo customers pay x2 · ${evEnds('cyber')}`;
     el.classList.remove('hidden');
     clearTimeout(showCyberLaunch.t);
@@ -2594,7 +2594,7 @@
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { dragon: 1.45, cyberwhale: 1.8, glasspeacock: 1.8, glasselephant: 1.35, glassgiraffe: 1.35, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+  const PET_SIZE = { dragon: 1.45, cyberwhale: 1.8, glassdragon: 1.8, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
   const CYAN = '#2ee8ff';
@@ -2785,7 +2785,7 @@
 
   const PET_MODELS = { cyberwhale: drawCyberWhale };
   for (const p of PETS) if (p.fx === 'cyber') PET_MODELS[p.id] = cyberPetModel(p.id, p.emoji);
-  for (const p of PETS) if (p.fx === 'glass' || p.fx === 'glasspeacock') PET_MODELS[p.id] = glassPetModel(p.id, p.emoji, p.fx === 'glasspeacock');
+  for (const p of PETS) if (p.fx === 'glass' || p.fx === 'glassdragon') PET_MODELS[p.id] = glassPetModel(p.id, p.emoji, p.fx === 'glassdragon');
 
   // pictures of the low-poly pets for the pet lists (made once each)
   const petIcons = {};
@@ -3002,9 +3002,9 @@
         }
         break;
       }
-      case 'glasspeacock': {
-        // 🔮 Glass Peacock, the best Glass pet: a giant fan of rainbow light, orbiting glass shards,
-        // light from the sky, and it shatters into shards and puts itself back together
+      case 'glassdragon': {
+        // 🔮 Glass Dragon, the best Glass pet: huge crystal wings of rainbow light, rainbow prism breath,
+        // orbiting glass shards, light from the sky, and it shatters into shards and puts itself back together
         const gx = pp.x, gy = pp.y + 9;
         // a spinning prism circle of light on the ground
         ctx.save();
@@ -3015,22 +3015,35 @@
           ctx.beginPath(); ctx.arc(0, 0, 30 + k * 7, time + k, time + k + Math.PI * 1.4); ctx.stroke();
         }
         ctx.restore();
-        // the peacock's tail: a huge fan of rainbow light rays
+        // two huge crystal wings made of rainbow light that flap
         ctx.save();
-        const fan = 0.55 + 0.25 * Math.sin(time * 2);
-        for (let k = 0; k < 13; k++) {
-          const a = -Math.PI / 2 + (k - 6) * 0.2 + Math.sin(time * 0.8) * 0.05;
-          const len = 80 + 14 * Math.sin(time * 3 + k);
-          const g = ctx.createLinearGradient(x, y - 14, x + Math.cos(a) * len, y - 14 + Math.sin(a) * len);
-          g.addColorStop(0, `hsla(${(k * 28 + time * 60) % 360}, 100%, 75%, 0)`);
-          g.addColorStop(1, `hsla(${(k * 28 + time * 60) % 360}, 100%, 70%, ${0.5 * fan})`);
-          ctx.strokeStyle = g; ctx.lineWidth = 5;
-          ctx.beginPath(); ctx.moveTo(x, y - 14); ctx.lineTo(x + Math.cos(a) * len, y - 14 + Math.sin(a) * len); ctx.stroke();
-          star(x + Math.cos(a) * len, y - 14 + Math.sin(a) * len, 2.5, '#ffffff'); // an "eye" at the end of each feather
+        const flap = Math.sin(time * 5) * 0.25;
+        for (const side of [-1, 1]) {
+          for (let k = 0; k < 7; k++) {
+            const a = -Math.PI / 2 + side * (0.45 + k * 0.17 + flap);
+            const len = 70 + 12 * Math.sin(time * 3 + k) - k * 4;
+            const g = ctx.createLinearGradient(x, y - 18, x + Math.cos(a) * len, y - 18 + Math.sin(a) * len);
+            g.addColorStop(0, `hsla(${(k * 45 + time * 60) % 360}, 100%, 80%, 0.05)`);
+            g.addColorStop(1, `hsla(${(k * 45 + time * 60) % 360}, 100%, 72%, 0.55)`);
+            ctx.strokeStyle = g; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(x, y - 18); ctx.lineTo(x + Math.cos(a) * len, y - 18 + Math.sin(a) * len); ctx.stroke();
+            if (k % 2 === 0) glassShard(x + Math.cos(a) * len, y - 18 + Math.sin(a) * len, 3.5, a, (k * 45 + time * 60) % 360);
+          }
         }
         ctx.restore();
         glow(x, y - 14, 95, '208, 235, 255', 0.38);
         glow(x, y - 14, 45, '255, 255, 255', 0.35);
+        // rainbow prism breath: light goes in white and comes out as a rainbow
+        const breath = (time + seed) % 3.6;
+        if (breath < 1.2) {
+          const grow = Math.min(1, breath * 4), f = pp.facing, mx = x + f * 20 * big, my = y - 14 * big;
+          for (let k = 0; k < 6; k++) {
+            ctx.strokeStyle = `hsla(${k * 55}, 100%, 65%, 0.75)`; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + f * 150 * grow, my - 20 + k * 9 * grow); ctx.stroke();
+          }
+          glow(mx, my, 22, '255, 255, 255', 0.8);
+          if (chance(20)) petSpark(mx + f * 150 * grow * Math.random(), my + rnd() * 40, { shape: 'shard', vx: f * 80, vy: rnd() * 60, life: 0.7, size: 3, hue: Math.random() * 360 });
+        }
         // big glass shards orbiting it, joined by threads of light
         const pts = [];
         for (let k = 0; k < 6; k++) {
@@ -3194,7 +3207,7 @@
         ctx.restore();
       }
     }
-    if (pet.fx === 'glasspeacock' && (time + seed) % 6 < 0.35) ctx.globalAlpha *= 0.15; // shattered for a moment
+    if (pet.fx === 'glassdragon' && (time + seed) % 6 < 0.35) ctx.globalAlpha *= 0.15; // shattered for a moment
     if (PET_MODELS[pet.id]) PET_MODELS[pet.id](time, seed, pet.kind === 'fly' || pet.kind === 'swim', pp.moving);
     else ctx.fillText(pet.emoji, 0, 10); // drawn from its feet, so squishing and sitting look right
     ctx.restore();

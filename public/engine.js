@@ -124,6 +124,10 @@
     return x.event || (x.rarity === 'cyber' ? 'cyber' : x.rarity === 'glass' ? 'glass' : null);
   };
   const isCyber = id => eventOf(id) === 'cyber';
+  // pets that changed (the Cyber Hydra became the Cyber Whale; the first Glass pets became cooler ones)
+  const RENAMED_PETS = { hydra: 'cyberwhale', glassbutterfly: 'glasscobra', glassfrog: 'glassleopard', glassdeer: 'glassrhino',
+    glassflamingo: 'glassbear', glassgiraffe: 'glasscroc', glassswan: 'glasssquid', glasspeacock: 'glassdragon' };
+  const renamedPet = id => RENAMED_PETS[id] || id;
   const bundleEvents = b => [...Object.keys(b.items), ...Object.keys(b.pets)].map(eventOf).filter(Boolean);
   function hideLook(avatar, look) {
     const out = { ...avatar };
@@ -382,7 +386,7 @@
         mutations: saved.mutations ?? {}, // mutation id -> scoops sold with it
         avatar: fixAvatar(saved.avatar),
         // (the Cyber Hydra became the Cyber Whale)
-        pets: (saved.pets || []).map(id => id === 'hydra' ? 'cyberwhale' : id).filter(id => petById[id]).slice(0, MAX_PETS),
+        pets: (saved.pets || []).map(renamedPet).filter(id => petById[id]).slice(0, MAX_PETS),
         passXP: saved.passXP || 0,                                   // ⚡ scoops sold during the Cyber Event
         passClaimed: { free: [...(saved.passClaimed?.free || [])], premium: [...(saved.passClaimed?.premium || [])] },
         premiumPass: !!saved.premiumPass,
@@ -394,7 +398,7 @@
         glassClaimed: { free: [...(saved.glassClaimed?.free || [])], premium: [...(saved.glassClaimed?.premium || [])] },
         premiumGlass: !!saved.premiumGlass,
         glassGiftDay: saved.glassGiftDay || 0,
-        worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(id => id === 'hydra' ? 'cyberwhale' : id), // the pets following you
+        worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(renamedPet), // the pets following you
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
         x: s.x + 60, y: s.y + 110,        // the player's character

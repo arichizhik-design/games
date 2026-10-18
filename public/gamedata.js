@@ -146,17 +146,17 @@
   FLAVORS.push({ id: 'glassice', name: 'Glass Ice Cream', rarity: 'glass', price: 30000, cost: 60e6, color: '#e7f5ff', effect: 'glass', event: 'glass' });
   // the Glass Block's own pets: new animals made of glass (no other block gives them)
   PETS.push(
-    { id: 'glassbutterfly', name: 'Glass Butterfly', emoji: '🦋', rarity: 'legendary', boost: 1.35, fx: 'glass', kind: 'fly',  event: 'glass', block: 'glass' },
-    { id: 'glassfrog',      name: 'Glass Frog',      emoji: '🐸', rarity: 'legendary', boost: 1.45, fx: 'glass', kind: 'hop',  event: 'glass', block: 'glass' },
-    { id: 'glassdeer',      name: 'Glass Deer',      emoji: '🦌', rarity: 'mythic',    boost: 2.75, fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
-    { id: 'glassflamingo',  name: 'Glass Flamingo',  emoji: '🦩', rarity: 'mythic',    boost: 2.85, fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
-    { id: 'glassgiraffe',   name: 'Glass Giraffe',   emoji: '🦒', rarity: 'secret',    boost: 5.6,  fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glasscobra',     name: 'Glass Cobra',     emoji: '🐍', rarity: 'legendary', boost: 1.35, fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glassleopard',   name: 'Glass Leopard',   emoji: '🐆', rarity: 'legendary', boost: 1.45, fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glassrhino',     name: 'Glass Rhino',     emoji: '🦏', rarity: 'mythic',    boost: 2.75, fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glassbear',      name: 'Glass Bear',      emoji: '🐻', rarity: 'mythic',    boost: 2.85, fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glasscroc',      name: 'Glass Crocodile', emoji: '🐊', rarity: 'secret',    boost: 5.6,  fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
     { id: 'glasselephant',  name: 'Glass Elephant',  emoji: '🐘', rarity: 'celestial', boost: 8.6,  fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
-    { id: 'glassswan',      name: 'Glass Swan',      emoji: '🦢', rarity: 'celestial', boost: 9.2,  fx: 'glass', kind: 'swim', event: 'glass', block: 'glass' },
-    { id: 'glasspeacock',   name: 'Glass Peacock',   emoji: '🦚', rarity: 'glass',     boost: 60,   fx: 'glasspeacock', kind: 'walk', event: 'glass', block: 'glass' },
+    { id: 'glasssquid',     name: 'Glass Squid',     emoji: '🦑', rarity: 'celestial', boost: 9.2,  fx: 'glass', kind: 'swim', event: 'glass', block: 'glass' },
+    { id: 'glassdragon',    name: 'Glass Dragon',    emoji: '🐉', rarity: 'glass',     boost: 60,   fx: 'glassdragon', kind: 'fly', event: 'glass', block: 'glass' },
   );
   LUCKY_BLOCKS.push({ id: 'glass', name: 'Glass Block', cost: 1.2e9, color: 'glass', event: 'glass', ownPets: true,
-    odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Swan 2% each
+    odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Squid 2% each
   // 🔮 Glass Pass: sell scoops during the Glass Event to unlock prizes (the bottom row needs the Premium Glass Pass)
   const GLASS_PASS = {
     free: [
