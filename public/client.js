@@ -96,7 +96,7 @@
   // (plain click/Enter handlers instead of a <form>: preview windows often block form submits)
   let joining = false;
   let adminCode = ''; // the secret admin code; saved on this device once it's right
-  const ADMIN_NAMES = ['coolkid', 'james', 'daniel9'];
+  const ADMIN_NAMES = ['coolkid', 'james']; // admins who need a secret admin code
   // each admin's code is saved on this device under their own name
   const typedName = () => $('nameInput').value.trim().toLowerCase();
   const codeKey = () => 'icecream-admin-code:' + typedName();

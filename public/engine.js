@@ -22,7 +22,7 @@
   const ADMIN_CODES = {
     coolkid: '1aazefnqiv3',
     james: '8itvkdxe00',
-    daniel9: '1a0cgvkqt5f',
+    'daniel 9': null, // no admin code: the game checks Daniel 9's password instead (shop.js)
   };
   const ADMIN_NAMES = Object.keys(ADMIN_CODES);
 
@@ -681,10 +681,11 @@
         const device = String(msg.device || '').slice(0, 64);
         const isAdminName = ADMIN_NAMES.includes(key);
         const lockedTo = saves[key]?.adminDevice;
-        if (isAdminName && lockedTo && lockedTo !== device) {
+        const needsCode = isAdminName && !!ADMIN_CODES[key];
+        if (needsCode && lockedTo && lockedTo !== device) {
           return err('That name is taken. Please pick a different name.');
         }
-        if (isAdminName && !adminCodeOk(key, msg.adminCode)) {
+        if (needsCode && !adminCodeOk(key, msg.adminCode)) {
           return conn.send({ type: 'error', needCode: true,
             text: msg.adminCode ? 'Wrong admin code.' : 'That name needs the secret admin code.' });
         }
@@ -697,7 +698,7 @@
         if (!s) return err('The park is full (12 stands). Try again later!');
         conn.standId = s.id;
         s.admin = isAdminName;
-        if (s.admin && device) s.adminDevice = device;
+        if (needsCode && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS, key: s.key,
           returning: !!saves[s.key], restored, admin: s.admin, cyber: seesCyber(s) });

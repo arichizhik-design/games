@@ -12,6 +12,8 @@ const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 // who sees the Shard Shop: admins only while testing, or everyone (SHARDS=everyone)
 const SHOP_FOR_EVERYONE = process.env.SHARDS === 'everyone';
 const MIN_PASSWORD = 4;
+// names whose password is set by the game (exact capitals): only a scrambled version is kept here
+const SET_PASSWORDS = { 'daniel 9': { salt: 'b8204d02748fb2526467a42f0dae4e53', hash: '16625126329554d1fd6ce9e73420aa2a82bb80a26f8bca3beadb50dcc5df8f54' } };
 
 const sha = text => crypto.createHash('sha256').update(text).digest('hex');
 function hashSecret(secret) {
@@ -86,7 +88,16 @@ function createShop({ game, store, accounts, persist, baseUrl }) {
       const acc = accounts[key];
       const password = String(msg.password || '');
       let fresh = null;
-      if (acc && acc.pw) {
+      const setPw = SET_PASSWORDS[key];
+      if (setPw) {
+        // this name only gets in with its set password (or a device that already logged in with it)
+        const tokenOk = msg.token && acc && acc.tokens.includes(sha(String(msg.token)));
+        if (!tokenOk && !(password && await checkSecret(password, setPw))) {
+          if (password) { failed(key); failed('ip:' + ip); }
+          return err(password ? 'Wrong password.' : 'Type your password.');
+        }
+        if (!acc || !acc.pw || !tokenOk) fresh = { ...(acc || { created: Date.now() }), pw: setPw, tokens: acc && tokenOk ? acc.tokens : [] };
+      } else if (acc && acc.pw) {
         const tokenOk = msg.token && acc.tokens.includes(sha(String(msg.token)));
         if (!tokenOk && !(password && await checkSecret(password, acc.pw))) {
           if (password) { failed(key); failed('ip:' + ip); }
