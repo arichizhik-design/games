@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wild Park Tycoon</title>
+<style>
+  :root {
+    --bg: #1d3b2a; --panel: #fffaf0; --ink: #2b2b2b; --muted: #777;
+    --accent: #ff9f1c; --good: #2ec4b6; --bad: #e63946;
+    --common: #9e9e9e; --uncommon: #4caf50; --rare: #2196f3;
+    --epic: #9c27b0; --legendary: #ff9800; --mythic: #e91e63;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: "Trebuchet MS", system-ui, sans-serif; color: var(--ink);
+    background: var(--bg); min-height: 100vh; display: flex; flex-direction: column;
+    user-select: none; -webkit-user-select: none;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    padding: 10px 16px; background: #143021; color: #fff;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  .money { font-size: 22px; font-weight: bold; color: #ffd166; }
+  .rate { font-size: 14px; color: #b8e0c8; }
+  main { flex: 1; display: flex; gap: 12px; padding: 12px; min-height: 0; }
+  #park {
+    position: relative; flex: 1; min-height: 420px; border-radius: 16px; overflow: hidden; cursor: pointer;
+    background:
+      radial-gradient(circle at 20% 30%, #7bc96f 0 8%, transparent 9%),
+      radial-gradient(circle at 75% 70%, #7bc96f 0 10%, transparent 11%),
+      linear-gradient(#8fd17f, #6fbf5f);
+    box-shadow: inset 0 0 0 6px #4e8f43;
+  }
+  #park .path {
+    position: absolute; left: 0; right: 0; top: 46%; height: 12%; background: #e9d8a6;
+    border-top: 3px dashed #d4bf85; border-bottom: 3px dashed #d4bf85; pointer-events: none;
+  }
+  .deco { position: absolute; font-size: 34px; pointer-events: none; opacity: .9; }
+  .animal {
+    position: absolute; font-size: 40px; transition: left 3s ease-in-out, top 3s ease-in-out;
+    transform: translate(-50%, -50%); filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); z-index: 2;
+  }
+  .animal.flip { transform: translate(-50%, -50%) scaleX(-1); }
+  .animal:hover { filter: drop-shadow(0 0 8px #fff); }
+  .visitor {
+    position: absolute; font-size: 32px; z-index: 3; transform: translate(-50%, -50%);
+    transition: left linear; top: 52%;
+  }
+  .visitor.vip { filter: drop-shadow(0 0 10px gold); font-size: 38px; }
+  .float {
+    position: absolute; font-weight: bold; color: #fff; text-shadow: 0 2px 3px #000; pointer-events: none;
+    z-index: 5; animation: floatUp 1s ease-out forwards; font-size: 18px;
+  }
+  @keyframes floatUp { to { transform: translateY(-50px); opacity: 0; } }
+  .park-label {
+    position: absolute; left: 10px; top: 10px; background: rgba(0,0,0,.45); color: #fff;
+    padding: 4px 10px; border-radius: 10px; font-size: 14px; z-index: 4; pointer-events: none;
+  }
+  .park-hint {
+    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: rgba(0,0,0,.45);
+    color: #fff; padding: 4px 12px; border-radius: 10px; font-size: 13px; z-index: 4; pointer-events: none;
+    white-space: nowrap;
+  }
+  aside {
+    width: 360px; background: var(--panel); border-radius: 16px; display: flex; flex-direction: column;
+    overflow: hidden; max-height: calc(100vh - 80px);
+  }
+  .tabs { display: flex; background: #f0e6d2; }
+  .tabs button {
+    flex: 1; border: 0; background: none; padding: 10px 4px; font: inherit; font-size: 13px; cursor: pointer;
+    font-weight: bold; color: #7a6a4f;
+  }
+  .tabs button.on { background: var(--panel); color: var(--ink); }
+  .tab { display: none; padding: 12px; overflow-y: auto; flex: 1; }
+  .tab.on { display: block; }
+  .card {
+    display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px; background: #fff;
+    border: 2px solid #eee; margin-bottom: 8px;
+  }
+  .card .icon { font-size: 34px; width: 44px; text-align: center; }
+  .card .info { flex: 1; min-width: 0; }
+  .card .name { font-weight: bold; }
+  .card .desc { font-size: 12px; color: var(--muted); }
+  .btn {
+    border: 0; border-radius: 10px; padding: 8px 12px; font: inherit; font-weight: bold; cursor: pointer;
+    background: var(--accent); color: #fff; white-space: nowrap;
+  }
+  .btn:disabled { background: #ccc; cursor: not-allowed; }
+  .btn.sell { background: var(--bad); padding: 4px 8px; font-size: 12px; }
+  .odds { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .odds span { font-size: 10px; padding: 1px 5px; border-radius: 6px; color: #fff; }
+  .r-common { background: var(--common); } .r-uncommon { background: var(--uncommon); }
+  .r-rare { background: var(--rare); } .r-epic { background: var(--epic); }
+  .r-legendary { background: var(--legendary); } .r-mythic { background: var(--mythic); }
+  .t-common { color: var(--common); } .t-uncommon { color: var(--uncommon); } .t-rare { color: var(--rare); }
+  .t-epic { color: var(--epic); } .t-legendary { color: var(--legendary); } .t-mythic { color: var(--mythic); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .cell {
+    background: #fff; border: 2px solid #eee; border-radius: 10px; text-align: center; padding: 6px 2px;
+    font-size: 11px;
+  }
+  .cell .e { font-size: 30px; }
+  .cell.locked .e { filter: brightness(0); opacity: .25; }
+  .section-title { font-weight: bold; margin: 10px 0 6px; font-size: 14px; }
+  .note { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+  #modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center;
+    justify-content: center; z-index: 10;
+  }
+  #modal.on { display: flex; }
+  .box {
+    background: var(--panel); border-radius: 20px; padding: 24px; width: min(340px, 90vw); text-align: center;
+  }
+  #reveal { font-size: 90px; height: 120px; line-height: 120px; }
+  #reveal.spin { animation: shake .12s infinite; }
+  @keyframes shake { 50% { transform: rotate(8deg) scale(1.05); } }
+  #reveal.pop { animation: pop .5s ease-out; }
+  @keyframes pop { 0% { transform: scale(.2); } 70% { transform: scale(1.25); } 100% { transform: scale(1); } }
+  #revealName { font-size: 22px; font-weight: bold; min-height: 30px; }
+  #revealInfo { color: var(--muted); min-height: 20px; margin-bottom: 14px; }
+  .modal-btns { display: flex; gap: 8px; justify-content: center; }
+  #toast {
+    position: fixed; left: 50%; top: 70px; transform: translateX(-50%); background: #143021; color: #fff;
+    padding: 8px 16px; border-radius: 12px; opacity: 0; transition: opacity .3s; z-index: 20; pointer-events: none;
+  }
+  #toast.on { opacity: 1; }
+  @media (max-width: 760px) {
+    main { flex-direction: column; }
+    #park { min-height: 340px; }
+    aside { width: 100%; max-height: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🦁 Wild Park Tycoon</h1>
+  <div>
+    <div class="money">🪙 <span id="coins">0</span></div>
+    <div class="rate"><span id="perSec">0</span> / sec · tap gives <span id="perTap">1</span></div>
+  </div>
+</header>
+
+<main>
+  <div id="park">
+    <div class="path"></div>
+    <div class="park-label" id="parkLabel">Animals: 0 / 6</div>
+    <div class="park-hint">Tap the park for coins · tap visitors for tips!</div>
+  </div>
+
+  <aside>
+    <div class="tabs">
+      <button data-tab="crates" class="on">📦 Crates</button>
+      <button data-tab="upgrades">⬆️ Upgrades</button>
+      <button data-tab="mine">🐾 My Animals</button>
+      <button data-tab="book">📖 Book</button>
+    </div>
+    <div class="tab on" id="tab-crates"></div>
+    <div class="tab" id="tab-upgrades"></div>
+    <div class="tab" id="tab-mine"></div>
+    <div class="tab" id="tab-book"></div>
+  </aside>
+</main>
+
+<div id="modal">
+  <div class="box">
+    <div id="reveal">📦</div>
+    <div id="revealName"></div>
+    <div id="revealInfo"></div>
+    <div class="modal-btns">
+      <button class="btn" id="keepBtn">Put in park!</button>
+      <button class="btn sell" id="sellNewBtn" style="padding:8px 12px;font-size:14px">Sell</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ---------- Game data ----------
+const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+const RARITY_NAMES = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic' };
+
+const ANIMALS = [
+  { id: 'bunny', e: '🐰', name: 'Bunny', r: 'common', inc: 0.5 },
+  { id: 'chicken', e: '🐔', name: 'Chicken', r: 'common', inc: 0.6 },
+  { id: 'pig', e: '🐷', name: 'Pig', r: 'common', inc: 0.8 },
+  { id: 'sheep', e: '🐑', name: 'Sheep', r: 'common', inc: 1 },
+  { id: 'fox', e: '🦊', name: 'Fox', r: 'uncommon', inc: 3 },
+  { id: 'raccoon', e: '🦝', name: 'Raccoon', r: 'uncommon', inc: 3.5 },
+  { id: 'owl', e: '🦉', name: 'Owl', r: 'uncommon', inc: 4 },
+  { id: 'turtle', e: '🐢', name: 'Turtle', r: 'uncommon', inc: 5 },
+  { id: 'panda', e: '🐼', name: 'Panda', r: 'rare', inc: 15 },
+  { id: 'koala', e: '🐨', name: 'Koala', r: 'rare', inc: 18 },
+  { id: 'penguin', e: '🐧', name: 'Penguin', r: 'rare', inc: 20 },
+  { id: 'flamingo', e: '🦩', name: 'Flamingo', r: 'rare', inc: 22 },
+  { id: 'zebra', e: '🦓', name: 'Zebra', r: 'epic', inc: 80 },
+  { id: 'lion', e: '🦁', name: 'Lion', r: 'epic', inc: 90 },
+  { id: 'tiger', e: '🐯', name: 'Tiger', r: 'epic', inc: 95 },
+  { id: 'giraffe', e: '🦒', name: 'Giraffe', r: 'epic', inc: 100 },
+  { id: 'gorilla', e: '🦍', name: 'Gorilla', r: 'legendary', inc: 400 },
+  { id: 'peacock', e: '🦚', name: 'Peacock', r: 'legendary', inc: 450 },
+  { id: 'elephant', e: '🐘', name: 'Elephant', r: 'legendary', inc: 480 },
+  { id: 'whale', e: '🐳', name: 'Whale', r: 'legendary', inc: 520 },
+  { id: 'dino', e: '🦕', name: 'Dinosaur', r: 'mythic', inc: 2500 },
+  { id: 'trex', e: '🦖', name: 'T-Rex', r: 'mythic', inc: 2800 },
+  { id: 'unicorn', e: '🦄', name: 'Unicorn', r: 'mythic', inc: 3200 },
+  { id: 'dragon', e: '🐉', name: 'Dragon', r: 'mythic', inc: 3600 },
+];
+const BY_ID = Object.fromEntries(ANIMALS.map(a => [a.id, a]));
+
+const CRATES = [
+  { id: 'farm', e: '🧺', name: 'Farm Crate', cost: 25, odds: { common: 80, uncommon: 18, rare: 2 } },
+  { id: 'forest', e: '🌲', name: 'Forest Crate', cost: 300, odds: { common: 40, uncommon: 45, rare: 13, epic: 2 } },
+  { id: 'safari', e: '🌍', name: 'Safari Crate', cost: 4000, odds: { uncommon: 30, rare: 50, epic: 18, legendary: 2 } },
+  { id: 'jungle', e: '🌴', name: 'Jungle Crate', cost: 60000, odds: { rare: 35, epic: 45, legendary: 18, mythic: 2 } },
+  { id: 'mythic', e: '✨', name: 'Mythic Crate', cost: 1500000, odds: { epic: 40, legendary: 45, mythic: 15 } },
+];
+
+const UPGRADES = [
+  { id: 'space', e: '🏞️', name: 'Bigger Park', desc: lvl => `Room for ${6 + (lvl + 1) * 3} animals (now ${6 + lvl * 3})`, base: 100, mult: 2.2, max: 18 },
+  { id: 'snack', e: '🍿', name: 'Snack Stand', desc: lvl => `Each tap gives ${tapValue(lvl + 1)} (now ${tapValue(lvl)})`, base: 40, mult: 1.7 },
+  { id: 'tickets', e: '🎟️', name: 'Ticket Booth', desc: lvl => `+10% money from animals (now +${lvl * 10}%)`, base: 500, mult: 1.9 },
+  { id: 'keeper', e: '🧑‍🌾', name: 'Zookeeper', desc: lvl => `Taps the park for you ${lvl + 1}× a second (now ${lvl})`, base: 1000, mult: 2.1 },
+  { id: 'bus', e: '🚌', name: 'Tour Bus', desc: lvl => `More visitors come to tip you (level ${lvl})`, base: 2500, mult: 2.5, max: 8 },
+];
+
+// ---------- State ----------
+const SAVE_KEY = 'wildParkTycoon.v1';
+let S = {
+  coins: 30, animals: [], // [{uid, id}]
+  up: { space: 0, snack: 0, tickets: 0, keeper: 0, bus: 0 },
+  seen: {}, nextUid: 1, last: Date.now(), totalEarned: 0,
+};
+try {
+  const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+  if (saved) S = Object.assign(S, saved, { up: Object.assign(S.up, saved.up || {}) });
+} catch (e) {}
+
+// ---------- Helpers ----------
+const $ = id => document.getElementById(id);
+function fmt(n) {
+  if (n < 1000) return (Math.floor(n * 10) / 10).toString().replace(/\.0$/, '');
+  const units = ['K', 'M', 'B', 'T', 'Qa', 'Qi'];
+  let i = -1;
+  while (n >= 1000 && i < units.length - 1) { n /= 1000; i++; }
+  return n.toFixed(n < 10 ? 2 : n < 100 ? 1 : 0) + units[i];
+}
+function tapValue(lvl) { return Math.floor(1 + lvl * 1 + Math.pow(lvl, 1.6)); }
+function capacity() { return 6 + S.up.space * 3; }
+function upCost(u) { return Math.floor(u.base * Math.pow(u.mult, S.up[u.id])); }
+function incomeMult() { return 1 + S.up.tickets * 0.1; }
+function perSec() { return S.animals.reduce((s, a) => s + BY_ID[a.id].inc, 0) * incomeMult(); }
+function perTap() { return tapValue(S.up.snack) + perSec() * 0.02; }
+function sellValue(a) { return Math.floor(a.inc * 20); }
+function earn(n) { S.coins += n; S.totalEarned += n; }
+let toastTimer;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
+}
+function save() { S.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+
+// ---------- Park (animals walking around) ----------
+const park = $('park');
+const sprites = {}; // uid -> element
+
+['🌳', '🌲', '🌷', '🌳', '🪨', '🌻', '🌲', '⛲'].forEach((e, i) => {
+  const d = document.createElement('div');
+  d.className = 'deco'; d.textContent = e;
+  const spots = [[4, 8], [88, 10], [10, 85], [92, 86], [50, 20], [30, 75], [70, 30], [62, 82]];
+  d.style.left = spots[i][0] + '%'; d.style.top = spots[i][1] + '%';
+  park.appendChild(d);
+});
+
+function randSpot() {
+  // keep animals off the path in the middle
+  const top = Math.random() < 0.5 ? 8 + Math.random() * 30 : 64 + Math.random() * 28;
+  return [6 + Math.random() * 88, top];
+}
+function syncSprites() {
+  const uids = new Set(S.animals.map(a => a.uid));
+  for (const uid in sprites) if (!uids.has(+uid)) { sprites[uid].remove(); delete sprites[uid]; }
+  for (const a of S.animals) {
+    if (sprites[a.uid]) continue;
+    const el = document.createElement('div');
+    el.className = 'animal'; el.textContent = BY_ID[a.id].e; el.title = BY_ID[a.id].name;
+    const [x, y] = randSpot(); el.style.left = x + '%'; el.style.top = y + '%';
+    el.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const amt = perTap() * 2; earn(amt);
+      floatText(ev, '+' + fmt(amt) + ' ' + BY_ID[a.id].e);
+      el.animate([{ transform: el.style.transform || 'translate(-50%,-50%)' }, { transform: 'translate(-50%,-80%)' }, { transform: 'translate(-50%,-50%)' }], { duration: 300 });
+      refreshTop();
+    });
+    park.appendChild(el); sprites[a.uid] = el;
+  }
+  $('parkLabel').textContent = `Animals: ${S.animals.length} / ${capacity()}`;
+}
+setInterval(() => {
+  for (const uid in sprites) {
+    if (Math.random() < 0.5) continue;
+    const el = sprites[uid];
+    const oldX = parseFloat(el.style.left);
+    const [x, y] = randSpot();
+    el.classList.toggle('flip', x > oldX);
+    el.style.left = x + '%'; el.style.top = y + '%';
+  }
+}, 2000);
+
+function floatText(ev, txt, color) {
+  const r = park.getBoundingClientRect();
+  const f = document.createElement('div');
+  f.className = 'float'; f.textContent = txt;
+  if (color) f.style.color = color;
+  f.style.left = (ev.clientX - r.left - 20) + 'px'; f.style.top = (ev.clientY - r.top - 20) + 'px';
+  park.appendChild(f); setTimeout(() => f.remove(), 1000);
+}
+
+park.addEventListener('click', ev => {
+  const amt = perTap(); earn(amt);
+  floatText(ev, '+' + fmt(amt));
+  refreshTop();
+});
+
+// ---------- Visitors ----------
+const PEOPLE = ['🧒', '👧', '👦', '👩', '👨', '🧑', '👵', '👴', '🧑‍🦱', '👩‍🦰'];
+function spawnVisitor() {
+  const vip = Math.random() < 0.06;
+  const v = document.createElement('div');
+  v.className = 'visitor' + (vip ? ' vip' : '');
+  v.textContent = vip ? '🤩' : PEOPLE[Math.floor(Math.random() * PEOPLE.length)];
+  const leftToRight = Math.random() < 0.5;
+  const dur = 7000 + Math.random() * 4000;
+  v.style.left = leftToRight ? '-5%' : '105%';
+  v.style.top = (49 + Math.random() * 6) + '%';
+  v.style.transitionDuration = dur + 'ms';
+  if (!leftToRight) v.style.transform = 'translate(-50%,-50%) scaleX(-1)';
+  v.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const tip = Math.max(5, perSec() * (vip ? 60 : 8), perTap() * (vip ? 20 : 4));
+    earn(tip);
+    floatText(ev, (vip ? '⭐ VIP tip +' : 'Tip +') + fmt(tip), vip ? '#ffd166' : '#fff');
+    v.remove(); refreshTop();
+  });
+  park.appendChild(v);
+  requestAnimationFrame(() => requestAnimationFrame(() => { v.style.left = leftToRight ? '105%' : '-5%'; }));
+  setTimeout(() => v.remove(), dur + 100);
+}
+function visitorLoop() {
+  const busy = Math.min(S.animals.length, 20);
+  const wait = Math.max(1200, 9000 - busy * 200 - S.up.bus * 800);
+  if (S.animals.length > 0 || Math.random() < 0.3) spawnVisitor();
+  setTimeout(visitorLoop, wait * (0.6 + Math.random() * 0.8));
+}
+setTimeout(visitorLoop, 1500);
+
+// ---------- Crates ----------
+function rollRarity(odds) {
+  const total = Object.values(odds).reduce((a, b) => a + b, 0);
+  let x = Math.random() * total;
+  for (const r of RARITIES) { if (!odds[r]) continue; x -= odds[r]; if (x <= 0) return r; }
+  return Object.keys(odds)[0];
+}
+let pending = null;
+function openCrate(c) {
+  if (S.coins < c.cost) return;
+  S.coins -= c.cost;
+  const r = rollRarity(c.odds);
+  const pool = ANIMALS.filter(a => a.r === r);
+  const animal = pool[Math.floor(Math.random() * pool.length)];
+  pending = animal;
+  const isNew = !S.seen[animal.id];
+  S.seen[animal.id] = true;
+
+  const rev = $('reveal'), name = $('revealName'), info = $('revealInfo');
+  $('modal').classList.add('on');
+  $('keepBtn').style.display = $('sellNewBtn').style.display = 'none';
+  name.textContent = ''; name.className = ''; info.textContent = 'Opening...';
+  rev.textContent = c.e; rev.className = 'spin';
+  let ticks = 0;
+  const spin = setInterval(() => {
+    rev.textContent = ANIMALS[Math.floor(Math.random() * ANIMALS.length)].e;
+    if (++ticks > 14) {
+      clearInterval(spin);
+      rev.textContent = animal.e; rev.className = 'pop';
+      name.textContent = (isNew ? '🆕 ' : '') + animal.name;
+      name.className = 't-' + animal.r;
+      info.textContent = `${RARITY_NAMES[animal.r]} · earns ${fmt(animal.inc * incomeMult())}/sec`;
+      const full = S.animals.length >= capacity();
+      $('keepBtn').style.display = '';
+      $('keepBtn').disabled = full;
+      $('keepBtn').textContent = full ? 'Park is full!' : 'Put in park!';
+      $('sellNewBtn').style.display = '';
+      $('sellNewBtn').textContent = 'Sell for ' + fmt(sellValue(animal));
+      render();
+    }
+  }, 90);
+}
+$('keepBtn').onclick = () => {
+  if (!pending || S.animals.length >= capacity()) return;
+  S.animals.push({ uid: S.nextUid++, id: pending.id });
+  pending = null; $('modal').classList.remove('on'); syncSprites(); render(); save();
+};
+$('sellNewBtn').onclick = () => {
+  if (!pending) return;
+  earn(sellValue(pending)); toast(`Sold ${pending.name} for 🪙${fmt(sellValue(pending))}`);
+  pending = null; $('modal').classList.remove('on'); render(); save();
+};
+
+// ---------- Panels ----------
+function renderCrates() {
+  const full = S.animals.length >= capacity();
+  let h = `<p class="note">Open crates to get animals. Every animal in your park earns coins every second.</p>`;
+  if (full) h += `<p class="note" style="color:var(--bad)">Your park is full! Buy <b>Bigger Park</b> or sell some animals.</p>`;
+  for (const c of CRATES) {
+    const odds = RARITIES.filter(r => c.odds[r]).map(r => `<span class="r-${r}">${RARITY_NAMES[r]} ${c.odds[r]}%</span>`).join('');
+    h += `<div class="card"><div class="icon">${c.e}</div><div class="info"><div class="name">${c.name}</div>
+      <div class="odds">${odds}</div></div>
+      <button class="btn" data-crate="${c.id}" ${S.coins < c.cost ? 'disabled' : ''}>🪙 ${fmt(c.cost)}</button></div>`;
+  }
+  $('tab-crates').innerHTML = h;
+}
+function renderUpgrades() {
+  let h = '';
+  for (const u of UPGRADES) {
+    const lvl = S.up[u.id], maxed = u.max !== undefined && lvl >= u.max, cost = upCost(u);
+    h += `<div class="card"><div class="icon">${u.e}</div><div class="info"><div class="name">${u.name} <span class="desc">Lv ${lvl}</span></div>
+      <div class="desc">${maxed ? 'Fully upgraded!' : u.desc(lvl)}</div></div>
+      <button class="btn" data-up="${u.id}" ${maxed || S.coins < cost ? 'disabled' : ''}>${maxed ? 'MAX' : '🪙 ' + fmt(cost)}</button></div>`;
+  }
+  $('tab-upgrades').innerHTML = h;
+}
+function renderMine() {
+  if (!S.animals.length) { $('tab-mine').innerHTML = '<p class="note">No animals yet. Open a crate!</p>'; return; }
+  const sorted = [...S.animals].sort((a, b) => BY_ID[b.id].inc - BY_ID[a.id].inc);
+  let h = `<p class="note">${S.animals.length} / ${capacity()} animals · selling gives back 20 seconds of that animal's base earnings.</p>`;
+  for (const a of sorted) {
+    const d = BY_ID[a.id];
+    h += `<div class="card"><div class="icon">${d.e}</div><div class="info"><div class="name t-${d.r}">${d.name}</div>
+      <div class="desc">${RARITY_NAMES[d.r]} · ${fmt(d.inc * incomeMult())}/sec</div></div>
+      <button class="btn sell" data-sell="${a.uid}">Sell ${fmt(sellValue(d))}</button></div>`;
+  }
+  $('tab-mine').innerHTML = h;
+}
+function renderBook() {
+  const found = ANIMALS.filter(a => S.seen[a.id]).length;
+  let h = `<p class="note">Found ${found} / ${ANIMALS.length} animals. Total coins earned: 🪙${fmt(S.totalEarned)}</p>`;
+  for (const r of RARITIES) {
+    h += `<div class="section-title t-${r}">${RARITY_NAMES[r]}</div><div class="grid">`;
+    for (const a of ANIMALS.filter(x => x.r === r)) {
+      const s = S.seen[a.id];
+      h += `<div class="cell ${s ? '' : 'locked'}"><div class="e">${a.e}</div>${s ? a.name : '???'}</div>`;
+    }
+    h += '</div>';
+  }
+  $('tab-book').innerHTML = h;
+}
+function refreshTop() {
+  $('coins').textContent = fmt(S.coins);
+  $('perSec').textContent = fmt(perSec());
+  $('perTap').textContent = fmt(perTap());
+  // update button enabled state without rebuilding (cheap)
+  document.querySelectorAll('[data-crate]').forEach(b => {
+    b.disabled = S.coins < CRATES.find(c => c.id === b.dataset.crate).cost;
+  });
+  document.querySelectorAll('[data-up]').forEach(b => {
+    const u = UPGRADES.find(x => x.id === b.dataset.up);
+    const maxed = u.max !== undefined && S.up[u.id] >= u.max;
+    b.disabled = maxed || S.coins < upCost(u);
+  });
+}
+function render() {
+  renderCrates(); renderUpgrades(); renderMine(); renderBook(); refreshTop();
+}
+
+document.querySelector('aside').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  if (b.dataset.tab) {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
+  } else if (b.dataset.crate) {
+    openCrate(CRATES.find(c => c.id === b.dataset.crate));
+  } else if (b.dataset.up) {
+    const u = UPGRADES.find(x => x.id === b.dataset.up), cost = upCost(u);
+    if (S.coins < cost || (u.max !== undefined && S.up[u.id] >= u.max)) return;
+    S.coins -= cost; S.up[u.id]++;
+    toast(`${u.e} ${u.name} is now level ${S.up[u.id]}!`);
+    syncSprites(); render(); save();
+  } else if (b.dataset.sell) {
+    const i = S.animals.findIndex(a => a.uid === +b.dataset.sell);
+    if (i < 0) return;
+    const d = BY_ID[S.animals[i].id];
+    earn(sellValue(d)); S.animals.splice(i, 1);
+    toast(`Sold ${d.name} for 🪙${fmt(sellValue(d))}`);
+    syncSprites(); render(); save();
+  }
+});
+
+// ---------- Main loop ----------
+let lastTick = Date.now(), keeperAcc = 0;
+setInterval(() => {
+  const now = Date.now(), dt = (now - lastTick) / 1000; lastTick = now;
+  earn(perSec() * dt);
+  keeperAcc += S.up.keeper * dt;
+  while (keeperAcc >= 1) { keeperAcc--; earn(perTap()); }
+  refreshTop();
+}, 100);
+setInterval(render, 2000);
+setInterval(save, 5000);
+window.addEventListener('beforeunload', save);
+
+// ---------- Start ----------
+const away = Math.min((Date.now() - S.last) / 1000, 2 * 3600);
+if (away > 60 && perSec() > 0) {
+  const got = perSec() * away * 0.5;
+  earn(got);
+  setTimeout(() => toast(`Welcome back! Your animals earned 🪙${fmt(got)} while you were away.`), 500);
+} else if (!S.totalEarned) {
+  setTimeout(() => toast('Tap the park to earn coins, then open a 🧺 Farm Crate!'), 500);
+}
+syncSprites(); render(); save();
+</script>
+</body>
+</html>
