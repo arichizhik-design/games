@@ -244,7 +244,8 @@ function fmt(n) {
   const units = ['K', 'M', 'B', 'T', 'Qa', 'Qi'];
   let i = -1;
   while (n >= 1000 && i < units.length - 1) { n /= 1000; i++; }
-  return n.toFixed(n < 10 ? 2 : n < 100 ? 1 : 0) + units[i];
+  const d = n < 10 ? 2 : n < 100 ? 1 : 0;
+  return (Math.floor(n * 10 ** d) / 10 ** d).toFixed(d) + units[i];
 }
 function tapValue(lvl) { return Math.floor(1 + lvl * 1 + Math.pow(lvl, 1.6)); }
 function capacity() { return 6 + S.up.space * 3; }

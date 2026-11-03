@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elemental Tycoon</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&family=Nunito:wght@400;700;800&display=swap">
+<style>
+  /* Layout: a glowing mana core on the left, a spellbook of tabs on the right; stacks on phones. */
+  :root {
+    --void: #120f1c; --panel: #1c1828; --panel2: #252036; --line: #362f4d;
+    --ink: #ece6f5; --muted: #a197b8; --mana: #7fe3ff; --gold: #ffd166; --bad: #ff6b81;
+    --t1: #b8b2c8; --t2: #5ee08a; --t3: #4fa8ff; --t4: #c77dff; --t5: #ffab40; --t6: #ff5fa2; --t7: #ffffff;
+    --display: "Uncial Antiqua", "Papyrus", Georgia, serif;
+    --body: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-family: var(--body); color: var(--ink); background: var(--void);
+    display: flex; flex-direction: column; user-select: none; -webkit-user-select: none;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-block: 12px;
+  }
+  header h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; letter-spacing: .02em; }
+  header h1 span { color: var(--mana); }
+  .stats { text-align: right; font-variant-numeric: tabular-nums; }
+  .mana { font-size: 24px; font-weight: 800; color: var(--mana); }
+  .rate { font-size: 13px; color: var(--muted); }
+  main { flex: 1; display: flex; gap: 14px; padding-bottom: 14px; min-height: 0; }
+
+  /* ----- Core ----- */
+  #core {
+    position: relative; flex: 1; min-height: 420px; border-radius: 18px; overflow: hidden; cursor: pointer;
+    background: radial-gradient(circle at 50% 50%, #2a1f48 0%, #160f26 55%, #0c0915 100%);
+    border: 1px solid var(--line);
+  }
+  #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #orb {
+    position: absolute; left: 50%; top: 50%; width: 150px; height: 150px; margin: -75px 0 0 -75px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffffff 0%, var(--mana) 18%, #4b3bff 60%, #1b0f4a 100%);
+    box-shadow: 0 0 40px var(--mana), 0 0 100px #4b3bff; animation: breathe 3s ease-in-out infinite;
+    transition: transform .08s;
+  }
+  #orb.hit { transform: scale(.92); }
+  @keyframes breathe { 50% { box-shadow: 0 0 60px var(--mana), 0 0 140px #6a4bff; } }
+  #ring { position: absolute; left: 50%; top: 50%; width: 0; height: 0; animation: spin 40s linear infinite; pointer-events: none; }
+  #ring div { position: absolute; font-size: 28px; transform: translate(-50%, -50%); filter: drop-shadow(0 0 6px rgba(255,255,255,.4)); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .float {
+    position: absolute; font-weight: 800; color: var(--mana); text-shadow: 0 2px 4px #000; pointer-events: none;
+    z-index: 5; animation: floatUp 1s ease-out forwards; font-size: 18px; white-space: nowrap;
+  }
+  @keyframes floatUp { to { transform: translateY(-55px); opacity: 0; } }
+  .wisp {
+    position: absolute; font-size: 34px; z-index: 4; cursor: pointer; transform: translate(-50%, -50%);
+    filter: drop-shadow(0 0 12px var(--gold)); animation: bob 1s ease-in-out infinite alternate;
+  }
+  @keyframes bob { to { margin-top: -12px; } }
+  .core-label {
+    position: absolute; left: 12px; top: 12px; background: rgba(0,0,0,.45); color: var(--ink); padding: 4px 10px;
+    border-radius: 10px; font-size: 13px; pointer-events: none; z-index: 3;
+  }
+  .core-hint {
+    position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: rgba(0,0,0,.45); color: var(--muted);
+    padding: 4px 12px; border-radius: 10px; font-size: 13px; pointer-events: none; white-space: nowrap; z-index: 3;
+  }
+
+  /* ----- Spellbook panel ----- */
+  aside {
+    width: 390px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+    display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+  }
+  .tabs { display: flex; border-bottom: 1px solid var(--line); }
+  .tabs button {
+    flex: 1; border: 0; background: none; padding: 11px 4px; font: inherit; font-size: 13px; font-weight: 800;
+    color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .tabs button.on { color: var(--ink); border-bottom-color: var(--mana); }
+  .tabs button:focus-visible, .btn:focus-visible, .pick:focus-visible { outline: 2px solid var(--mana); outline-offset: 2px; }
+  .tab { display: none; padding: 12px; overflow-y: auto; flex: 1; }
+  .tab.on { display: block; }
+  .note { font-size: 12px; color: var(--muted); margin: 0 0 10px; line-height: 1.45; }
+  .tier-title { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin: 12px 0 6px; }
+  .row {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; background: var(--panel2);
+    margin-bottom: 6px;
+  }
+  .row .icon { font-size: 30px; width: 40px; text-align: center; }
+  .row .info { flex: 1; min-width: 0; }
+  .row .name { font-weight: 800; }
+  .row .desc { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .count {
+    font-size: 12px; font-weight: 800; background: var(--void); border-radius: 8px; padding: 1px 7px; margin-left: 4px;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .btn {
+    border: 0; border-radius: 10px; padding: 8px 12px; font: inherit; font-weight: 800; cursor: pointer;
+    background: var(--mana); color: var(--void); white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .btn:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
+  .btn.ghost { background: transparent; color: var(--mana); border: 1px solid var(--mana); }
+  .btn.ghost:disabled { color: var(--muted); border-color: var(--line); background: transparent; }
+  .c1 { color: var(--t1); } .c2 { color: var(--t2); } .c3 { color: var(--t3); } .c4 { color: var(--t4); }
+  .c5 { color: var(--t5); } .c6 { color: var(--t6); } .c7 { color: var(--t7); text-shadow: 0 0 8px var(--mana); }
+
+  /* fusion */
+  .altar { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 6px 0 12px; }
+  .slot {
+    width: 74px; height: 74px; border-radius: 50%; border: 2px dashed var(--line); display: flex; align-items: center;
+    justify-content: center; font-size: 38px; cursor: pointer; background: var(--void);
+  }
+  .slot.full { border-style: solid; border-color: var(--mana); box-shadow: 0 0 14px rgba(127,227,255,.35); }
+  .plus { font-size: 26px; color: var(--muted); }
+  .fuse-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+  #fuseMsg { text-align: center; min-height: 22px; font-weight: 700; margin-bottom: 8px; }
+  .picks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .pick {
+    border: 1px solid var(--line); background: var(--panel2); border-radius: 10px; padding: 6px 2px; cursor: pointer;
+    font: inherit; color: var(--ink); font-size: 10px; text-align: center;
+  }
+  .pick .e { font-size: 26px; display: block; }
+  .pick:disabled { opacity: .35; cursor: not-allowed; }
+  .hints { margin-top: 10px; font-size: 13px; }
+  .hints div { padding: 4px 0; color: var(--muted); }
+
+  /* codex */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .cell { background: var(--panel2); border-radius: 10px; text-align: center; padding: 7px 2px; font-size: 11px; }
+  .cell .e { font-size: 28px; }
+  .cell .r { color: var(--muted); font-size: 10px; }
+  .cell.locked .e { filter: brightness(0) invert(.25); }
+
+  #toast {
+    position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
+    background: var(--panel2); border: 1px solid var(--mana); color: var(--ink); padding: 9px 16px; border-radius: 12px;
+    opacity: 0; transition: opacity .3s; z-index: 20; pointer-events: none; max-width: 90vw; text-align: center;
+  }
+  #toast.on { opacity: 1; }
+  #discover {
+    position: fixed; inset: 0; background: rgba(5,3,12,.75); display: flex; align-items: center; justify-content: center; z-index: 15;
+  }
+  #discover[hidden] { display: none; }
+  #discover .box {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 26px; text-align: center; width: min(340px, 90vw);
+  }
+  #discover .big { font-size: 92px; animation: pop .6s ease-out; }
+  @keyframes pop { 0% { transform: scale(.1) rotate(-90deg); } 70% { transform: scale(1.25); } 100% { transform: scale(1); } }
+  #discover h2 { font-family: var(--display); font-weight: 400; margin: 6px 0; font-size: 28px; }
+  #discover p { color: var(--muted); margin: 0 0 16px; }
+
+  @media (max-width: 800px) {
+    main { flex-direction: column; }
+    #core { min-height: 330px; flex: none; }
+    aside { width: 100%; flex: none; }
+    .tab { max-height: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #orb, #ring, .wisp { animation: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Elemental <span>Tycoon</span></h1>
+  <div class="stats">
+    <div class="mana">✨ <span id="mana">0</span></div>
+    <div class="rate"><span id="perSec">0</span> mana / sec · tap <span id="perTap">1</span></div>
+  </div>
+</header>
+
+<main>
+  <div id="core">
+    <canvas id="fx"></canvas>
+    <div id="ring"></div>
+    <div id="orb"></div>
+    <div class="core-label" id="coreLabel">Elements: 4 / 30</div>
+    <div class="core-hint">Tap the orb for mana · catch the ✨ wisps!</div>
+  </div>
+
+  <aside>
+    <div class="tabs">
+      <button data-tab="shrines" class="on">🏛️ Shrines</button>
+      <button data-tab="fusion">⚗️ Fusion</button>
+      <button data-tab="upgrades">⬆️ Upgrades</button>
+      <button data-tab="codex">📖 Codex</button>
+    </div>
+    <div class="tab on" id="tab-shrines"></div>
+    <div class="tab" id="tab-fusion">
+      <p class="note">Put two elements on the altar and fuse them to discover a new one. You need at least one shrine of each element you use. Every new element gives you a free shrine.</p>
+      <div class="altar">
+        <div class="slot" id="slotA" title="Tap to clear"></div>
+        <div class="plus">+</div>
+        <div class="slot" id="slotB" title="Tap to clear"></div>
+      </div>
+      <div id="fuseMsg"></div>
+      <div class="fuse-row">
+        <button class="btn" id="fuseBtn" disabled>⚗️ Fuse!</button>
+        <button class="btn ghost" id="hintBtn">💡 Hint</button>
+      </div>
+      <div class="picks" id="picks"></div>
+      <div class="hints" id="hints"></div>
+    </div>
+    <div class="tab" id="tab-upgrades"></div>
+    <div class="tab" id="tab-codex"></div>
+  </aside>
+</main>
+
+<div id="discover" hidden>
+  <div class="box">
+    <div class="big" id="dIcon"></div>
+    <h2 id="dName"></h2>
+    <p id="dInfo"></p>
+    <button class="btn" id="dOk">Awesome!</button>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ================= Game data =================
+const TIERS = {
+  1: { name: 'Basic', inc: 1, cost: 10 },
+  2: { name: 'Uncommon', inc: 8, cost: 150 },
+  3: { name: 'Rare', inc: 60, cost: 2000 },
+  4: { name: 'Epic', inc: 450, cost: 30000 },
+  5: { name: 'Legendary', inc: 3500, cost: 500000 },
+  6: { name: 'Mythic', inc: 30000, cost: 8e6 },
+  7: { name: 'Secret', inc: 300000, cost: 1.5e8 },
+};
+// [id, emoji, name, tier, color, recipe]
+const ELEMENTS = [
+  ['fire', '🔥', 'Fire', 1, '#ff6b35'],
+  ['water', '💧', 'Water', 1, '#3fa9ff'],
+  ['earth', '🪨', 'Earth', 1, '#b08a5a'],
+  ['air', '💨', 'Air', 1, '#d9f3ff'],
+  ['steam', '♨️', 'Steam', 2, '#e8e8e8', ['fire', 'water']],
+  ['lava', '🌋', 'Lava', 2, '#ff4500', ['fire', 'earth']],
+  ['lightning', '⚡', 'Lightning', 2, '#ffe84d', ['fire', 'air']],
+  ['plant', '🌱', 'Plant', 2, '#4cd964', ['water', 'earth']],
+  ['ice', '🧊', 'Ice', 2, '#a8e6ff', ['water', 'air']],
+  ['sand', '🏜️', 'Sand', 2, '#f2c879', ['earth', 'air']],
+  ['cloud', '☁️', 'Cloud', 3, '#f0f4ff', ['steam', 'air']],
+  ['glass', '🔮', 'Glass', 3, '#b388ff', ['sand', 'fire']],
+  ['metal', '⚙️', 'Metal', 3, '#9aa4b2', ['lava', 'earth']],
+  ['tree', '🌳', 'Tree', 3, '#2e9e4f', ['plant', 'earth']],
+  ['snow', '❄️', 'Snow', 3, '#ffffff', ['ice', 'air']],
+  ['energy', '💥', 'Energy', 3, '#ffb300', ['lightning', 'fire']],
+  ['storm', '⛈️', 'Storm', 4, '#6f7dff', ['cloud', 'lightning']],
+  ['crystal', '💎', 'Crystal', 4, '#5ce1ff', ['glass', 'ice']],
+  ['rainbow', '🌈', 'Rainbow', 4, '#ff7eb6', ['cloud', 'glass']],
+  ['robot', '🤖', 'Robot', 4, '#c0c8d6', ['metal', 'lightning']],
+  ['blizzard', '🌨️', 'Blizzard', 4, '#dff6ff', ['snow', 'cloud']],
+  ['forest', '🌲', 'Forest', 4, '#1f7a3a', ['tree', 'plant']],
+  ['sun', '☀️', 'Sun', 5, '#ffd000', ['energy', 'crystal']],
+  ['moon', '🌙', 'Moon', 5, '#fff3b0', ['crystal', 'blizzard']],
+  ['life', '🧬', 'Life', 5, '#7dff9b', ['forest', 'storm']],
+  ['dragon', '🐉', 'Dragon', 5, '#3ddc84', ['lava', 'storm']],
+  ['galaxy', '🌌', 'Galaxy', 6, '#9b5cff', ['sun', 'moon']],
+  ['time', '⏳', 'Time', 6, '#e0c080', ['life', 'robot']],
+  ['phoenix', '🐦‍🔥', 'Phoenix', 6, '#ff5a1f', ['dragon', 'sun']],
+  ['infinity', '♾️', 'Infinity', 7, '#ffffff', ['galaxy', 'time']],
+].map(([id, e, name, t, col, recipe]) => ({ id, e, name, t, col, recipe }));
+const EL = Object.fromEntries(ELEMENTS.map(x => [x.id, x]));
+const RECIPES = {};
+for (const x of ELEMENTS) if (x.recipe) RECIPES[[...x.recipe].sort().join('+')] = x.id;
+
+const UPGRADES = [
+  { id: 'focus', e: '🖐️', name: 'Focus', desc: l => `Each tap gives ${fmt(tapBase(l + 1))} (now ${fmt(tapBase(l))})`, base: 25, mult: 1.75 },
+  { id: 'flow', e: '🌊', name: 'Mana Flow', desc: l => `All shrines make +25% more (now +${l * 25}%)`, base: 800, mult: 2.4 },
+  { id: 'familiar', e: '🦉', name: 'Familiar', desc: l => `Taps the orb for you ${l + 1}× a second (now ${l})`, base: 400, mult: 2.1 },
+  { id: 'wisps', e: '✨', name: 'Wisp Lure', desc: l => `Mana wisps come more often (level ${l})`, base: 2000, mult: 2.6, max: 8 },
+  { id: 'discount', e: '🏷️', name: 'Stonemason', desc: l => `Shrines cost ${Math.min(50, (l + 1) * 5)}% less (now ${l * 5}%)`, base: 5000, mult: 3, max: 10 },
+];
+
+// ================= State =================
+const SAVE_KEY = 'elementalTycoon.v1';
+const fresh = () => ({
+  mana: 10, total: 0, shrines: {}, found: { fire: 1, water: 1, earth: 1, air: 1 },
+  up: { focus: 0, flow: 0, familiar: 0, wisps: 0, discount: 0 }, hints: [], last: Date.now(),
+});
+let S = fresh();
+try {
+  const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+  if (saved) { const f = fresh(); S = Object.assign(f, saved, { up: Object.assign(f.up, saved.up || {}) }); }
+} catch (e) {}
+function save() { S.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+
+// ================= Helpers =================
+const $ = id => document.getElementById(id);
+function fmt(n) {
+  if (n < 1000) return (Math.floor(n * 10) / 10).toString();
+  const u = ['K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx'];
+  let i = -1;
+  while (n >= 1000 && i < u.length - 1) { n /= 1000; i++; }
+  const d = n < 10 ? 2 : n < 100 ? 1 : 0;
+  return (Math.floor(n * 10 ** d) / 10 ** d).toFixed(d) + u[i];
+}
+const owned = id => S.shrines[id] || 0;
+const tapBase = l => 1 + l * 2 + Math.floor(Math.pow(l, 1.7));
+const mult = () => 1 + S.up.flow * 0.25;
+const elInc = x => TIERS[x.t].inc * mult();
+const perSec = () => ELEMENTS.reduce((s, x) => s + owned(x.id) * elInc(x), 0);
+const perTap = () => tapBase(S.up.focus) + perSec() * 0.03;
+const shrineCost = x => Math.floor(TIERS[x.t].cost * Math.pow(1.15, owned(x.id)) * (1 - Math.min(0.5, S.up.discount * 0.05)));
+const upCost = u => Math.floor(u.base * Math.pow(u.mult, S.up[u.id]));
+const maxed = u => u.max !== undefined && S.up[u.id] >= u.max;
+const foundCount = () => ELEMENTS.filter(x => S.found[x.id]).length;
+function earn(n) { S.mana += n; S.total += n; }
+let toastT;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2400); }
+
+// ================= Core visuals =================
+const core = $('core'), cv = $('fx'), ctx = cv.getContext('2d');
+let parts = [];
+function resize() { cv.width = core.clientWidth * devicePixelRatio; cv.height = core.clientHeight * devicePixelRatio; }
+addEventListener('resize', resize); resize();
+function ownedColors() {
+  const c = ELEMENTS.filter(x => owned(x.id) > 0).map(x => x.col);
+  return c.length ? c : ['#7fe3ff'];
+}
+function burst(x, y, n) {
+  const cols = ownedColors();
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 4;
+    parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, col: cols[Math.floor(Math.random() * cols.length)], r: 2 + Math.random() * 3 });
+  }
+}
+function drawFx() {
+  const d = devicePixelRatio, w = cv.width / d, h = cv.height / d;
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  // ambient motes rise from the shrines you own
+  const amb = Math.min(4, 0.2 + perSec() / 500);
+  if (Math.random() < amb / 4) {
+    const cols = ownedColors();
+    parts.push({ x: Math.random() * w, y: h + 5, vx: (Math.random() - .5) * .4, vy: -0.6 - Math.random(), life: 1.6, col: cols[Math.floor(Math.random() * cols.length)], r: 1.5 + Math.random() * 2, amb: 1 });
+  }
+  parts = parts.filter(p => p.life > 0);
+  for (const p of parts) {
+    p.x += p.vx; p.y += p.vy; p.life -= p.amb ? 0.006 : 0.025;
+    if (!p.amb) { p.vx *= 0.96; p.vy *= 0.96; }
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+    ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(drawFx);
+}
+requestAnimationFrame(drawFx);
+
+function floatText(x, y, txt, color) {
+  const f = document.createElement('div');
+  f.className = 'float'; f.textContent = txt; if (color) f.style.color = color;
+  f.style.left = (x - 20) + 'px'; f.style.top = (y - 24) + 'px';
+  core.appendChild(f); setTimeout(() => f.remove(), 1000);
+}
+function localXY(ev) { const r = core.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; }
+
+core.addEventListener('click', ev => {
+  const [x, y] = localXY(ev);
+  const amt = perTap(); earn(amt);
+  floatText(x, y, '+' + fmt(amt));
+  burst(x, y, 10);
+  const orb = $('orb'); orb.classList.add('hit'); setTimeout(() => orb.classList.remove('hit'), 80);
+  refreshTop();
+});
+
+function buildRing() {
+  const list = ELEMENTS.filter(x => owned(x.id) > 0).sort((a, b) => b.t - a.t).slice(0, 12);
+  const ring = $('ring'); ring.innerHTML = '';
+  const R = Math.min(core.clientWidth, core.clientHeight) * 0.36;
+  list.forEach((x, i) => {
+    const a = (i / list.length) * Math.PI * 2;
+    const d = document.createElement('div');
+    d.textContent = x.e; d.style.left = Math.cos(a) * R + 'px'; d.style.top = Math.sin(a) * R + 'px';
+    ring.appendChild(d);
+  });
+  $('coreLabel').textContent = `Elements: ${foundCount()} / ${ELEMENTS.length}`;
+}
+addEventListener('resize', buildRing);
+
+// Mana wisps: catch them for a burst of mana
+function spawnWisp() {
+  const w = document.createElement('div');
+  w.className = 'wisp'; w.textContent = '✨';
+  let x = 10 + Math.random() * 80, y = 15 + Math.random() * 70;
+  w.style.left = x + '%'; w.style.top = y + '%';
+  w.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const gold = Math.random() < 0.15;
+    const amt = Math.max(25, perSec() * (gold ? 120 : 30), perTap() * (gold ? 40 : 12));
+    earn(amt);
+    const [px, py] = localXY(ev);
+    floatText(px, py, (gold ? '🌟 Golden wisp! +' : 'Wisp +') + fmt(amt), 'var(--gold)');
+    burst(px, py, 30); w.remove(); refreshTop();
+  });
+  core.appendChild(w);
+  const drift = setInterval(() => {
+    x = Math.max(5, Math.min(95, x + (Math.random() - .5) * 8)); y = Math.max(8, Math.min(92, y + (Math.random() - .5) * 8));
+    w.style.transition = 'left 1s, top 1s'; w.style.left = x + '%'; w.style.top = y + '%';
+  }, 1000);
+  setTimeout(() => { clearInterval(drift); w.remove(); }, 8000);
+}
+(function wispLoop() {
+  if (S.total > 20) spawnWisp();
+  setTimeout(wispLoop, Math.max(8000, 40000 - S.up.wisps * 4000) * (0.6 + Math.random() * 0.8));
+})();
+
+// ================= Shrines tab =================
+function renderShrines() {
+  let h = `<p class="note">Each shrine makes mana every second. Shrines get a bit pricier each time you build one. Fuse elements to unlock stronger shrines.</p>`;
+  for (let t = 1; t <= 7; t++) {
+    const list = ELEMENTS.filter(x => x.t === t && S.found[x.id]);
+    if (!list.length) continue;
+    h += `<div class="tier-title c${t}">${TIERS[t].name}</div>`;
+    for (const x of list) {
+      const c = shrineCost(x);
+      h += `<div class="row"><div class="icon">${x.e}</div><div class="info">
+        <div class="name">${x.name} Shrine <span class="count">×${owned(x.id)}</span></div>
+        <div class="desc">+${fmt(elInc(x))} mana/sec each</div></div>
+        <button class="btn" data-buy="${x.id}" ${S.mana < c ? 'disabled' : ''}>✨ ${fmt(c)}</button></div>`;
+    }
+  }
+  const left = ELEMENTS.length - foundCount();
+  if (left) h += `<p class="note" style="margin-top:12px">${left} more elements are waiting to be discovered in the ⚗️ Fusion tab.</p>`;
+  $('tab-shrines').innerHTML = h;
+}
+
+// ================= Fusion tab =================
+let slotA = null, slotB = null;
+function renderFusion() {
+  const sA = $('slotA'), sB = $('slotB');
+  sA.textContent = slotA ? EL[slotA].e : ''; sA.classList.toggle('full', !!slotA);
+  sB.textContent = slotB ? EL[slotB].e : ''; sB.classList.toggle('full', !!slotB);
+  $('fuseBtn').disabled = !(slotA && slotB);
+  let h = '';
+  for (const x of ELEMENTS.filter(x => S.found[x.id]).sort((a, b) => a.t - b.t)) {
+    h += `<button class="pick" data-pick="${x.id}" ${owned(x.id) ? '' : 'disabled'} title="${owned(x.id) ? '' : 'Build a shrine first'}"><span class="e">${x.e}</span>${x.name}</button>`;
+  }
+  $('picks').innerHTML = h;
+  const hc = hintCost();
+  $('hintBtn').disabled = hc === null || S.mana < hc;
+  $('hintBtn').textContent = hc === null ? '💡 No hints left' : `💡 Hint · ✨ ${fmt(hc)}`;
+  $('hints').innerHTML = S.hints.length
+    ? '<div class="tier-title" style="color:var(--muted)">Your hints</div>' + S.hints.filter(id => !S.found[id]).map(id => {
+        const x = EL[id]; return `<div>${EL[x.recipe[0]].e} ${EL[x.recipe[0]].name} + ❓ = ${x.name}</div>`;
+      }).join('')
+    : '';
+}
+function hintTarget() {
+  // an undiscovered element whose two ingredients are already discovered, and not already hinted
+  return ELEMENTS.filter(x => !S.found[x.id] && x.recipe && x.recipe.every(r => S.found[r]) && !S.hints.includes(x.id))
+    .sort((a, b) => a.t - b.t)[0];
+}
+function hintCost() { const x = hintTarget(); return x ? Math.floor(TIERS[x.t].cost * 0.4) : null; }
+
+function fuse() {
+  if (!slotA || !slotB) return;
+  const msg = $('fuseMsg');
+  if (!owned(slotA) || !owned(slotB)) { msg.innerHTML = '<span style="color:var(--bad)">You need a shrine of both elements.</span>'; return; }
+  const id = RECIPES[[slotA, slotB].sort().join('+')];
+  if (!id) {
+    msg.innerHTML = `<span style="color:var(--muted)">${EL[slotA].e} + ${EL[slotB].e} fizzle out. Try another pair!</span>`;
+  } else if (S.found[id]) {
+    msg.innerHTML = `${EL[slotA].e} + ${EL[slotB].e} = ${EL[id].e} ${EL[id].name} (you already know this one)`;
+  } else {
+    const x = EL[id];
+    S.found[id] = 1; S.shrines[id] = owned(id) + 1;
+    msg.innerHTML = `<span class="c${x.t}">${EL[slotA].e} + ${EL[slotB].e} = ${x.e} ${x.name}!</span>`;
+    $('dIcon').textContent = x.e; $('dName').textContent = x.name; $('dName').className = 'c' + x.t;
+    $('dInfo').textContent = `New ${TIERS[x.t].name} element! You got a free ${x.name} Shrine (+${fmt(elInc(x))} mana/sec).`;
+    $('discover').hidden = false;
+    const r = core.getBoundingClientRect(); burst(r.width / 2, r.height / 2, 60);
+    buildRing(); save();
+  }
+  slotA = slotB = null;
+  render();
+}
+$('fuseBtn').onclick = fuse;
+$('slotA').onclick = () => { slotA = null; renderFusion(); };
+$('slotB').onclick = () => { slotB = null; renderFusion(); };
+$('dOk').onclick = () => { $('discover').hidden = true; };
+$('hintBtn').onclick = () => {
+  const x = hintTarget(), c = hintCost();
+  if (!x || S.mana < c) return;
+  S.mana -= c; S.hints.push(x.id);
+  toast(`💡 Try ${EL[x.recipe[0]].name} with something to make ${x.name}...`);
+  render(); save();
+};
+
+// ================= Upgrades & Codex =================
+function renderUpgrades() {
+  let h = '';
+  for (const u of UPGRADES) {
+    const l = S.up[u.id], m = maxed(u), c = upCost(u);
+    h += `<div class="row"><div class="icon">${u.e}</div><div class="info">
+      <div class="name">${u.name} <span class="count">Lv ${l}</span></div>
+      <div class="desc">${m ? 'Fully upgraded!' : u.desc(l)}</div></div>
+      <button class="btn" data-up="${u.id}" ${m || S.mana < c ? 'disabled' : ''}>${m ? 'MAX' : '✨ ' + fmt(c)}</button></div>`;
+  }
+  $('tab-upgrades').innerHTML = h;
+}
+function renderCodex() {
+  let h = `<p class="note">Discovered ${foundCount()} / ${ELEMENTS.length} elements · total mana made ✨${fmt(S.total)}</p>`;
+  for (let t = 1; t <= 7; t++) {
+    h += `<div class="tier-title c${t}">${TIERS[t].name}</div><div class="grid">`;
+    for (const x of ELEMENTS.filter(e => e.t === t)) {
+      const f = S.found[x.id];
+      const rec = f && x.recipe ? `${EL[x.recipe[0]].e}+${EL[x.recipe[1]].e}` : (x.recipe ? '???' : 'start');
+      h += `<div class="cell ${f ? '' : 'locked'}"><div class="e">${x.e}</div>${f ? x.name : '???'}<div class="r">${rec}</div></div>`;
+    }
+    h += '</div>';
+  }
+  $('tab-codex').innerHTML = h;
+}
+
+function refreshTop() {
+  $('mana').textContent = fmt(S.mana);
+  $('perSec').textContent = fmt(perSec());
+  $('perTap').textContent = fmt(perTap());
+  document.querySelectorAll('[data-buy]').forEach(b => { b.disabled = S.mana < shrineCost(EL[b.dataset.buy]); });
+  document.querySelectorAll('[data-up]').forEach(b => { const u = UPGRADES.find(x => x.id === b.dataset.up); b.disabled = maxed(u) || S.mana < upCost(u); });
+  const hc = hintCost(); $('hintBtn').disabled = hc === null || S.mana < hc;
+}
+function render() { renderShrines(); renderFusion(); renderUpgrades(); renderCodex(); refreshTop(); }
+
+document.querySelector('aside').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  if (b.dataset.tab) {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
+  } else if (b.dataset.buy) {
+    const x = EL[b.dataset.buy], c = shrineCost(x);
+    if (S.mana < c) return;
+    S.mana -= c; S.shrines[x.id] = owned(x.id) + 1;
+    if (owned(x.id) === 1) buildRing();
+    render(); save();
+  } else if (b.dataset.up) {
+    const u = UPGRADES.find(x => x.id === b.dataset.up), c = upCost(u);
+    if (maxed(u) || S.mana < c) return;
+    S.mana -= c; S.up[u.id]++;
+    toast(`${u.e} ${u.name} is now level ${S.up[u.id]}!`);
+    render(); save();
+  } else if (b.dataset.pick) {
+    const id = b.dataset.pick;
+    if (!slotA) slotA = id; else if (!slotB) slotB = id; else { slotA = slotB; slotB = id; }
+    $('fuseMsg').textContent = '';
+    renderFusion();
+  }
+});
+
+// ================= Main loop =================
+let lastTick = Date.now(), famAcc = 0;
+setInterval(() => {
+  const now = Date.now(), dt = Math.min(5, (now - lastTick) / 1000); lastTick = now;
+  earn(perSec() * dt);
+  famAcc += S.up.familiar * dt;
+  while (famAcc >= 1) { famAcc--; earn(perTap()); }
+  refreshTop();
+}, 100);
+setInterval(() => { renderShrines(); renderUpgrades(); }, 2000);
+setInterval(save, 5000);
+addEventListener('beforeunload', save);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+
+// ================= Start =================
+const away = Math.min((Date.now() - S.last) / 1000, 2 * 3600);
+if (away > 60 && perSec() > 0) {
+  const got = perSec() * away * 0.5; earn(got);
+  setTimeout(() => toast(`Welcome back! Your shrines made ✨${fmt(got)} while you were away.`), 500);
+} else if (!S.total) {
+  setTimeout(() => toast('Tap the orb to gather mana, then build your first shrine!'), 500);
+}
+buildRing(); render(); save();
+</script>
+</body>
+</html>
