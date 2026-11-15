@@ -382,6 +382,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 /* item icons for toppings and pets */
 .icon.topping, .icon.pet { display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; }
 .icon.topping { width: 26px; height: 30px; }
+/* ✨ neon toppings: a pulsing glow in the topping's own neon color */
+.icon.topping { filter: drop-shadow(0 0 3px var(--neon, #ff4fd8)) drop-shadow(0 0 6px var(--neon, #ff4fd8)); animation: neonPulse 1.6s ease-in-out infinite alternate; }
+@keyframes neonPulse { from { filter: drop-shadow(0 0 2px var(--neon, #ff4fd8)) drop-shadow(0 0 4px var(--neon, #ff4fd8)); }
+  to { filter: drop-shadow(0 0 4px var(--neon, #ff4fd8)) drop-shadow(0 0 10px var(--neon, #ff4fd8)); } }
 .icon.pet { width: 30px; height: 30px; font-size: 24px; }
 
 /* 🛒 Supplies Shop: the side squares for Ice Cream / Toppings */

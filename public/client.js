@@ -91,8 +91,14 @@
   const heldItem = () => { const s = me(); return s && hand >= 0 ? s.hotbar[hand] : null; };
 
   // HTML icon of an ice cream cone for the hotbar, inventory and shop
+  // ✨ every topping glows in its own neon color
+  const NEON = { sprinkles: '#ff4fd8', gummies: '#ff8a00', syrup: '#ff5e3a', caramel: '#ffb300', whipped: '#7df9ff',
+    cookies: '#c77dff', cherry: '#ff1744', waffle: '#ffd60a', goldflakes: '#ffe600', diamonddust: '#00f5ff',
+    stardust: '#b388ff', planets: '#4d7cff', dragonfire: '#ff5e00', royalcrown: '#ffd43b', lightning: '#fff700', galaxydust: '#9d4dff' };
+  const neonRgb = hex => [1, 3, 5].map(k => parseInt(hex.slice(k, k + 2), 16)).join(', ');
+
   function iconHtml(flavorId) {
-    if (toppingById[flavorId]) return `<div class="icon topping">${toppingById[flavorId].emoji}</div>`;
+    if (toppingById[flavorId]) return `<div class="icon topping" style="--neon:${NEON[flavorId] || '#ff4fd8'}">${toppingById[flavorId].emoji}</div>`;
     const f = flavorById[flavorId];
     const fx = f.effect ? ` fx-${f.effect}` : '';
     return `<div class="icon${fx}"><div class="ball" style="background:${f.color}"></div><div class="cone"></div></div>`;
@@ -3306,7 +3312,17 @@
 
   // a topping sitting on a scoop
   function drawTopping(id, x, y, r, time, seed = 0) {
+    const neon = NEON[id] || '#ff4fd8', rgb = neonRgb(neon);
+    const pulse = 0.5 + 0.5 * Math.sin(time * 4 + seed * 1.7);
     ctx.save();
+    // neon halo behind the topping
+    const halo = ctx.createRadialGradient(x, y - 1, 0, x, y - 1, r * 1.5);
+    halo.addColorStop(0, `rgba(${rgb}, ${0.35 + 0.25 * pulse})`);
+    halo.addColorStop(1, `rgba(${rgb}, 0)`);
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(x, y - 1, r * 1.5, 0, Math.PI * 2); ctx.fill();
+    // the topping itself glows (toppings with their own glow keep it)
+    ctx.shadowColor = neon; ctx.shadowBlur = 5 + 5 * pulse;
     switch (id) {
       case 'sprinkles':
         ['#ff6b6b', '#4dabf7', '#fcc419', '#51cf66', '#cc5de8'].forEach((c, k) => {
@@ -3442,6 +3458,16 @@
           ctx.beginPath(); ctx.moveTo(fx - 1.8, y); ctx.quadraticCurveTo(fx, y - h * 1.6, fx + 1.8, y); ctx.fill();
         }
         break;
+    }
+    // a flickering neon ring and two neon sparks zooming around it
+    ctx.shadowColor = neon; ctx.shadowBlur = 8;
+    ctx.strokeStyle = `rgba(${rgb}, ${Math.sin(time * 23 + seed) > -0.85 ? 0.55 + 0.35 * pulse : 0.15})`;
+    ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.ellipse(x, y + 0.5, r * 0.95, r * 0.32, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    for (let k = 0; k < 2; k++) {
+      const a = time * 3 + k * Math.PI + seed;
+      ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * 0.95, y + 0.5 + Math.sin(a) * r * 0.32, 0.9, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
   }
