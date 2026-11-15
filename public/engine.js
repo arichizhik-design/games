@@ -124,9 +124,11 @@
     return x.event || (x.rarity === 'cyber' ? 'cyber' : x.rarity === 'glass' ? 'glass' : null);
   };
   const isCyber = id => eventOf(id) === 'cyber';
-  // pets that changed (the Cyber Hydra became the Cyber Whale; the first Glass pets became cooler ones)
+  // pets that changed (the Cyber Hydra became the Cyber Whale; the first Glass pets became cooler ones;
+  // the Glass Dragon became the Glass Wolf; the Shadow Wolf left the game, so its owners get a Rainbow Unicorn, also Epic)
   const RENAMED_PETS = { hydra: 'cyberwhale', glassbutterfly: 'glasscobra', glassfrog: 'glassleopard', glassdeer: 'glassrhino',
-    glassflamingo: 'glassbear', glassgiraffe: 'glasscroc', glassswan: 'glasssquid', glasspeacock: 'glassdragon' };
+    glassflamingo: 'glassbear', glassgiraffe: 'glasscroc', glassswan: 'glasssquid', glasspeacock: 'glasswolf',
+    glassdragon: 'glasswolf', wolf: 'unicorn' };
   const renamedPet = id => RENAMED_PETS[id] || id;
   const bundleEvents = b => [...Object.keys(b.items), ...Object.keys(b.pets)].map(eventOf).filter(Boolean);
   function hideLook(avatar, look) {

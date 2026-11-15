@@ -102,7 +102,6 @@
     { id: 'penguin', name: 'Ice Penguin',     emoji: '🐧', rarity: 'rare',      boost: 0.25, fx: 'snow',    kind: 'waddle' },
     { id: 'owl',     name: 'Night Owl',       emoji: '🦉', rarity: 'rare',      boost: 0.3,  fx: 'moon',    kind: 'fly' },
     { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',      boost: 0.5,  fx: 'rainbow', kind: 'walk' },
-    { id: 'wolf',    name: 'Shadow Wolf',     emoji: '🐺', rarity: 'epic',      boost: 0.6,  fx: 'shadow',  kind: 'walk' },
     { id: 'phoenix', name: 'Phoenix',         emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'fire',    kind: 'fly' },
     { id: 'kraken',  name: 'Kraken',          emoji: '🐙', rarity: 'legendary', boost: 1.2,  fx: 'bubbles', kind: 'swim' },
     { id: 'lion',    name: 'Galaxy Lion',     emoji: '🦁', rarity: 'mythic',    boost: 2,    fx: 'galaxy',  kind: 'walk' },
@@ -169,7 +168,7 @@
     { id: 'glasscroc',      name: 'Glass Crocodile', emoji: '🐊', rarity: 'secret',    boost: 5.6,  fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
     { id: 'glasselephant',  name: 'Glass Elephant',  emoji: '🐘', rarity: 'celestial', boost: 8.6,  fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
     { id: 'glasssquid',     name: 'Glass Squid',     emoji: '🦑', rarity: 'celestial', boost: 9.2,  fx: 'glass', kind: 'swim', event: 'glass', block: 'glass' },
-    { id: 'glassdragon',    name: 'Glass Dragon',    emoji: '🐉', rarity: 'glass',     boost: 60,   fx: 'glassdragon', kind: 'fly', event: 'glass', block: 'glass' },
+    { id: 'glasswolf',      name: 'Glass Wolf',      emoji: '🐺', rarity: 'glass',     boost: 60,   fx: 'glasswolf', kind: 'walk', event: 'glass', block: 'glass' },
   );
   LUCKY_BLOCKS.push({ id: 'glass', name: 'Glass Block', cost: 1.2e9, color: 'glass', event: 'glass', ownPets: true,
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Squid 2% each

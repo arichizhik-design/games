@@ -1252,7 +1252,6 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'penguin', name: 'Ice Penguin',     emoji: '🐧', rarity: 'rare',      boost: 0.25, fx: 'snow',    kind: 'waddle' },
     { id: 'owl',     name: 'Night Owl',       emoji: '🦉', rarity: 'rare',      boost: 0.3,  fx: 'moon',    kind: 'fly' },
     { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',      boost: 0.5,  fx: 'rainbow', kind: 'walk' },
-    { id: 'wolf',    name: 'Shadow Wolf',     emoji: '🐺', rarity: 'epic',      boost: 0.6,  fx: 'shadow',  kind: 'walk' },
     { id: 'phoenix', name: 'Phoenix',         emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'fire',    kind: 'fly' },
     { id: 'kraken',  name: 'Kraken',          emoji: '🐙', rarity: 'legendary', boost: 1.2,  fx: 'bubbles', kind: 'swim' },
     { id: 'lion',    name: 'Galaxy Lion',     emoji: '🦁', rarity: 'mythic',    boost: 2,    fx: 'galaxy',  kind: 'walk' },
@@ -1319,7 +1318,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'glasscroc',      name: 'Glass Crocodile', emoji: '🐊', rarity: 'secret',    boost: 5.6,  fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
     { id: 'glasselephant',  name: 'Glass Elephant',  emoji: '🐘', rarity: 'celestial', boost: 8.6,  fx: 'glass', kind: 'walk', event: 'glass', block: 'glass' },
     { id: 'glasssquid',     name: 'Glass Squid',     emoji: '🦑', rarity: 'celestial', boost: 9.2,  fx: 'glass', kind: 'swim', event: 'glass', block: 'glass' },
-    { id: 'glassdragon',    name: 'Glass Dragon',    emoji: '🐉', rarity: 'glass',     boost: 60,   fx: 'glassdragon', kind: 'fly', event: 'glass', block: 'glass' },
+    { id: 'glasswolf',      name: 'Glass Wolf',      emoji: '🐺', rarity: 'glass',     boost: 60,   fx: 'glasswolf', kind: 'walk', event: 'glass', block: 'glass' },
   );
   LUCKY_BLOCKS.push({ id: 'glass', name: 'Glass Block', cost: 1.2e9, color: 'glass', event: 'glass', ownPets: true,
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Squid 2% each
@@ -1634,9 +1633,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     return x.event || (x.rarity === 'cyber' ? 'cyber' : x.rarity === 'glass' ? 'glass' : null);
   };
   const isCyber = id => eventOf(id) === 'cyber';
-  // pets that changed (the Cyber Hydra became the Cyber Whale; the first Glass pets became cooler ones)
+  // pets that changed (the Cyber Hydra became the Cyber Whale; the first Glass pets became cooler ones;
+  // the Glass Dragon became the Glass Wolf; the Shadow Wolf left the game, so its owners get a Rainbow Unicorn, also Epic)
   const RENAMED_PETS = { hydra: 'cyberwhale', glassbutterfly: 'glasscobra', glassfrog: 'glassleopard', glassdeer: 'glassrhino',
-    glassflamingo: 'glassbear', glassgiraffe: 'glasscroc', glassswan: 'glasssquid', glasspeacock: 'glassdragon' };
+    glassflamingo: 'glassbear', glassgiraffe: 'glasscroc', glassswan: 'glasssquid', glasspeacock: 'glasswolf',
+    glassdragon: 'glasswolf', wolf: 'unicorn' };
   const renamedPet = id => RENAMED_PETS[id] || id;
   const bundleEvents = b => [...Object.keys(b.items), ...Object.keys(b.pets)].map(eventOf).filter(Boolean);
   function hideLook(avatar, look) {
@@ -3999,7 +4000,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const title = el.querySelector('.clTitle');
     title.textContent = title.dataset.text = glass ? '🔮 THE GLASS EVENT IS HERE! 🔮' : '⚡ CYBER EVENT IS HERE! ⚡';
     el.querySelector('.clSub').textContent = glass
-      ? `Glass Block · Glass Dragon · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
+      ? `Glass Block · Glass Wolf · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
       : `Cyber Block · Cyber Whale · Robo Ice Cream · Cyber Storms · Robo customers pay x2 · ${evEnds('cyber')}`;
     el.classList.remove('hidden');
     clearTimeout(showCyberLaunch.t);
@@ -5360,7 +5361,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { dragon: 1.45, cyberwhale: 1.8, glassdragon: 1.8, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+  const PET_SIZE = { dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
   const CYAN = '#2ee8ff';
@@ -5551,7 +5552,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   const PET_MODELS = { cyberwhale: drawCyberWhale };
   for (const p of PETS) if (p.fx === 'cyber') PET_MODELS[p.id] = cyberPetModel(p.id, p.emoji);
-  for (const p of PETS) if (p.fx === 'glass' || p.fx === 'glassdragon') PET_MODELS[p.id] = glassPetModel(p.id, p.emoji, p.fx === 'glassdragon');
+  for (const p of PETS) if (p.fx === 'glass' || p.fx === 'glasswolf') PET_MODELS[p.id] = glassPetModel(p.id, p.emoji, p.fx === 'glasswolf');
 
   // pictures of the low-poly pets for the pet lists (made once each)
   const petIcons = {};
@@ -5768,9 +5769,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         }
         break;
       }
-      case 'glassdragon': {
-        // 🔮 Glass Dragon, the best Glass pet: huge crystal wings of rainbow light, rainbow prism breath,
-        // orbiting glass shards, light from the sky, and it shatters into shards and puts itself back together
+      case 'glasswolf': {
+        // 🐺 Glass Wolf, the best Glass pet: a crystal mane of rainbow shards, a rainbow howl that rings up into the sky,
+        // rainbow paw prints, orbiting glass shards, light from the sky, and it shatters and puts itself back together
         const gx = pp.x, gy = pp.y + 9;
         // a spinning prism circle of light on the ground
         ctx.save();
@@ -5781,35 +5782,33 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           ctx.beginPath(); ctx.arc(0, 0, 30 + k * 7, time + k, time + k + Math.PI * 1.4); ctx.stroke();
         }
         ctx.restore();
-        // two huge crystal wings made of rainbow light that flap
-        ctx.save();
-        const flap = Math.sin(time * 5) * 0.25;
-        for (const side of [-1, 1]) {
-          for (let k = 0; k < 7; k++) {
-            const a = -Math.PI / 2 + side * (0.45 + k * 0.17 + flap);
-            const len = 70 + 12 * Math.sin(time * 3 + k) - k * 4;
-            const g = ctx.createLinearGradient(x, y - 18, x + Math.cos(a) * len, y - 18 + Math.sin(a) * len);
-            g.addColorStop(0, `hsla(${(k * 45 + time * 60) % 360}, 100%, 80%, 0.05)`);
-            g.addColorStop(1, `hsla(${(k * 45 + time * 60) % 360}, 100%, 72%, 0.55)`);
-            ctx.strokeStyle = g; ctx.lineWidth = 5;
-            ctx.beginPath(); ctx.moveTo(x, y - 18); ctx.lineTo(x + Math.cos(a) * len, y - 18 + Math.sin(a) * len); ctx.stroke();
-            if (k % 2 === 0) glassShard(x + Math.cos(a) * len, y - 18 + Math.sin(a) * len, 3.5, a, (k * 45 + time * 60) % 360);
-          }
+        // a spiky crystal mane around its head, glowing in rainbow colors
+        const hx = x + pp.facing * 6, hy = y - 22;
+        for (let k = 0; k < 9; k++) {
+          const a = -Math.PI * 0.95 + k * Math.PI * 0.95 / 8 + Math.sin(time * 3 + k) * 0.06;
+          const len = 26 + 6 * Math.sin(time * 4 + k * 1.3);
+          glassShard(hx + Math.cos(a) * len * 0.75, hy + Math.sin(a) * len * 0.75, 6, a + Math.PI / 2, (k * 40 + time * 60) % 360);
         }
-        ctx.restore();
-        glow(x, y - 14, 95, '208, 235, 255', 0.38);
-        glow(x, y - 14, 45, '255, 255, 255', 0.35);
-        // rainbow prism breath: light goes in white and comes out as a rainbow
-        const breath = (time + seed) % 3.6;
-        if (breath < 1.2) {
-          const grow = Math.min(1, breath * 4), f = pp.facing, mx = x + f * 20 * big, my = y - 14 * big;
-          for (let k = 0; k < 6; k++) {
-            ctx.strokeStyle = `hsla(${k * 55}, 100%, 65%, 0.75)`; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + f * 150 * grow, my - 20 + k * 9 * grow); ctx.stroke();
+        glow(x, y - 14, 90, '208, 235, 255', 0.36);
+        glow(x, y - 14, 42, '255, 255, 255', 0.32);
+        // the rainbow howl: every few seconds it howls and rainbow rings of sound float up into the sky
+        const howl = (time + seed) % 4;
+        if (howl < 1.6) {
+          const f = pp.facing, mx = x + f * 14, my = y - 30;
+          for (let k = 0; k < 4; k++) {
+            const r = ((howl * 60 + k * 22) % 90) + 8, fade = 1 - r / 98;
+            ctx.strokeStyle = `hsla(${(k * 80 + time * 120) % 360}, 100%, 70%, ${0.8 * fade})`; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.ellipse(mx + f * r * 0.35, my - r, r * 0.55, r * 0.22, f * -0.5, 0, Math.PI * 2); ctx.stroke();
           }
-          glow(mx, my, 22, '255, 255, 255', 0.8);
-          if (chance(20)) petSpark(mx + f * 150 * grow * Math.random(), my + rnd() * 40, { shape: 'shard', vx: f * 80, vy: rnd() * 60, life: 0.7, size: 3, hue: Math.random() * 360 });
+          const g = ctx.createLinearGradient(mx, my, mx + f * 40, my - 170);
+          g.addColorStop(0, 'rgba(255,255,255,0.7)'); g.addColorStop(1, `hsla(${(time * 120) % 360}, 100%, 70%, 0)`);
+          ctx.strokeStyle = g; ctx.lineWidth = 7; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + f * 40, my - 170); ctx.stroke(); ctx.lineCap = 'butt';
+          glow(mx, my, 18, '255, 255, 255', 0.8);
+          if (chance(14)) petSpark(mx + rnd() * 20, my - Math.random() * 100, { shape: 'star', color: `hsl(${Math.random() * 360}, 100%, 80%)`, vy: -30, life: 0.8, size: 3 });
         }
+        // rainbow paw prints where it walks
+        if (pp.moving && chance(6)) petSpark(pp.x + rnd() * 8, pp.y + 6, { shape: 'print', color: `hsla(${Math.random() * 360}, 100%, 75%, 0.7)`, vx: 0, vy: 0, life: 1.4, size: 3 });
         // big glass shards orbiting it, joined by threads of light
         const pts = [];
         for (let k = 0; k < 6; k++) {
@@ -5973,7 +5972,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         ctx.restore();
       }
     }
-    if (pet.fx === 'glassdragon' && (time + seed) % 6 < 0.35) ctx.globalAlpha *= 0.15; // shattered for a moment
+    if (pet.fx === 'glasswolf' && (time + seed) % 6 < 0.35) ctx.globalAlpha *= 0.15; // shattered for a moment
     if (PET_MODELS[pet.id]) PET_MODELS[pet.id](time, seed, pet.kind === 'fly' || pet.kind === 'swim', pp.moving);
     else ctx.fillText(pet.emoji, 0, 10); // drawn from its feet, so squishing and sitting look right
     ctx.restore();
@@ -7606,8 +7605,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   function drawOneMutation(m, time, dt, share) {
     if (m.id === 'rainbow') {
-      drawSunShower(dt);
-      drawMutationExtras(m, time, dt, share);
+      drawMutationExtras(m, time, dt, share); // no rain: only Gold, Galaxy and Meteor Shower have things falling
     } else if (m) {
       const tint = ({ impossible: 0.1, sakura: 0.08, galaxy: 0.32, meteor: 0.12, cyber: 0.3, glass: 0.12 }[m.id] ?? 0.13) *
         Math.max(share, 0.5);
@@ -7617,7 +7615,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         ctx.fillRect(0, 0, world.width, world.height);
         ctx.globalAlpha = 1;
       }
-      const rate = m.id === 'meteor' ? 1.5 : 20; // fewer of the big meteors
+      // only Gold, Galaxy and Meteor Shower drop things from the sky (and Cyber sparks float up, Glass Storms drop shards)
+      const rate = m.id === 'meteor' ? 1.5 : ['sakura', 'diamond'].includes(m.id) ? 0 : 20; // fewer of the big meteors
       for (let i = 0; i < 2; i++) {
         if (Math.random() >= dt * rate) continue;
         const p = { x: Math.random() * world.width, y: -10, vy: 40 + Math.random() * 60,
@@ -7656,7 +7655,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       const p = ambient[i];
       p.x += p.vx * dt; p.y += p.vy * dt;
       if (p.life !== undefined) p.life -= dt;
-      if (p.y > world.height + 20 || p.y < -20 || p.life <= 0) { ambient.splice(i, 1); continue; }
+      if (p.y > world.height + 20 || p.y < -20 || p.x > world.width + 30 || p.life <= 0) { ambient.splice(i, 1); continue; }
       ctx.fillStyle = p.color;
       ctx.globalAlpha = p.life !== undefined ? Math.min(0.9, p.life) : 0.8;
       if (p.shape === 'shard') {
@@ -7717,7 +7716,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // ✨ the cooler parts of every regular event (Cyber and Glass have their own big storms)
   const mutFx = []; // effects that last a little while: bursts, whirlwinds, portals, craters…
-  function addMutFx(fx) { if (mutFx.length < 60) mutFx.push({ t: 0, ...fx }); }
+  function addMutFx(fx) { if (mutFx.length < 120) mutFx.push({ t: 0, ...fx }); }
   const randSpot = () => ({ x: 60 + Math.random() * (world.width - 120), y: 220 + Math.random() * (world.height - 260) });
 
   function drawMutationExtras(m, time, dt, share) {
@@ -7746,19 +7745,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       case 'sakura': {
         // 🌸 gusts of wind, petal whirlwinds and flowers blooming on the ground
         if (chance(0.6)) addMutFx({ kind: 'gust', x: -200, y: 150 + Math.random() * (world.height - 200), life: 3, len: 160 + Math.random() * 120 });
+        // petals blowing sideways across the park in the breeze (not falling)
+        if (chance(12)) ambient.push({ x: -10, y: 60 + Math.random() * (world.height - 80), vx: 90 + Math.random() * 80, vy: (Math.random() - 0.5) * 12,
+          r: 4 + Math.random() * 3, color: pickColor(m), shape: 'petal', life: (world.width + 20) / 90 });
         if (chance(0.5)) addMutFx({ kind: 'whirl', ...randSpot(), life: 4 });
         if (chance(3)) addMutFx({ kind: 'bloom', ...randSpot(), life: 2.5, size: 6 + Math.random() * 6 });
         break;
       }
       case 'diamond': {
-        // 💎 light glints all over, frosty sparkle bursts and diamonds shattering into shards
-        if (chance(4)) {
-          const x = Math.random() * world.width, y = Math.random() * world.height;
-          ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.2;
-          const l = 6 + Math.random() * 8;
-          ctx.beginPath(); ctx.moveTo(x - l, y); ctx.lineTo(x + l, y); ctx.moveTo(x, y - l); ctx.lineTo(x, y + l); ctx.stroke();
-          glow(x, y, l * 1.5, '185, 242, 255', 0.6);
-        }
+        // 💎 crystals growing out of the ground, light glints all over, and diamonds shattering into shards and frost
+        if (chance(4)) addMutFx({ kind: 'crystal', ...randSpot(), life: 3.5, size: 10 + Math.random() * 10 });
+        if (chance(10)) addMutFx({ kind: 'glint', x: Math.random() * world.width, y: Math.random() * world.height, life: 0.7, size: 6 + Math.random() * 8 });
         if (chance(1.2)) {
           const p = randSpot();
           petSpark(p.x, p.y, { shape: 'ring', color: '#b9f2ff', vy: 0, life: 0.9, size: 8, grow: 150 });
@@ -7787,13 +7784,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         break;
       }
       case 'rainbow': {
-        // 🌈 a huge rainbow over the park, and rainbow bubbles floating up
-        const cx = world.width / 2, cy = world.height * 0.9, R = world.width * 0.62;
-        m.colors.forEach((c, i) => {
-          ctx.strokeStyle = c; ctx.globalAlpha = (0.1 + 0.04 * Math.sin(time * 2 + i)) * k; ctx.lineWidth = 22;
-          ctx.beginPath(); ctx.arc(cx, cy, R - i * 22, Math.PI, Math.PI * 2); ctx.stroke();
-        });
-        ctx.globalAlpha = 1;
+        // 🌈 rainbow bubbles floating up and bursts of rainbow stars (the big rainbow is drawn with the sky)
         if (chance(4)) {
           const p = randSpot();
           petSpark(p.x, p.y, { shape: 'bubble', color: `hsl(${Math.random() * 360}, 100%, 65%)`, vx: (Math.random() - 0.5) * 20, vy: -30 - Math.random() * 30, life: 3, size: 4 + Math.random() * 6 });
@@ -7898,6 +7889,34 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
             ctx.globalAlpha = c * 0.7; ctx.fillStyle = '#3b2314';
             ctx.beginPath(); ctx.ellipse(f.x, f.y, 26, 10, 0, 0, Math.PI * 2); ctx.fill();
           }
+          break;
+        }
+        case 'crystal': { // a diamond crystal cluster grows out of the ground, sparkles, then breaks into shards
+          const up = Math.min(1, f.t * 1.5), h = f.size * up;
+          ctx.globalAlpha = Math.min(1, a * 3) * 0.85;
+          for (const [dx, sc, lean] of [[-0.55, 0.7, -0.35], [0, 1, 0], [0.55, 0.6, 0.35]]) {
+            const bx = f.x + dx * f.size * 0.6, hh = h * sc * 1.6, w = f.size * 0.28 * sc;
+            ctx.save(); ctx.translate(bx, f.y); ctx.rotate(lean);
+            const g = ctx.createLinearGradient(-w, 0, w, 0);
+            g.addColorStop(0, '#7fdcff'); g.addColorStop(0.5, '#e8fdff'); g.addColorStop(1, '#b9f2ff');
+            ctx.fillStyle = g; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(-w, 0); ctx.lineTo(-w, -hh * 0.75); ctx.lineTo(0, -hh); ctx.lineTo(w, -hh * 0.75); ctx.lineTo(w, 0); ctx.closePath();
+            ctx.fill(); ctx.stroke();
+            ctx.restore();
+          }
+          glow(f.x, f.y - h * 0.8, f.size * 1.8, '185, 242, 255', 0.4 * Math.min(1, a * 3));
+          if (Math.sin(time * 6 + f.x) > 0.8) star(f.x + 3, f.y - h * 1.3, 4, '#ffffff');
+          if (!f.broke && f.t > f.life - 0.35) {
+            f.broke = true;
+            for (let j = 0; j < 10; j++) petSpark(f.x, f.y - h * 0.8, { shape: 'shard', vx: (Math.random() - 0.5) * 220, vy: -Math.random() * 180, life: 0.8, size: 3, hue: 185 + Math.random() * 30 });
+          }
+          break;
+        }
+        case 'glint': { // a bright twinkle of light, like the sun catching a diamond
+          const l = f.size * Math.sin(a * Math.PI);
+          ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1.4;
+          ctx.beginPath(); ctx.moveTo(f.x - l, f.y); ctx.lineTo(f.x + l, f.y); ctx.moveTo(f.x, f.y - l); ctx.lineTo(f.x, f.y + l); ctx.stroke();
+          glow(f.x, f.y, l * 1.6 + 1, '185, 242, 255', 0.6);
           break;
         }
         case 'portal': { // a swirling rainbow portal
@@ -8023,8 +8042,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.fillText(text, view.w / 2, 30);
   }
 
-  // Rainbow mutation: warm sunlight after rain, a big rainbow across the park, a light sun shower
-  const raindrops = [];
+  // Rainbow mutation: warm sunlight and a big rainbow across the park
   function drawRainbowSky(time) {
     const sun = ctx.createRadialGradient(world.width * 0.9, -40, 20, world.width * 0.9, -40, 700);
     sun.addColorStop(0, 'rgba(255, 244, 200, 0.45)');
@@ -8036,23 +8054,6 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const shimmer = 0.03 * Math.sin(time * 0.8);
     drawRainbowArc(world.width / 2, world.height + 120, world.width * 0.62, 150, (0.34 + shimmer) * fade);
     drawRainbowArc(world.width / 2, world.height + 120, world.width * 0.62 + 190, 100, (0.12 + shimmer / 2) * fade); // faint double rainbow
-  }
-
-  function drawSunShower(dt) {
-    // light sun-shower rain: thin slanted streaks
-    if (Math.random() < dt * 50) {
-      raindrops.push({ x: Math.random() * (world.width + 200), y: -20, v: 600 + Math.random() * 250 });
-    }
-    ctx.strokeStyle = 'rgba(220, 235, 255, 0.55)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let i = raindrops.length - 1; i >= 0; i--) {
-      const d = raindrops[i];
-      d.y += d.v * dt; d.x -= d.v * 0.2 * dt;
-      if (d.y > world.height) { raindrops.splice(i, 1); continue; }
-      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + 4, d.y - 18);
-    }
-    ctx.stroke();
   }
 
   let last = performance.now();
