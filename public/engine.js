@@ -864,7 +864,7 @@
         broadcast({ type: 'chat', id: stand.id, from: stand.name, admin: !!stand.admin, text });
       } else if (msg.type === 'buyTopping') {
         const t = toppingById[msg.topping];
-        if (!t) return;
+        if (!t || t.adminOnly) return;
         if (!near(SHOP)) return err('Walk to the Supplies Shop to buy.');
         const n = Math.min(99, Math.max(1, Math.floor(Number(msg.count) || 1)));
         if (stand.money < t.cost * n) return err('Not enough money!');
@@ -989,6 +989,7 @@
         if (!near(SELL_SHOP)) return err('Walk to the Sell Shop to sell things.');
         const pet = msg.kind === 'pet' && petById[msg.id], item = msg.kind === 'item' && itemById[msg.id];
         if (!pet && !item) return;
+        if (item && toppingById[item.id] && item.adminOnly) return err(`${item.name} is an admin topping. It can't be sold!`);
         const have = pet ? countOf(stand.pets, pet.id) : countItem(stand, item.id);
         const n = Math.min(have, Math.max(1, Math.floor(Number(msg.count) || 1)));
         if (n <= 0) return err(`You don't have any ${(pet || item).name}.`);
@@ -1016,6 +1017,10 @@
         if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second.');
         const give = cleanBundle(msg.give);
         const get = msg.type === 'gift' ? cleanBundle(null) : cleanBundle(msg.get);
+        // 👑 admin toppings: only admins can hand them out
+        const adminTop = b => Object.keys(b.items).map(id => toppingById[id]).find(t => t && t.adminOnly);
+        const blocked = (!stand.admin && adminTop(give)) || (!target.admin && adminTop(get));
+        if (blocked) return err(`${blocked.name} is an admin topping. Only admins can give it away!`);
         const evs = [...bundleEvents(give), ...bundleEvents(get)];
         if (evs.some(ev => !(sees(stand, ev) && sees(target, ev)))) {
           return err(`${target.name} can't have ${evs.includes('glass') ? 'Glass' : 'Cyber'} stuff yet. Only admins can see it for now!`);

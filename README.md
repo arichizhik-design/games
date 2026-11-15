@@ -79,7 +79,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - **💬 Chat:** the chat box in the top left corner talks to everyone in the park (press Enter to type).
   Mean words get turned into ****. Press — to hide it.
 - **🍒 Toppings:** the Supplies Shop has a Toppings square on the side. Hold a topping and tap an ice cream
-  on your stand: every scoop of it sells for more (13 toppings, from Sprinkles +25% up to Dragon Fire +1000%). One topping per ice cream;
+  on your stand: every scoop of it sells for more (13 toppings, from Sprinkles +25% up to Dragon Fire +1000%). 👑 Admin-only toppings Royal Crown (x1,000), Lightning Bolts (x10,000) and Galaxy Dust (x100,000) are never in the shop: regular players only get them as a gift from an admin, and can't sell, gift or trade them. One topping per ice cream;
   you get it back if you take the ice cream off.
 - **🐾 Pet Shop:** at the top of the middle plaza. Open lucky blocks for a random pet. Your pet follows you
   with cool effects and gives you more money from every scoop. Pets move like real animals: they trot to catch up,

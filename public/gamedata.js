@@ -83,6 +83,11 @@
     { id: 'stardust',  name: 'Stardust',        emoji: '🌟', bonus: 4,    cost: 2000000, color: '#b197fc' },
     { id: 'planets',   name: 'Mini Planets',    emoji: '🪐', bonus: 6,    cost: 10000000, color: '#748ffc' },
     { id: 'dragonfire',name: 'Dragon Fire',     emoji: '🔥', bonus: 10,   cost: 50000000, color: '#ff6b00' },
+    // 👑 admin-only toppings: never in the shop. Regular players only get them as a gift from an admin,
+    // and they can't sell, gift or trade them. bonus 999 = the scoop sells for x1,000
+    { id: 'royalcrown', name: 'Royal Crown',    emoji: '👑', bonus: 999,   cost: 0, color: '#ffd43b', adminOnly: true },
+    { id: 'lightning',  name: 'Lightning Bolts', emoji: '⚡', bonus: 9999,  cost: 0, color: '#fff36b', adminOnly: true },
+    { id: 'galaxydust', name: 'Galaxy Dust',    emoji: '🌌', bonus: 99999, cost: 0, color: '#7048e8', adminOnly: true },
   ];
 
   // Pets: you get them from lucky blocks at the Pet Shop. Your equipped pet follows you

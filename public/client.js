@@ -8,7 +8,8 @@
   const toppingById = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
   const itemById = { ...flavorById, ...toppingById }; // hotbar/Inventory things: ice cream tubs and toppings
   const petById = Object.fromEntries(PETS.map(p => [p.id, p]));
-  const pct = n => `+${Math.round(n * 100)}%`;
+  // admin toppings are so big they show as x1,000 instead of +99900%
+  const pct = n => n >= 99 ? `x${Math.round(n + 1).toLocaleString('en-US')}` : `+${Math.round(n * 100)}%`;
 
   const canvas = document.getElementById('canvas');
   let ctx = canvas.getContext('2d');
@@ -440,7 +441,7 @@
         const f = flavorById[msg.flavor];
         if (msg.topping) {
           const t = toppingById[msg.topping];
-          toast(`${t.emoji} ${t.name} on ${f.name}! Its scoops now sell for ${pct(t.bonus)} more.`);
+          toast(`${t.emoji} ${t.name} on ${f.name}! Its scoops now sell for ${pct(t.bonus)}${t.bonus >= 99 ? '' : ' more'}.`);
           if (s) confetti(slots[s.slot].x, slots[s.slot].y, 12);
           break;
         }
@@ -1047,6 +1048,7 @@
   $('tabTop').addEventListener('click', () => showShopTab('top'));
 
   for (const t of TOPPINGS) {
+    if (t.adminOnly) continue; // 👑 admin toppings are never in the shop
     const row = document.createElement('div');
     row.className = 'row';
     row.innerHTML = `<div class="iconWrap">${iconHtml(t.id)}</div>
@@ -1062,6 +1064,7 @@
     const s = me();
     if (!s) return;
     for (const t of TOPPINGS) {
+      if (!t.row) continue;
       const [one, ten] = t.row.querySelectorAll('button');
       one.disabled = s.money < t.cost;
       ten.disabled = s.money < t.cost * 10;
@@ -1470,6 +1473,7 @@
     il.innerHTML = '';
     for (const [id, n] of Object.entries(items).sort((a, b) => sellPrice(itemById[b[0]]) - sellPrice(itemById[a[0]]))) {
       const it = itemById[id];
+      if (toppingById[id] && it.adminOnly) continue; // 👑 admin toppings can't be sold
       const sub = toppingById[id] ? 'Topping' : `${RARITIES[it.rarity].name} ice cream`;
       il.appendChild(sellRow(iconHtml(id), it.name, sub, sellPrice(it), n, () => sellIt('item', id, 1), () => sellIt('item', id, n)));
     }
@@ -2006,7 +2010,7 @@
   for (const t of TOPPINGS) {
     const opt = document.createElement('option');
     opt.value = t.id;
-    opt.textContent = `${t.emoji} ${t.name}`;
+    opt.textContent = (t.adminOnly ? '👑 ' : '') + `${t.emoji} ${t.name}`;
     $('adminFlavor').appendChild(opt);
   }
   document.querySelectorAll('#adminPanel [data-money]').forEach(btn =>
@@ -3344,6 +3348,39 @@
         for (let k = 0; k < 3; k++) {
           const a = time * 2 + k * 2.1 + seed;
           star(x + Math.cos(a) * r * 0.9, y - 2 + Math.sin(a) * r * 0.5, 2.6, k % 2 ? '#e5dbff' : '#b197fc');
+        }
+        break;
+      case 'royalcrown': // 👑 a tiny gold crown with a shine
+        ctx.shadowColor = '#ffd43b'; ctx.shadowBlur = 8;
+        ctx.fillStyle = '#ffd43b'; ctx.strokeStyle = '#b07800'; ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(x - 4, y + 1); ctx.lineTo(x - 4, y - 3); ctx.lineTo(x - 2, y - 1); ctx.lineTo(x, y - 4.5);
+        ctx.lineTo(x + 2, y - 1); ctx.lineTo(x + 4, y - 3); ctx.lineTo(x + 4, y + 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#e03131'; ctx.beginPath(); ctx.arc(x, y - 0.5, 0.9, 0, Math.PI * 2); ctx.fill();
+        if (Math.sin(time * 4 + seed) > 0.3) star(x + 3, y - 4, 1.8, '#ffffff');
+        break;
+      case 'lightning': // ⚡ yellow bolts that flash
+        ctx.shadowColor = '#fff36b'; ctx.shadowBlur = 10;
+        ctx.strokeStyle = Math.sin(time * 10 + seed) > 0 ? '#fff36b' : '#ffffff'; ctx.lineWidth = 1.4; ctx.lineJoin = 'round';
+        for (const dx of [-r * 0.4, r * 0.4]) {
+          ctx.beginPath(); ctx.moveTo(x + dx + 1, y - 5); ctx.lineTo(x + dx - 1, y - 1.5); ctx.lineTo(x + dx + 1, y - 1.5); ctx.lineTo(x + dx - 1, y + 2); ctx.stroke();
+        }
+        break;
+      case 'galaxydust': // 🌌 a little spinning galaxy with stars
+        ctx.shadowColor = '#9775fa'; ctx.shadowBlur = 10;
+        for (let k = 0; k < 2; k++) {
+          ctx.strokeStyle = k ? '#e5dbff' : '#7048e8'; ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          for (let j = 0; j <= 10; j++) {
+            const a = time * 2 + k * Math.PI + j * 0.45, d = j * 0.45;
+            ctx.lineTo(x + Math.cos(a) * d, y - 2 + Math.sin(a) * d * 0.6);
+          }
+          ctx.stroke();
+        }
+        for (let k = 0; k < 3; k++) {
+          const a = -time * 1.5 + k * 2.1 + seed;
+          star(x + Math.cos(a) * r * 0.8, y - 2 + Math.sin(a) * r * 0.45, 1.6, k % 2 ? '#ffffff' : '#d0bfff');
         }
         break;
       case 'gummies':

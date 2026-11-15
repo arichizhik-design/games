@@ -1229,6 +1229,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'stardust',  name: 'Stardust',        emoji: '🌟', bonus: 4,    cost: 2000000, color: '#b197fc' },
     { id: 'planets',   name: 'Mini Planets',    emoji: '🪐', bonus: 6,    cost: 10000000, color: '#748ffc' },
     { id: 'dragonfire',name: 'Dragon Fire',     emoji: '🔥', bonus: 10,   cost: 50000000, color: '#ff6b00' },
+    // 👑 admin-only toppings: never in the shop. Regular players only get them as a gift from an admin,
+    // and they can't sell, gift or trade them. bonus 999 = the scoop sells for x1,000
+    { id: 'royalcrown', name: 'Royal Crown',    emoji: '👑', bonus: 999,   cost: 0, color: '#ffd43b', adminOnly: true },
+    { id: 'lightning',  name: 'Lightning Bolts', emoji: '⚡', bonus: 9999,  cost: 0, color: '#fff36b', adminOnly: true },
+    { id: 'galaxydust', name: 'Galaxy Dust',    emoji: '🌌', bonus: 99999, cost: 0, color: '#7048e8', adminOnly: true },
   ];
 
   // Pets: you get them from lucky blocks at the Pet Shop. Your equipped pet follows you
@@ -2365,7 +2370,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         broadcast({ type: 'chat', id: stand.id, from: stand.name, admin: !!stand.admin, text });
       } else if (msg.type === 'buyTopping') {
         const t = toppingById[msg.topping];
-        if (!t) return;
+        if (!t || t.adminOnly) return;
         if (!near(SHOP)) return err('Walk to the Supplies Shop to buy.');
         const n = Math.min(99, Math.max(1, Math.floor(Number(msg.count) || 1)));
         if (stand.money < t.cost * n) return err('Not enough money!');
@@ -2490,6 +2495,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (!near(SELL_SHOP)) return err('Walk to the Sell Shop to sell things.');
         const pet = msg.kind === 'pet' && petById[msg.id], item = msg.kind === 'item' && itemById[msg.id];
         if (!pet && !item) return;
+        if (item && toppingById[item.id] && item.adminOnly) return err(`${item.name} is an admin topping. It can't be sold!`);
         const have = pet ? countOf(stand.pets, pet.id) : countItem(stand, item.id);
         const n = Math.min(have, Math.max(1, Math.floor(Number(msg.count) || 1)));
         if (n <= 0) return err(`You don't have any ${(pet || item).name}.`);
@@ -2517,6 +2523,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (now - (stand.lastGift || 0) < 1000) return err('Slow down! Wait a second.');
         const give = cleanBundle(msg.give);
         const get = msg.type === 'gift' ? cleanBundle(null) : cleanBundle(msg.get);
+        // 👑 admin toppings: only admins can hand them out
+        const adminTop = b => Object.keys(b.items).map(id => toppingById[id]).find(t => t && t.adminOnly);
+        const blocked = (!stand.admin && adminTop(give)) || (!target.admin && adminTop(get));
+        if (blocked) return err(`${blocked.name} is an admin topping. Only admins can give it away!`);
         const evs = [...bundleEvents(give), ...bundleEvents(get)];
         if (evs.some(ev => !(sees(stand, ev) && sees(target, ev)))) {
           return err(`${target.name} can't have ${evs.includes('glass') ? 'Glass' : 'Cyber'} stuff yet. Only admins can see it for now!`);
@@ -2747,7 +2757,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const toppingById = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
   const itemById = { ...flavorById, ...toppingById }; // hotbar/Inventory things: ice cream tubs and toppings
   const petById = Object.fromEntries(PETS.map(p => [p.id, p]));
-  const pct = n => `+${Math.round(n * 100)}%`;
+  // admin toppings are so big they show as x1,000 instead of +99900%
+  const pct = n => n >= 99 ? `x${Math.round(n + 1).toLocaleString('en-US')}` : `+${Math.round(n * 100)}%`;
 
   const canvas = document.getElementById('canvas');
   let ctx = canvas.getContext('2d');
@@ -3179,7 +3190,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const f = flavorById[msg.flavor];
         if (msg.topping) {
           const t = toppingById[msg.topping];
-          toast(`${t.emoji} ${t.name} on ${f.name}! Its scoops now sell for ${pct(t.bonus)} more.`);
+          toast(`${t.emoji} ${t.name} on ${f.name}! Its scoops now sell for ${pct(t.bonus)}${t.bonus >= 99 ? '' : ' more'}.`);
           if (s) confetti(slots[s.slot].x, slots[s.slot].y, 12);
           break;
         }
@@ -3786,6 +3797,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   $('tabTop').addEventListener('click', () => showShopTab('top'));
 
   for (const t of TOPPINGS) {
+    if (t.adminOnly) continue; // 👑 admin toppings are never in the shop
     const row = document.createElement('div');
     row.className = 'row';
     row.innerHTML = `<div class="iconWrap">${iconHtml(t.id)}</div>
@@ -3801,6 +3813,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const s = me();
     if (!s) return;
     for (const t of TOPPINGS) {
+      if (!t.row) continue;
       const [one, ten] = t.row.querySelectorAll('button');
       one.disabled = s.money < t.cost;
       ten.disabled = s.money < t.cost * 10;
@@ -4209,6 +4222,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     il.innerHTML = '';
     for (const [id, n] of Object.entries(items).sort((a, b) => sellPrice(itemById[b[0]]) - sellPrice(itemById[a[0]]))) {
       const it = itemById[id];
+      if (toppingById[id] && it.adminOnly) continue; // 👑 admin toppings can't be sold
       const sub = toppingById[id] ? 'Topping' : `${RARITIES[it.rarity].name} ice cream`;
       il.appendChild(sellRow(iconHtml(id), it.name, sub, sellPrice(it), n, () => sellIt('item', id, 1), () => sellIt('item', id, n)));
     }
@@ -4745,7 +4759,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   for (const t of TOPPINGS) {
     const opt = document.createElement('option');
     opt.value = t.id;
-    opt.textContent = `${t.emoji} ${t.name}`;
+    opt.textContent = (t.adminOnly ? '👑 ' : '') + `${t.emoji} ${t.name}`;
     $('adminFlavor').appendChild(opt);
   }
   document.querySelectorAll('#adminPanel [data-money]').forEach(btn =>
@@ -6083,6 +6097,39 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         for (let k = 0; k < 3; k++) {
           const a = time * 2 + k * 2.1 + seed;
           star(x + Math.cos(a) * r * 0.9, y - 2 + Math.sin(a) * r * 0.5, 2.6, k % 2 ? '#e5dbff' : '#b197fc');
+        }
+        break;
+      case 'royalcrown': // 👑 a tiny gold crown with a shine
+        ctx.shadowColor = '#ffd43b'; ctx.shadowBlur = 8;
+        ctx.fillStyle = '#ffd43b'; ctx.strokeStyle = '#b07800'; ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(x - 4, y + 1); ctx.lineTo(x - 4, y - 3); ctx.lineTo(x - 2, y - 1); ctx.lineTo(x, y - 4.5);
+        ctx.lineTo(x + 2, y - 1); ctx.lineTo(x + 4, y - 3); ctx.lineTo(x + 4, y + 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#e03131'; ctx.beginPath(); ctx.arc(x, y - 0.5, 0.9, 0, Math.PI * 2); ctx.fill();
+        if (Math.sin(time * 4 + seed) > 0.3) star(x + 3, y - 4, 1.8, '#ffffff');
+        break;
+      case 'lightning': // ⚡ yellow bolts that flash
+        ctx.shadowColor = '#fff36b'; ctx.shadowBlur = 10;
+        ctx.strokeStyle = Math.sin(time * 10 + seed) > 0 ? '#fff36b' : '#ffffff'; ctx.lineWidth = 1.4; ctx.lineJoin = 'round';
+        for (const dx of [-r * 0.4, r * 0.4]) {
+          ctx.beginPath(); ctx.moveTo(x + dx + 1, y - 5); ctx.lineTo(x + dx - 1, y - 1.5); ctx.lineTo(x + dx + 1, y - 1.5); ctx.lineTo(x + dx - 1, y + 2); ctx.stroke();
+        }
+        break;
+      case 'galaxydust': // 🌌 a little spinning galaxy with stars
+        ctx.shadowColor = '#9775fa'; ctx.shadowBlur = 10;
+        for (let k = 0; k < 2; k++) {
+          ctx.strokeStyle = k ? '#e5dbff' : '#7048e8'; ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          for (let j = 0; j <= 10; j++) {
+            const a = time * 2 + k * Math.PI + j * 0.45, d = j * 0.45;
+            ctx.lineTo(x + Math.cos(a) * d, y - 2 + Math.sin(a) * d * 0.6);
+          }
+          ctx.stroke();
+        }
+        for (let k = 0; k < 3; k++) {
+          const a = -time * 1.5 + k * 2.1 + seed;
+          star(x + Math.cos(a) * r * 0.8, y - 2 + Math.sin(a) * r * 0.45, 1.6, k % 2 ? '#ffffff' : '#d0bfff');
         }
         break;
       case 'gummies':
