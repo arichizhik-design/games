@@ -3255,7 +3255,7 @@
       switch (p.shape) {
         case 'heart':
           ctx.font = `bold ${p.size * 2}px sans-serif`; ctx.textAlign = 'center';
-          ctx.fillText('♥', p.x, p.y);
+          ctx.fillText(p.infinity ? '∞' : '♥', p.x, p.y);
           break;
         case 'leaf':
           ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size / 2, p.t * 4, 0, Math.PI * 2); ctx.fill();
@@ -4847,14 +4847,16 @@
     // with several mutations going, each one gets a share of the tint and sparkles
     const share = 1 / Math.max(1, muts.length);
     for (const m of muts) drawOneMutation(m, time, dt * Math.max(share, 0.5), share);
+    drawMutFx(time, dt);
     drawAmbient(time, dt);
   }
 
   function drawOneMutation(m, time, dt, share) {
     if (m.id === 'rainbow') {
       drawSunShower(dt);
+      drawMutationExtras(m, time, dt, share);
     } else if (m) {
-      const tint = ({ impossible: 0.1, sakura: 0.08, meteor: 0.12, cyber: 0.3, glass: 0.12 }[m.id] ?? 0.13) *
+      const tint = ({ impossible: 0.1, sakura: 0.08, galaxy: 0.32, meteor: 0.12, cyber: 0.3, glass: 0.12 }[m.id] ?? 0.13) *
         Math.max(share, 0.5);
       if (tint) {
         ctx.globalAlpha = tint;
@@ -4868,6 +4870,9 @@
         const p = { x: Math.random() * world.width, y: -10, vy: 40 + Math.random() * 60,
           vx: (Math.random() - 0.5) * 30, r: 2 + Math.random() * 3, color: pickColor(m), shape: 'dot' };
         if (m.id === 'sakura') { p.shape = 'petal'; p.r += 2; p.vy *= 0.6; p.vx += 25; }      // drifting cherry blossoms
+        if (m.id === 'gold') { p.shape = 'coin'; p.r += 2; p.spin = 3 + Math.random() * 5; }  // spinning gold coins
+        if (m.id === 'diamond') { p.shape = 'gem'; p.r += 2.5; p.rot = Math.random() * 6; }  // tumbling diamonds
+        if (m.id === 'galaxy') { p.shape = 'twinkle'; p.r += 1; p.vy *= 0.35; }              // slow twinkling stars
         if (m.id === 'cyber') {                                                             // glowing cyan sparks floating up
           Object.assign(p, { y: world.height + 10, vy: -(30 + Math.random() * 50), color: Math.random() < 0.7 ? CYAN : '#d9fdff', r: 1.5 + Math.random() * 2.5 });
         }
@@ -4887,6 +4892,7 @@
         ambient.push(p);
       }
       if (m.id === 'impossible') drawGlitch(time);
+      drawMutationExtras(m, time, dt, share);
       if (m.id === 'cyber') drawCyberGrid(time, share);
       if (m.id === 'glass') drawGlassStorm(time, share);
     }
@@ -4915,6 +4921,26 @@
         ctx.fillStyle = 'rgba(255,255,255,0.6)';
         ctx.beginPath(); ctx.ellipse(-p.r * 0.3, 0, p.r * 0.35, p.r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
+      } else if (p.shape === 'coin') {
+        // a gold coin spinning as it falls
+        const w = Math.abs(Math.cos(time * p.spin + i)) * p.r + 0.6;
+        ctx.fillStyle = '#e8a200';
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, w, p.r, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffd43b';
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, w * 0.75, p.r * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+        if (w > p.r * 0.8 && Math.sin(time * 6 + i) > 0.7) star(p.x - w * 0.3, p.y - p.r * 0.3, p.r * 0.8, '#ffffff');
+      } else if (p.shape === 'gem') {
+        // a sparkly diamond tumbling down
+        ctx.save();
+        ctx.translate(p.x + Math.sin(time + i) * 8, p.y); ctx.rotate(p.rot + time * 1.5);
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.moveTo(0, -p.r); ctx.lineTo(p.r * 0.7, -p.r * 0.2); ctx.lineTo(0, p.r * 1.1); ctx.lineTo(-p.r * 0.7, -p.r * 0.2); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.beginPath(); ctx.moveTo(0, -p.r); ctx.lineTo(p.r * 0.7, -p.r * 0.2); ctx.lineTo(0, -p.r * 0.1); ctx.closePath(); ctx.fill();
+        ctx.restore();
+        if (Math.sin(time * 5 + i * 3) > 0.92) star(p.x, p.y, p.r * 1.4, '#ffffff');
+      } else if (p.shape === 'twinkle') {
+        star(p.x, p.y, p.r * (0.6 + 0.6 * Math.abs(Math.sin(time * 3 + i))), i % 3 ? '#ffffff' : p.color);
       } else if (p.shape === 'meteor') {
         // a flaming rock with a fading tail behind it
         const sp = Math.hypot(p.vx, p.vy), tx = -p.vx / sp, ty = -p.vy / sp, len = 90;
@@ -4934,6 +4960,208 @@
       }
     }
     ctx.globalAlpha = 1;
+  }
+
+  // ✨ the cooler parts of every regular event (Cyber and Glass have their own big storms)
+  const mutFx = []; // effects that last a little while: bursts, whirlwinds, portals, craters…
+  function addMutFx(fx) { if (mutFx.length < 60) mutFx.push({ t: 0, ...fx }); }
+  const randSpot = () => ({ x: 60 + Math.random() * (world.width - 120), y: 220 + Math.random() * (world.height - 260) });
+
+  function drawMutationExtras(m, time, dt, share) {
+    const k = Math.max(share, 0.5);
+    const chance = n => Math.random() < n * dt * k;
+    ctx.save();
+    switch (m.id) {
+      case 'gold': {
+        // 🪙 golden sunbeams sweeping over the park, and coin fountains bursting out of the ground
+        for (let b = 0; b < 2; b++) {
+          const sx = ((time * 90 + b * 900) % (world.width + 800)) - 400;
+          const g = ctx.createLinearGradient(sx - 140, 0, sx + 140, 0);
+          g.addColorStop(0, 'rgba(255, 215, 0, 0)'); g.addColorStop(0.5, `rgba(255, 225, 90, ${0.18 * k})`); g.addColorStop(1, 'rgba(255, 215, 0, 0)');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.moveTo(sx - 70, 0); ctx.lineTo(sx + 70, 0); ctx.lineTo(sx + 300, world.height); ctx.lineTo(sx + 60, world.height); ctx.fill();
+        }
+        if (chance(1.2)) {
+          const p = randSpot();
+          petSpark(p.x, p.y, { shape: 'ring', color: '#ffd43b', vy: 0, life: 0.8, size: 10, grow: 120 });
+          for (let i = 0; i < 10; i++) petSpark(p.x, p.y, { shape: 'star', color: i % 2 ? '#ffd43b' : '#fff3a0', vx: (Math.random() - 0.5) * 160, vy: -60 - Math.random() * 160, life: 1, size: 4 });
+          addMutFx({ kind: 'coins', x: p.x, y: p.y, life: 1.2 });
+        }
+        if (chance(3)) star(Math.random() * world.width, Math.random() * world.height, 2 + Math.random() * 3, '#fff3a0');
+        break;
+      }
+      case 'sakura': {
+        // 🌸 gusts of wind, petal whirlwinds and flowers blooming on the ground
+        if (chance(0.6)) addMutFx({ kind: 'gust', x: -200, y: 150 + Math.random() * (world.height - 200), life: 3, len: 160 + Math.random() * 120 });
+        if (chance(0.5)) addMutFx({ kind: 'whirl', ...randSpot(), life: 4 });
+        if (chance(3)) addMutFx({ kind: 'bloom', ...randSpot(), life: 2.5, size: 6 + Math.random() * 6 });
+        break;
+      }
+      case 'diamond': {
+        // 💎 light glints all over, frosty sparkle bursts and diamonds shattering into shards
+        if (chance(4)) {
+          const x = Math.random() * world.width, y = Math.random() * world.height;
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.2;
+          const l = 6 + Math.random() * 8;
+          ctx.beginPath(); ctx.moveTo(x - l, y); ctx.lineTo(x + l, y); ctx.moveTo(x, y - l); ctx.lineTo(x, y + l); ctx.stroke();
+          glow(x, y, l * 1.5, '185, 242, 255', 0.6);
+        }
+        if (chance(1.2)) {
+          const p = randSpot();
+          petSpark(p.x, p.y, { shape: 'ring', color: '#b9f2ff', vy: 0, life: 0.9, size: 8, grow: 150 });
+          for (let i = 0; i < 12; i++) petSpark(p.x, p.y, { shape: 'shard', vx: (Math.random() - 0.5) * 260, vy: -Math.random() * 200, life: 0.9, size: 3.5, hue: 185 + Math.random() * 30 });
+          for (let i = 0; i < 4; i++) petSpark(p.x, p.y, { shape: 'flake', color: '#e8fdff', vx: (Math.random() - 0.5) * 80, vy: -30 - Math.random() * 40, life: 1.4, size: 5 });
+        }
+        break;
+      }
+      case 'galaxy': {
+        // 🪐 colorful space clouds, a ringed planet floating by, and shooting stars
+        for (let n = 0; n < 3; n++) {
+          const nx = ((time * 12 + n * 700) % (world.width + 600)) - 300, ny = 200 + n * 300 + Math.sin(time * 0.3 + n) * 60;
+          const g = ctx.createRadialGradient(nx, ny, 0, nx, ny, 260);
+          g.addColorStop(0, `rgba(${['123, 60, 255', '255, 102, 217', '60, 140, 255'][n]}, ${0.16 * k})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(nx, ny, 260, 0, Math.PI * 2); ctx.fill();
+        }
+        const px = ((time * 20) % (world.width + 400)) - 200, py = 110 + Math.sin(time * 0.4) * 20;
+        ctx.globalAlpha = 0.85 * k;
+        const pg = ctx.createRadialGradient(px - 12, py - 12, 4, px, py, 40);
+        pg.addColorStop(0, '#ffb3ec'); pg.addColorStop(1, '#5a1fb8');
+        ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(px, py, 40, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffd6f5'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.ellipse(px, py, 70, 16, -0.3, Math.PI * 0.05, Math.PI * 0.95, true); ctx.stroke();
+        ctx.globalAlpha = 1;
+        if (chance(2)) addMutFx({ kind: 'shooting', x: Math.random() * world.width, y: Math.random() * world.height * 0.5, life: 0.8 });
+        break;
+      }
+      case 'rainbow': {
+        // 🌈 a huge rainbow over the park, and rainbow bubbles floating up
+        const cx = world.width / 2, cy = world.height * 0.9, R = world.width * 0.62;
+        m.colors.forEach((c, i) => {
+          ctx.strokeStyle = c; ctx.globalAlpha = (0.1 + 0.04 * Math.sin(time * 2 + i)) * k; ctx.lineWidth = 22;
+          ctx.beginPath(); ctx.arc(cx, cy, R - i * 22, Math.PI, Math.PI * 2); ctx.stroke();
+        });
+        ctx.globalAlpha = 1;
+        if (chance(4)) {
+          const p = randSpot();
+          petSpark(p.x, p.y, { shape: 'bubble', color: `hsl(${Math.random() * 360}, 100%, 65%)`, vx: (Math.random() - 0.5) * 20, vy: -30 - Math.random() * 30, life: 3, size: 4 + Math.random() * 6 });
+        }
+        if (chance(0.4)) {
+          const p = randSpot();
+          for (let i = 0; i < 14; i++) petSpark(p.x, p.y, { shape: 'star', color: `hsl(${i * 26}, 100%, 62%)`, vx: Math.cos(i * 0.45) * 140, vy: Math.sin(i * 0.45) * 140 - 40, life: 0.9, size: 4 });
+        }
+        break;
+      }
+      case 'meteor': {
+        // ☄️ the sky glows red, embers float up, and meteors crash into the park
+        const g = ctx.createLinearGradient(0, 0, 0, 300);
+        g.addColorStop(0, `rgba(255, 70, 0, ${0.3 * k})`); g.addColorStop(1, 'rgba(255, 70, 0, 0)');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, world.width, 300);
+        if (chance(6)) petSpark(Math.random() * world.width, world.height * (0.3 + Math.random() * 0.7),
+          { shape: 'flame', color: Math.random() < 0.5 ? '#ff6b00' : '#ffd43b', vx: (Math.random() - 0.5) * 20, vy: -40 - Math.random() * 40, life: 1.6, size: 2.5 });
+        if (chance(0.8)) addMutFx({ kind: 'crash', ...randSpot(), life: 4 });
+        break;
+      }
+      case 'impossible': {
+        // ♾️ swirling portals open and close, and floating infinity signs
+        if (chance(0.8)) addMutFx({ kind: 'portal', ...randSpot(), life: 4 });
+        if (chance(5)) {
+          const p = randSpot();
+          petSpark(p.x, p.y, { shape: 'heart', text: '', color: `hsl(${Math.random() * 360}, 100%, 65%)`, vx: 0, vy: -25, life: 2, size: 7, infinity: true });
+        }
+        break;
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawMutFx(time, dt) {
+    for (let i = mutFx.length - 1; i >= 0; i--) {
+      const f = mutFx[i];
+      f.t += dt;
+      if (f.t >= f.life) { mutFx.splice(i, 1); continue; }
+      const a = 1 - f.t / f.life;
+      ctx.save();
+      switch (f.kind) {
+        case 'coins': // coins shooting up out of the ground like a fountain
+          for (let c = 0; c < 6; c++) {
+            const tt = f.t * 1.3, dx = (c - 2.5) * 22 * tt, dy = -260 * tt + 300 * tt * tt;
+            const w = Math.abs(Math.cos(time * 8 + c)) * 5 + 0.6;
+            ctx.globalAlpha = a; ctx.fillStyle = '#ffd43b'; ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.ellipse(f.x + dx, f.y + dy, w, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          }
+          break;
+        case 'gust': { // a pink swoosh of wind blowing across the park
+          const x = f.x + f.t * 700;
+          ctx.globalAlpha = Math.min(1, a * 2) * 0.55; ctx.strokeStyle = '#ffe3ef'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+          ctx.beginPath();
+          for (let j = 0; j <= 10; j++) ctx.lineTo(x - j * f.len / 10, f.y + Math.sin(j * 0.7 + time * 4) * 8);
+          ctx.stroke();
+          break;
+        }
+        case 'whirl': // a little tornado of petals spinning in one spot
+          for (let j = 0; j < 14; j++) {
+            const an = time * 5 + j * 0.9, h = j * 7, rr = 6 + j * 2.2;
+            ctx.globalAlpha = Math.min(1, a * 2, f.t * 2) * 0.9; ctx.fillStyle = j % 2 ? '#ffb7d5' : '#ff8fbf';
+            ctx.beginPath(); ctx.ellipse(f.x + Math.cos(an) * rr, f.y - h + Math.sin(an) * rr * 0.3, 4, 2.4, an, 0, Math.PI * 2); ctx.fill();
+          }
+          break;
+        case 'bloom': { // a cherry blossom opening up on the ground
+          const open = Math.min(1, f.t * 2), r = f.size * open;
+          ctx.globalAlpha = Math.min(1, a * 2);
+          for (let j = 0; j < 5; j++) {
+            const an = j * Math.PI * 2 / 5 + f.t;
+            ctx.fillStyle = '#ffb7d5';
+            ctx.beginPath(); ctx.ellipse(f.x + Math.cos(an) * r * 0.7, f.y + Math.sin(an) * r * 0.7, r * 0.6, r * 0.4, an, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.fillStyle = '#ffd43b'; ctx.beginPath(); ctx.arc(f.x, f.y, r * 0.25, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+        case 'shooting': { // a shooting star streaking across the sky
+          const x = f.x + f.t * 900, y = f.y + f.t * 380;
+          const g = ctx.createLinearGradient(x, y, x - 120, y - 50);
+          g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(1, 'rgba(255, 102, 217, 0)');
+          ctx.strokeStyle = g; ctx.lineWidth = 3; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 120, y - 50); ctx.stroke();
+          star(x, y, 5, '#ffffff');
+          break;
+        }
+        case 'crash': { // a meteor drops, then a boom, a shockwave and a glowing crater
+          const fall = 0.6;
+          if (f.t < fall) {
+            const k2 = f.t / fall, mx = f.x + 260 * (1 - k2), my = f.y - 500 * (1 - k2);
+            glow(mx, my, 30, '255, 120, 0', 0.7);
+            ctx.strokeStyle = 'rgba(255, 180, 60, 0.8)'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + 70, my - 130); ctx.stroke();
+            ctx.fillStyle = '#5c2a00'; ctx.beginPath(); ctx.arc(mx, my, 9, 0, Math.PI * 2); ctx.fill();
+          } else {
+            if (!f.boom) {
+              f.boom = true;
+              petSpark(f.x, f.y, { shape: 'ring', color: '#ff6b00', vy: 0, life: 0.8, size: 12, grow: 220 });
+              for (let j = 0; j < 16; j++) petSpark(f.x, f.y, { shape: 'flame', color: j % 2 ? '#ff6b00' : '#ffd43b', vx: (Math.random() - 0.5) * 300, vy: -Math.random() * 240, life: 0.9, size: 4 });
+              for (let j = 0; j < 5; j++) petSpark(f.x, f.y, { shape: 'smoke', color: 'rgba(80, 60, 50, 0.5)', vx: (Math.random() - 0.5) * 40, vy: -20 - Math.random() * 20, life: 1.8, size: 8 });
+            }
+            const c = 1 - (f.t - fall) / (f.life - fall);
+            glow(f.x, f.y, 40, '255, 90, 0', 0.5 * c);
+            ctx.globalAlpha = c * 0.7; ctx.fillStyle = '#3b2314';
+            ctx.beginPath(); ctx.ellipse(f.x, f.y, 26, 10, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          break;
+        }
+        case 'portal': { // a swirling rainbow portal
+          const open = Math.min(1, f.t * 1.5, a * 3), R = 34 * open;
+          for (let j = 0; j < 4 && R - j * 7 > 0; j++) {
+            ctx.globalAlpha = 0.6 * open;
+            ctx.strokeStyle = `hsl(${(time * 200 + j * 90) % 360}, 100%, 60%)`; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.ellipse(f.x, f.y, R - j * 7, (R - j * 7) * 0.45, 0, time * 4 + j, time * 4 + j + 4.5); ctx.stroke();
+          }
+          ctx.globalAlpha = 0.5 * open; ctx.fillStyle = '#12002b';
+          ctx.beginPath(); ctx.ellipse(f.x, f.y, R * 0.35, R * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+          if (Math.random() < 0.3) petSpark(f.x, f.y, { color: `hsl(${Math.random() * 360}, 100%, 65%)`, vx: (Math.random() - 0.5) * 120, vy: -Math.random() * 120, life: 0.7, size: 2.5 });
+          break;
+        }
+      }
+      ctx.restore();
+    }
   }
 
   // ⚡ Cyber mutation: blue lightning striking all over the park
