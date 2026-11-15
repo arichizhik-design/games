@@ -316,6 +316,16 @@
     { id: 'meteor',    name: 'Meteor Shower', emoji: '☄️', mult: 40, weight: 1.6, colors: ['#ff6b00', '#ffd43b', '#5c2a00'] },
     { id: 'impossible', name: 'Impossible', emoji: '♾️', mult: 100, weight: 0.3,
       colors: ['#ff00ff', '#00ffff', '#ffff00', '#ff0055', '#00ff66'] },
+    // new ones (nothing falls from the sky in these)
+    { id: 'cereal',     name: 'Cereal',       emoji: '🥣', mult: 3,   weight: 16, colors: ['#ff6b6b', '#fcc419', '#51cf66', '#4dabf7', '#cc5de8'] },
+    { id: 'frostbite',  name: 'Frostbite',    emoji: '❄️', mult: 6,   weight: 10, colors: ['#a5d8ff', '#e7f5ff', '#74c0fc'] },
+    { id: 'inferno',    name: 'Inferno',      emoji: '🔥', mult: 8,   weight: 9,  colors: ['#ff4500', '#ffb000', '#ff1a1a'] },
+    { id: 'radioactive', name: 'Radioactive', emoji: '☢️', mult: 10,  weight: 7,  colors: ['#7cff00', '#d4ff3f', '#2bff88'] },
+    { id: 'tornado',    name: 'Tornado',      emoji: '🌪️', mult: 12,  weight: 6,  colors: ['#adb5bd', '#dee2e6', '#a5b4fc'] },
+    { id: 'vampire',    name: 'Vampire',      emoji: '🧛', mult: 20,  weight: 4,  colors: ['#c92a2a', '#5c0a0a', '#ff6b6b'] },
+    { id: 'aura',       name: 'Aura Farming', emoji: '😎', mult: 25,  weight: 3,  colors: ['#ffd43b', '#fff9db', '#b197fc'] },
+    // 🌑 super rare: even better than Impossible
+    { id: 'darkmatter', name: 'Dark Matter',  emoji: '🌑', mult: 150, weight: 0.1, colors: ['#3b0a6b', '#8b2cff', '#ff2bd6'] },
   ];
   // ⚡ Cyber: the second best mutation. It never starts by itself (weight 0); only admins can turn it on.
   MUTATIONS.push({ id: 'cyber', name: 'Cyber', emoji: '🤖', mult: 50, weight: 0, adminOnly: true,

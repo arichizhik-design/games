@@ -55,16 +55,28 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   | Mutation | Money |
   |---|---|
   | 🪙 Gold | x2 |
+  | 🥣 Cereal | x3 |
   | 🌸 Sakura | x4 |
   | 💎 Diamond | x5 |
+  | ❄️ Frostbite | x6 |
+  | 🔥 Inferno | x8 |
+  | ☢️ Radioactive | x10 |
+  | 🌪️ Tornado | x12 |
   | 🪐 Galaxy | x15 |
+  | 🧛 Vampire | x20 |
+  | 😎 Aura Farming | x25 |
   | 🌈 Rainbow | x30 |
   | ☄️ Meteor Shower | x40 |
   | ♾️ **Impossible** | **x100** |
+  | 🌑 **Dark Matter** (super rare) | **x150** |
 
-  Rarer mutations (bigger money) come up less often. Sakura drops cherry blossoms, Rainbow brings a real
-  rainbow over the park, Meteor Shower sends flaming meteors across the sky, and Impossible (the rarest of all)
-  makes the whole park glitch with color.
+  Rarer mutations (bigger money) come up less often. Only Gold (coins), Galaxy (stars) and Meteor Shower (meteors)
+  drop things from the sky; the rest happen on the ground and in the air: Sakura petals blow in the wind, Diamond
+  crystals grow out of the ground, Rainbow brings a real rainbow, Cereal has giant bowls splashing cereal loops,
+  Frostbite has ice spikes and frosty mist, Inferno has fire pillars and lava cracks, Radioactive has toxic puddles
+  and radiation rings, Tornado sends tornadoes across the park, Vampire brings night, a blood moon and bats,
+  Aura Farming gives every player a huge aura with "+AURA" popping up, Impossible glitches with rainbow portals,
+  and Dark Matter fills the park with tiny black holes and dark lightning.
 - **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
   Infinity Swirl spins with every color and has stars flying in an infinity loop around it,
   Bubblegum blows a bubble that pops, Mango Tango shines like the sun, Lava Swirl drips lava, Frozen Aurora

@@ -664,7 +664,7 @@
     const ev = evs[0];
     box.classList.toggle('active', !!ev);
     // light-colored mutations get dark text so it stays readable
-    const light = evs.length === 1 && ['diamond', 'gold', 'sakura', 'cyber', 'glass'].includes(ev.id);
+    const light = evs.length === 1 && ['diamond', 'gold', 'sakura', 'cyber', 'glass', 'cereal', 'frostbite', 'aura', 'tornado'].includes(ev.id);
     box.style.color = light ? '#5a4300' : '';
     box.style.textShadow = light ? '0 1px 2px rgba(255,255,255,0.8)' : '';
     if (evs.length > 1) {
@@ -3253,7 +3253,7 @@
       switch (p.shape) {
         case 'heart':
           ctx.font = `bold ${p.size * 2}px sans-serif`; ctx.textAlign = 'center';
-          ctx.fillText(p.infinity ? '∞' : '♥', p.x, p.y);
+          ctx.fillText(p.infinity ? '∞' : p.radiation ? '☢' : '♥', p.x, p.y);
           break;
         case 'leaf':
           ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size / 2, p.t * 4, 0, Math.PI * 2); ctx.fill();
@@ -4383,6 +4383,19 @@
     ctx.restore();
   }
 
+  // 😎 Aura Farming: a huge aura of golden and purple flames around every player
+  function drawAura(time, seed, px, py) {
+    glow(0, -10, 70, '255, 212, 59', 0.35 + 0.1 * Math.sin(time * 4 + seed));
+    glow(0, -10, 45, '177, 151, 252', 0.3);
+    for (let k = 0; k < 9; k++) {
+      const x = (k - 4) * 6.5, h = 55 + 18 * Math.sin(time * 9 + k * 1.7 + seed) - Math.abs(k - 4) * 6;
+      ctx.globalAlpha = 0.45;
+      flame(x, 18, 9, h, k % 2 ? '#b197fc' : '#ffd43b');
+    }
+    ctx.globalAlpha = 1;
+    if (Math.random() < 0.2) petSpark(px + (Math.random() - 0.5) * 40, py - Math.random() * 40, { shape: 'star', color: Math.random() < 0.5 ? '#ffd43b' : '#e5dbff', vx: 0, vy: -50, life: 0.8, size: 2.5 });
+  }
+
   // a player's character: bigger than customers, dressed the way they picked in the Avatar Shop
   function drawPlayer(p, time) {
     const av = p.avatar || {};
@@ -4393,6 +4406,7 @@
     const bounce = p.moving ? Math.abs(Math.sin(time * 12)) * 3 : 0;
     ctx.save();
     ctx.translate(p.x, p.y);
+    if (activeMuts().some(m => m.id === 'aura')) drawAura(time, p.id || 0, p.x, p.y);
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath(); ctx.ellipse(0, 18, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
     const roboParts = ['shirt', 'pants', 'skin', 'hat', 'face'].filter(k => av[k] === 'robo').length;
@@ -4853,16 +4867,17 @@
     if (m.id === 'rainbow') {
       drawMutationExtras(m, time, dt, share); // no rain: only Gold, Galaxy and Meteor Shower have things falling
     } else if (m) {
-      const tint = ({ impossible: 0.1, sakura: 0.08, galaxy: 0.32, meteor: 0.12, cyber: 0.3, glass: 0.12 }[m.id] ?? 0.13) *
-        Math.max(share, 0.5);
+      const tint = ({ impossible: 0.1, sakura: 0.08, galaxy: 0.32, meteor: 0.12, cyber: 0.3, glass: 0.12, cereal: 0.1, frostbite: 0.18,
+        inferno: 0.12, radioactive: 0.12, tornado: 0.14, vampire: 0.45, aura: 0.07, darkmatter: 0.5 }[m.id] ?? 0.13) * Math.max(share, 0.5);
+      const TINT = { cyber: '#04121c', cereal: '#fff3c4', vampire: '#1a0005', darkmatter: '#07000f', tornado: '#495057' };
       if (tint) {
         ctx.globalAlpha = tint;
-        ctx.fillStyle = m.id === 'impossible' ? `hsl(${(time * 120) % 360}, 100%, 50%)` : m.id === 'cyber' ? '#04121c' : m.colors[0];
+        ctx.fillStyle = m.id === 'impossible' ? `hsl(${(time * 120) % 360}, 100%, 50%)` : TINT[m.id] || m.colors[0];
         ctx.fillRect(0, 0, world.width, world.height);
         ctx.globalAlpha = 1;
       }
       // only Gold, Galaxy and Meteor Shower drop things from the sky (and Cyber sparks float up, Glass Storms drop shards)
-      const rate = m.id === 'meteor' ? 1.5 : ['sakura', 'diamond'].includes(m.id) ? 0 : 20; // fewer of the big meteors
+      const rate = m.id === 'meteor' ? 1.5 : ['gold', 'galaxy', 'impossible', 'cyber', 'glass'].includes(m.id) ? 20 : 0; // fewer of the big meteors
       for (let i = 0; i < 2; i++) {
         if (Math.random() >= dt * rate) continue;
         const p = { x: Math.random() * world.width, y: -10, vy: 40 + Math.random() * 60,
@@ -4963,7 +4978,15 @@
   // ✨ the cooler parts of every regular event (Cyber and Glass have their own big storms)
   const mutFx = []; // effects that last a little while: bursts, whirlwinds, portals, craters…
   function addMutFx(fx) { if (mutFx.length < 120) mutFx.push({ t: 0, ...fx }); }
-  const randSpot = () => ({ x: 60 + Math.random() * (world.width - 120), y: 220 + Math.random() * (world.height - 260) });
+  // a random spot in the park; most of them on your screen, so you see the effects
+  function randSpot() {
+    if (Math.random() < 0.65) {
+      const x0 = -view.ox / view.scale, y0 = -view.oy / view.scale, w = view.w / view.scale, h = view.h / view.scale;
+      return { x: Math.max(30, Math.min(world.width - 30, x0 + 40 + Math.random() * (w - 80))),
+        y: Math.max(120, Math.min(world.height - 30, y0 + 120 + Math.random() * (h - 160))) };
+    }
+    return { x: 60 + Math.random() * (world.width - 120), y: 220 + Math.random() * (world.height - 260) };
+  }
 
   function drawMutationExtras(m, time, dt, share) {
     const k = Math.max(share, 0.5);
@@ -5051,6 +5074,87 @@
         if (chance(0.8)) addMutFx({ kind: 'crash', ...randSpot(), life: 4 });
         break;
       }
+      case 'cereal': {
+        // 🥣 giant cereal bowls pop up and splash colorful loops and milk everywhere
+        if (chance(3.5)) addMutFx({ kind: 'bowl', ...randSpot(), life: 3 });
+        if (chance(3)) {
+          const p = randSpot();
+          for (let i = 0; i < 6; i++) petSpark(p.x, p.y, { shape: 'bubble', color: '#ffffff', vx: (Math.random() - 0.5) * 120, vy: -60 - Math.random() * 100, life: 0.6, size: 2 + Math.random() * 2 });
+        }
+        break;
+      }
+      case 'frostbite': {
+        // ❄️ frost around the edges, ice spikes bursting out of the ground and icy mist drifting by
+        const edge = 90;
+        for (const [x0, y0, x1, y1] of [[0, 0, edge, 0], [world.width, 0, world.width - edge, 0], [0, 0, 0, edge], [0, world.height, 0, world.height - edge]]) {
+          const g = ctx.createLinearGradient(x0, y0, x1, y1);
+          g.addColorStop(0, `rgba(231, 245, 255, ${0.55 * k})`); g.addColorStop(1, 'rgba(231, 245, 255, 0)');
+          ctx.fillStyle = g; ctx.fillRect(0, 0, world.width, world.height);
+        }
+        if (chance(7)) addMutFx({ kind: 'icespike', ...randSpot(), life: 3, size: 12 + Math.random() * 10 });
+        if (chance(0.8)) addMutFx({ kind: 'mist', x: -150, y: 100 + Math.random() * (world.height - 150), life: 7, size: 60 + Math.random() * 50 });
+        break;
+      }
+      case 'inferno': {
+        // 🔥 fire pillars blast out of the ground, the ground cracks with lava, and embers float up
+        if (chance(6)) addMutFx({ kind: 'firepillar', ...randSpot(), life: 1.6 });
+        if (chance(3)) addMutFx({ kind: 'lavacrack', ...randSpot(), life: 4, seed: Math.random() * 100 });
+        if (chance(10)) petSpark(Math.random() * world.width, world.height * Math.random(),
+          { shape: 'flame', color: Math.random() < 0.5 ? '#ff4500' : '#ffb000', vx: (Math.random() - 0.5) * 20, vy: -50 - Math.random() * 40, life: 1.4, size: 2.5 });
+        break;
+      }
+      case 'radioactive': {
+        // ☢️ bubbling toxic puddles, glowing green gas and radiation rings pulsing out
+        if (chance(4)) addMutFx({ kind: 'puddle', ...randSpot(), life: 5, size: 24 + Math.random() * 20 });
+        if (chance(0.6)) {
+          const p = randSpot();
+          petSpark(p.x, p.y, { shape: 'ring', color: '#7cff00', vy: 0, life: 1.2, size: 10, grow: 170 });
+          petSpark(p.x, p.y - 5, { shape: 'heart', infinity: false, radiation: true, color: '#d4ff3f', vy: -20, life: 1.5, size: 9 });
+        }
+        if (chance(2)) petSpark(Math.random() * world.width, Math.random() * world.height,
+          { shape: 'smoke', color: 'rgba(124, 255, 0, 0.18)', vx: 15, vy: -8, life: 3, size: 14 });
+        break;
+      }
+      case 'tornado': {
+        // 🌪️ big tornadoes spin across the park with stuff flying around them, and wind streaks
+        if (chance(0.8) && mutFx.filter(f => f.kind === 'twister').length < 5) {
+          const left = Math.random() < 0.5;
+          addMutFx({ kind: 'twister', ...randSpot(), vx: (left ? 1 : -1) * (70 + Math.random() * 50), life: 30 });
+        }
+        if (chance(3)) addMutFx({ kind: 'gust', x: -200, y: 80 + Math.random() * (world.height - 100), life: 2.5, len: 120 + Math.random() * 120, color: '#f1f3f5' });
+        break;
+      }
+      case 'vampire': {
+        // 🧛 night falls: a big blood moon, bats flying across, red mist and glowing eyes in the dark
+        const mx = (view.w * 0.78 - view.ox) / view.scale, my = (90 - view.oy) / view.scale; // stays in the sky on your screen
+        glow(mx, my, 220, '255, 40, 40', 0.35 * k);
+        ctx.globalAlpha = 0.9 * k; ctx.fillStyle = '#ff4d4d';
+        ctx.beginPath(); ctx.arc(mx, my, 60, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(150, 0, 0, 0.45)';
+        for (const [dx, dy, rr] of [[-18, -12, 12], [15, 10, 9], [-5, 22, 6]]) { ctx.beginPath(); ctx.arc(mx + dx, my + dy, rr, 0, Math.PI * 2); ctx.fill(); }
+        ctx.globalAlpha = 1;
+        if (chance(6)) addMutFx({ kind: 'bat', x: Math.random() < 0.5 ? -30 : world.width + 30, y: 60 + Math.random() * (world.height - 120), life: 9, seed: Math.random() * 10 });
+        if (chance(2.5)) addMutFx({ kind: 'eyes', ...randSpot(), life: 2.5 });
+        if (chance(1.5)) petSpark(Math.random() * world.width, Math.random() * world.height, { shape: 'smoke', color: 'rgba(200, 0, 30, 0.15)', vx: 10, vy: -5, life: 3, size: 16 });
+        break;
+      }
+      case 'aura': {
+        // 😎 everyone glows with a huge aura (see drawPlayer), pillars of light and "+AURA" popping up
+        if (chance(2.5)) addMutFx({ kind: 'pillar', ...randSpot(), life: 1.5, hue: Math.random() < 0.5 ? 45 : 265 });
+        if (chance(4)) addMutFx({ kind: 'auratext', ...randSpot(), life: 1.6, text: `+${[100, 500, 1000, 9999, 1e6][Math.floor(Math.random() * 5)].toLocaleString('en-US')} AURA` });
+        break;
+      }
+      case 'darkmatter': {
+        // 🌑 tiny black holes pull purple light into them, and cracks of dark energy split the air
+        if (chance(1.5) && mutFx.filter(f => f.kind === 'void').length < 8) addMutFx({ kind: 'void', ...randSpot(), life: 6 });
+        if (chance(3)) {
+          const p = randSpot(), pts = [];
+          let cx = 0, cy = 0;
+          for (let j = 0; j < 6; j++) { cx += (Math.random() - 0.5) * 50; cy += 10 + Math.random() * 20; pts.push([cx, cy]); }
+          petSpark(p.x, p.y - 60, { shape: 'bolt', color: '#c77dff', pts, vx: 0, vy: 0, life: 0.4 });
+        }
+        break;
+      }
       case 'impossible': {
         // ♾️ swirling portals open and close, and floating infinity signs
         if (chance(0.8)) addMutFx({ kind: 'portal', ...randSpot(), life: 4 });
@@ -5082,7 +5186,7 @@
           break;
         case 'gust': { // a pink swoosh of wind blowing across the park
           const x = f.x + f.t * 700;
-          ctx.globalAlpha = Math.min(1, a * 2) * 0.55; ctx.strokeStyle = '#ffe3ef'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+          ctx.globalAlpha = Math.min(1, a * 2) * 0.55; ctx.strokeStyle = f.color || '#ffe3ef'; ctx.lineWidth = 2; ctx.lineCap = 'round';
           ctx.beginPath();
           for (let j = 0; j <= 10; j++) ctx.lineTo(x - j * f.len / 10, f.y + Math.sin(j * 0.7 + time * 4) * 8);
           ctx.stroke();
@@ -5163,6 +5267,147 @@
           ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1.4;
           ctx.beginPath(); ctx.moveTo(f.x - l, f.y); ctx.lineTo(f.x + l, f.y); ctx.moveTo(f.x, f.y - l); ctx.lineTo(f.x, f.y + l); ctx.stroke();
           glow(f.x, f.y, l * 1.6 + 1, '185, 242, 255', 0.6);
+          break;
+        }
+        case 'bowl': { // a giant cereal bowl: loops jump out of it in arcs and milk splashes
+          const up = Math.min(1, f.t * 3, a * 4);
+          ctx.globalAlpha = up;
+          ctx.fillStyle = '#4dabf7'; ctx.beginPath(); ctx.ellipse(f.x, f.y, 26, 10, 0, 0, Math.PI); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(f.x - 26, f.y); ctx.quadraticCurveTo(f.x, f.y + 34, f.x + 26, f.y); ctx.fill();
+          ctx.fillStyle = '#fffdf5'; ctx.beginPath(); ctx.ellipse(f.x, f.y, 24, 8, 0, 0, Math.PI * 2); ctx.fill();
+          for (let j = 0; j < 7; j++) {
+            const tt = ((f.t * 1.2 + j / 7) % 1), dir = j % 2 ? 1 : -1;
+            const lx = f.x + dir * (10 + j * 5) * tt, ly = f.y - 4 - 90 * tt + 110 * tt * tt;
+            ctx.strokeStyle = ['#ff6b6b', '#fcc419', '#51cf66', '#4dabf7', '#cc5de8'][j % 5]; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2); ctx.stroke();
+          }
+          break;
+        }
+        case 'icespike': { // jagged ice spikes burst out of the ground, then crack away
+          const up = Math.min(1, f.t * 4), fade = Math.min(1, a * 3);
+          ctx.globalAlpha = fade * 0.9;
+          for (const [dx, sc, lean] of [[-0.7, 0.6, -0.5], [-0.25, 0.9, -0.15], [0.2, 1.1, 0.1], [0.65, 0.7, 0.45]]) {
+            const hh = f.size * 2.4 * sc * up, w = f.size * 0.22;
+            ctx.save(); ctx.translate(f.x + dx * f.size, f.y); ctx.rotate(lean);
+            const g = ctx.createLinearGradient(0, 0, 0, -hh);
+            g.addColorStop(0, '#74c0fc'); g.addColorStop(1, '#ffffff');
+            ctx.fillStyle = g; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(-w, 0); ctx.lineTo(0, -hh); ctx.lineTo(w, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.restore();
+          }
+          if (f.t < 0.1 && !f.burst) { f.burst = true; for (let j = 0; j < 6; j++) petSpark(f.x, f.y, { shape: 'flake', color: '#e7f5ff', vx: (Math.random() - 0.5) * 140, vy: -Math.random() * 120, life: 1, size: 4 }); }
+          break;
+        }
+        case 'mist': { // a cold white cloud drifting across
+          const x = f.x + f.t * 120;
+          ctx.globalAlpha = Math.min(1, a * 2, f.t) * 0.35;
+          for (let j = 0; j < 4; j++) {
+            const g = ctx.createRadialGradient(x + j * f.size * 0.6, f.y, 0, x + j * f.size * 0.6, f.y, f.size);
+            g.addColorStop(0, '#ffffff'); g.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x + j * f.size * 0.6, f.y, f.size, 0, Math.PI * 2); ctx.fill();
+          }
+          break;
+        }
+        case 'firepillar': { // a pillar of fire shooting up out of the ground
+          const h = 140 * Math.sin(Math.min(1, f.t / f.life) * Math.PI);
+          glow(f.x, f.y - h / 2, 60, '255, 100, 0', 0.5 * a);
+          for (let j = -1; j <= 1; j++) {
+            flame(f.x + j * 9, f.y, 12, h * (j ? 0.7 : 1) * (0.9 + 0.1 * Math.sin(time * 20 + j)), '#ff4500');
+            flame(f.x + j * 9, f.y, 7, h * (j ? 0.5 : 0.75), '#ffd43b');
+          }
+          ctx.globalAlpha = a * 0.6; ctx.fillStyle = '#3b1206';
+          ctx.beginPath(); ctx.ellipse(f.x, f.y + 2, 22, 7, 0, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+        case 'lavacrack': { // a glowing crack of lava in the ground
+          ctx.globalAlpha = Math.min(1, f.t * 2, a * 2);
+          ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 14;
+          ctx.strokeStyle = '#ff8a00'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+          ctx.beginPath(); ctx.moveTo(f.x - 40, f.y);
+          for (let j = 1; j <= 6; j++) ctx.lineTo(f.x - 40 + j * 13, f.y + Math.sin(f.seed + j * 2.3) * 8);
+          ctx.stroke();
+          ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 1; ctx.stroke();
+          break;
+        }
+        case 'puddle': { // a bubbling toxic green puddle
+          const sz = f.size * Math.min(1, f.t * 2), fade = Math.min(1, a * 3);
+          glow(f.x, f.y, sz * 2, '124, 255, 0', 0.35 * fade);
+          ctx.globalAlpha = fade * 0.85; ctx.fillStyle = '#5cd600';
+          ctx.beginPath(); ctx.ellipse(f.x, f.y, sz, sz * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#b6ff3f';
+          ctx.beginPath(); ctx.ellipse(f.x - sz * 0.3, f.y - sz * 0.08, sz * 0.35, sz * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+          if (Math.random() < 0.15) petSpark(f.x + (Math.random() - 0.5) * sz, f.y, { shape: 'bubble', color: '#b6ff3f', vy: -25, life: 0.8, size: 2 + Math.random() * 3 });
+          break;
+        }
+        case 'twister': { // a big tornado spinning across the park, with leaves and stuff whirling around it
+          f.x += f.vx * dt;
+          if (f.x < -150 || f.x > world.width + 150) { f.t = f.life; break; }
+          const sway = Math.sin(time * 1.5 + f.y) * 14;
+          for (let j = 0; j < 14; j++) {
+            const yy = f.y - j * 14, w = 8 + j * 4.5, xx = f.x + sway * (j / 14) + Math.sin(time * 6 + j) * 4;
+            ctx.globalAlpha = 0.5; ctx.strokeStyle = j % 2 ? '#e9ecef' : '#868e96'; ctx.lineWidth = 4.5;
+            ctx.beginPath(); ctx.ellipse(xx, yy, w, w * 0.25, 0, time * 8 + j, time * 8 + j + 4.6); ctx.stroke();
+          }
+          ctx.globalAlpha = 0.9;
+          for (let j = 0; j < 6; j++) {
+            const an = time * 5 + j * 1.05, hh = (j * 31) % 170;
+            ctx.fillStyle = ['#51cf66', '#8d5524', '#fcc419'][j % 3];
+            ctx.fillRect(f.x + Math.cos(an) * (14 + hh * 0.35), f.y - hh + Math.sin(an) * 6, 4, 3);
+          }
+          ctx.globalAlpha = 0.25; ctx.fillStyle = '#495057';
+          ctx.beginPath(); ctx.ellipse(f.x, f.y + 4, 22, 7, 0, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+        case 'bat': { // a bat flapping across the night
+          if (f.vx === undefined) f.vx = f.x < 0 ? 140 + Math.random() * 60 : -140 - Math.random() * 60;
+          f.x += f.vx * dt;
+          const by = f.y + Math.sin(time * 3 + f.seed) * 20, flap = Math.sin(time * 18 + f.seed) * 0.8;
+          ctx.fillStyle = '#1a0005'; ctx.globalAlpha = 0.95;
+          for (const side of [-1, 1]) {
+            ctx.beginPath(); ctx.moveTo(f.x, by);
+            ctx.quadraticCurveTo(f.x + side * 8, by - 8 * flap - 4, f.x + side * 16, by - 6 * flap);
+            ctx.quadraticCurveTo(f.x + side * 10, by + 2, f.x, by + 2); ctx.fill();
+          }
+          ctx.beginPath(); ctx.arc(f.x, by, 3.2, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ff2b2b'; ctx.fillRect(f.x - 1.6, by - 1, 1, 1); ctx.fillRect(f.x + 0.6, by - 1, 1, 1);
+          break;
+        }
+        case 'eyes': { // glowing red eyes blinking in the dark
+          const open = Math.sin(Math.min(1, f.t / f.life) * Math.PI);
+          ctx.globalAlpha = open; ctx.fillStyle = '#ff1a1a'; ctx.shadowColor = '#ff1a1a'; ctx.shadowBlur = 10;
+          for (const dx of [-6, 6]) { ctx.beginPath(); ctx.ellipse(f.x + dx, f.y, 3, 2 * open, 0, 0, Math.PI * 2); ctx.fill(); }
+          break;
+        }
+        case 'pillar': { // a pillar of aura light shooting into the sky
+          const w = 30 * Math.sin(Math.min(1, f.t / f.life) * Math.PI);
+          const g = ctx.createLinearGradient(f.x - w, 0, f.x + w, 0);
+          g.addColorStop(0, `hsla(${f.hue}, 100%, 70%, 0)`); g.addColorStop(0.5, `hsla(${f.hue}, 100%, 85%, 0.6)`); g.addColorStop(1, `hsla(${f.hue}, 100%, 70%, 0)`);
+          ctx.fillStyle = g; ctx.fillRect(f.x - w, f.y - 400, w * 2, 400);
+          glow(f.x, f.y, 50, f.hue === 45 ? '255, 212, 59' : '177, 151, 252', 0.5 * a);
+          break;
+        }
+        case 'auratext': { // "+1,000 AURA" floating up
+          ctx.globalAlpha = Math.min(1, a * 2);
+          ctx.font = 'bold 16px Trebuchet MS'; ctx.textAlign = 'center';
+          ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40, 20, 60, 0.8)';
+          ctx.strokeText(f.text, f.x, f.y - f.t * 40);
+          ctx.fillStyle = `hsl(${(time * 200) % 360}, 100%, 75%)`;
+          ctx.fillText(f.text, f.x, f.y - f.t * 40);
+          break;
+        }
+        case 'void': { // a tiny black hole pulling purple light into it
+          const open = Math.min(1, f.t, a * 2), R = 26 * open;
+          glow(f.x, f.y, R * 3.5 + 1, '139, 44, 255', 0.45 * open);
+          for (let j = 0; j < 3; j++) {
+            ctx.strokeStyle = `rgba(${j % 2 ? '255, 43, 214' : '199, 125, 255'}, ${0.7 * open})`; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.ellipse(f.x, f.y, R * (1.5 + j * 0.5), R * (0.5 + j * 0.15), 0.3, -time * 3 + j * 2, -time * 3 + j * 2 + 3.6); ctx.stroke();
+          }
+          ctx.globalAlpha = open; ctx.fillStyle = '#000000';
+          ctx.beginPath(); ctx.arc(f.x, f.y, R * 0.6 + 0.1, 0, Math.PI * 2); ctx.fill();
+          if (Math.random() < 0.5) {
+            const an = Math.random() * Math.PI * 2, d = 90;
+            petSpark(f.x + Math.cos(an) * d, f.y + Math.sin(an) * d * 0.5, { color: Math.random() < 0.5 ? '#c77dff' : '#ff2bd6', vx: -Math.cos(an) * d * 1.4, vy: -Math.sin(an) * d * 0.7, life: 0.7, size: 2 });
+          }
           break;
         }
         case 'portal': { // a swirling rainbow portal
