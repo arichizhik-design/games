@@ -4,7 +4,7 @@
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
     CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice } = GameData;
@@ -75,10 +75,12 @@
 
   // ---------- wearing pets: up to MAX_WORN follow you, and their money boosts add up ----------
   const MAX_WORN = 3;
-  const petBoost = list => list.reduce((sum, id) => sum + (petById[id] ? petById[id].boost : 0), 0);
+  // ⬆️ a pet's boost with your upgrades from the Pet Upgrade Shop
+  const power = (who, id) => petById[id] ? petBoostAt(petById[id], who.petLevels?.[id]) : 0;
+  const petBoost = (who, list) => list.reduce((sum, id) => sum + power(who, id), 0);
   const countOf = (list, id) => list.filter(x => x === id).length;
   // the pets you own, best first
-  const bestPets = pets => [...pets].sort((a, b) => petById[b].boost - petById[a].boost);
+  const bestPets = who => [...who.pets].sort((a, b) => power(who, b) - power(who, a));
   // keep only worn pets you still own (after gifts and trades)
   function fixWorn(who) {
     const out = [];
@@ -88,8 +90,8 @@
   // a new pet goes on if there's room, or swaps out your weakest pet if it's better
   function autoWear(who, id) {
     if (who.worn.length < MAX_WORN) { who.worn.push(id); return true; }
-    const weakest = who.worn.reduce((w, x) => petById[x].boost < petById[w].boost ? x : w);
-    if (petById[weakest].boost >= petById[id].boost) return false;
+    const weakest = who.worn.reduce((w, x) => power(who, x) < power(who, w) ? x : w);
+    if (power(who, weakest) >= power(who, id)) return false;
     who.worn.splice(who.worn.indexOf(weakest), 1, id);
     return true;
   }
@@ -343,7 +345,7 @@
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
         spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
-        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn,
+        upgrades: s.upgrades, mutations: s.mutations, avatar: s.avatar, pets: s.pets, worn: s.worn, petLevels: s.petLevels,
         ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
         shards: s.shards, shardWeek: s.shardWeek, shardScoops: s.shardScoops, giftDay: s.giftDay,
         glassXP: s.glassXP, glassClaimed: s.glassClaimed, premiumGlass: s.premiumGlass, glassGiftDay: s.glassGiftDay,
@@ -401,6 +403,9 @@
         premiumGlass: !!saved.premiumGlass,
         glassGiftDay: saved.glassGiftDay || 0,
         worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(renamedPet), // the pets following you
+        // ⬆️ Pet Upgrade Shop levels: pet id -> level (0 = not upgraded)
+        petLevels: Object.fromEntries(Object.entries(saved.petLevels || {})
+          .filter(([id, l]) => petById[id] && l > 0).map(([id, l]) => [id, Math.min(PET_MAX_LEVEL, Math.floor(l))])),
         adminDevice: saved.adminDevice,
         bought: {},                       // tubs bought since the last restock
         x: s.x + 60, y: s.y + 110,        // the player's character
@@ -422,7 +427,7 @@
         tubs: Array(START_SPACES).fill(null),
         hotbar: Array(HOTBAR_SIZE).fill(null), storage: Array(STORAGE_SIZE).fill(null),
         seen: [], upgrades: Object.fromEntries(Object.keys(UPGRADES).map(k => [k, 0])),
-        mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], bought: {},
+        mutations: {}, avatar: fixAvatar(null), pets: [], worn: [], petLevels: {}, bought: {},
         passXP: 0, passClaimed: { free: [], premium: [] }, premiumPass: false, hand: -1, serveProgress: 0,
         glassXP: 0, glassClaimed: { free: [], premium: [] }, premiumGlass: false, glassGiftDay: 0,
         shards: 0, shardWeek: { week: 0, earned: 0 }, shardScoops: 0,
@@ -485,7 +490,7 @@
       const flavor = flavorById[c.flavor];
       let amount = flavor.price * (1 + 0.1 * stand.upgrades.tips);
       if (toppingById[c.topping]) amount *= 1 + toppingById[c.topping].bonus;
-      amount *= 1 + petBoost(stand.worn); // every pet you wear adds its boost
+      amount *= 1 + petBoost(stand, stand.worn); // every pet you wear adds its boost
       if (c.golden) amount *= 3;
       if (c.robo && seesCyber(stand)) amount *= 2;
       if (c.glass && sees(stand, 'glass')) amount *= 2;
@@ -643,7 +648,7 @@
           spaces: s.spaces, tubs: s.tubs, hotbar: s.hotbar, storage: s.storage, seen: s.seen,
           upgrades: s.upgrades, mutations: s.mutations, bought: s.bought,
           x: Math.round(s.x), y: Math.round(s.y), hand: s.hand, admin: !!s.admin, avatar: s.avatar,
-          pets: s.pets, worn: s.worn,
+          pets: s.pets, worn: s.worn, petLevels: s.petLevels,
           ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
           shards: s.shards, giftDay: s.giftDay,
           glassXP: s.glassXP, glassClaimed: s.glassClaimed, premiumGlass: s.premiumGlass, glassGiftDay: s.glassGiftDay,
@@ -1009,8 +1014,19 @@
         stand.pets.splice(i, 1);
         if (countOf(stand.worn, id) > countOf(stand.pets, id)) stand.worn.splice(stand.worn.indexOf(id), 1);
         conn.send({ type: 'petReleased', pet: id });
+      } else if (msg.type === 'upgradePet') {
+        // ⬆️ Pet Upgrade Shop: pay to make a kind of pet you own boost your money more
+        const pet = petById[msg.pet];
+        if (!pet || !stand.pets.includes(pet.id)) return err('You need that pet first!');
+        const lvl = stand.petLevels[pet.id] || 0;
+        if (lvl >= PET_MAX_LEVEL) return err(`${pet.name} is already at the top level!`);
+        const cost = petUpgradeCost(pet, lvl);
+        if (stand.money < cost) return err('Not enough money!');
+        stand.money -= cost;
+        stand.petLevels[pet.id] = lvl + 1;
+        conn.send({ type: 'petUpgraded', pet: pet.id, level: lvl + 1 });
       } else if (msg.type === 'equipBest') {
-        stand.worn = bestPets(stand.pets).slice(0, MAX_WORN);
+        stand.worn = bestPets(stand).slice(0, MAX_WORN);
       } else if (msg.type === 'gift' || msg.type === 'tradeOffer') {
         // 🎁 give stuff to another player, or 🤝 offer them a trade
         const target = stands.get(Number(msg.to));

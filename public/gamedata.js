@@ -6,7 +6,7 @@
   const CYBER_ADMINS_ONLY = typeof process !== 'undefined' && !!process.env && process.env.CYBER === 'admins';
   // 🔮 The Glass Event (the next event): in the online game only admins can see it until it drops.
   // The test file shows it to everyone. To drop it for everyone, start the server with GLASS=everyone.
-  const GLASS_ADMINS_ONLY = typeof process !== 'undefined' && !!process.env && process.env.GLASS !== 'everyone';
+  const GLASS_ADMINS_ONLY = typeof process !== 'undefined' && !!process.env && process.env.GLASS === 'admins'; // 🔮 dropped for everyone
 
   // growSec: how long a placed tub takes to grow before customers can buy it
   // stock: chance the shop has this rarity after a restock, and how many tubs
@@ -30,6 +30,8 @@
     cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1800, stock: { chance: 0.001, min: 1, max: 1 } },
     // 🔮 Glass: the Glass Peacock pet and Glass Ice Cream (0.1% chance to be in the shop)
     glass:     { name: 'Glass',     color: '#74c0fc', order: 12, growSec: 2100, stock: { chance: 0.001, min: 1, max: 1 } },
+    // 🐲 Chaos: the Chaos Hydra from the Mythic Beasts Block (pets only)
+    chaos:     { name: 'Chaos',     color: '#ff2bd6', order: 13, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -101,23 +103,37 @@
     { id: 'panda',   name: 'Bamboo Panda',    emoji: '🐼', rarity: 'uncommon',  boost: 0.15, fx: 'leaves',  kind: 'waddle' },
     { id: 'penguin', name: 'Ice Penguin',     emoji: '🐧', rarity: 'rare',      boost: 0.25, fx: 'snow',    kind: 'waddle' },
     { id: 'owl',     name: 'Night Owl',       emoji: '🦉', rarity: 'rare',      boost: 0.3,  fx: 'moon',    kind: 'fly' },
-    { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',      boost: 0.5,  fx: 'rainbow', kind: 'walk' },
-    { id: 'phoenix', name: 'Phoenix',         emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'fire',    kind: 'fly' },
+    { id: 'unicorn', name: 'Rainbow Unicorn', emoji: '🦄', rarity: 'epic',      boost: 0.5,  fx: 'unicorn', kind: 'walk' },
+    { id: 'phoenix', name: 'Ice Phoenix',     emoji: '🦅', rarity: 'legendary', boost: 1,    fx: 'icephoenix', kind: 'fly' },
     { id: 'kraken',  name: 'Kraken',          emoji: '🐙', rarity: 'legendary', boost: 1.2,  fx: 'bubbles', kind: 'swim' },
     { id: 'lion',    name: 'Galaxy Lion',     emoji: '🦁', rarity: 'mythic',    boost: 2,    fx: 'galaxy',  kind: 'walk' },
-    { id: 'whale',   name: 'Cosmic Whale',    emoji: '🐋', rarity: 'mythic',    boost: 2.5,  fx: 'cosmic',  kind: 'swim' },
-    { id: 'dragon',  name: 'Dragon',          emoji: '🐉', rarity: 'secret',    boost: 5,    fx: 'dragon',  kind: 'fly' },
+    { id: 'whale',   name: 'Leviathan Whale', emoji: '🐋', rarity: 'mythic',    boost: 2.5,  fx: 'leviathan', kind: 'swim' },
+    { id: 'dragon',  name: 'Frost Dragon',    emoji: '🐉', rarity: 'secret',    boost: 5,    fx: 'frostdragon', kind: 'fly' },
     // ⬇ even better than the Dragon!
     { id: 'rex',     name: 'Lava Rex',        emoji: '🦖', rarity: 'celestial', boost: 7,    fx: 'lava',    kind: 'walk' },
     { id: 'shark',   name: 'Thunder Shark',   emoji: '🦈', rarity: 'celestial', boost: 8,    fx: 'thunder', kind: 'swim' },
     { id: 'dove',    name: 'Angel Dove',      emoji: '🕊️', rarity: 'divine',    boost: 12,   fx: 'holy',    kind: 'fly' },
     { id: 'dragonking', name: 'Dragon King',  emoji: '🐲', rarity: 'divine',    boost: 15,   fx: 'king',    kind: 'fly' },
     { id: 'infinity', name: 'Infinity Dragon', emoji: '🐉', rarity: 'infinity', boost: 30,   fx: 'infinity', kind: 'fly' }, // the best pet of all!
+    // 🐲 the Mythic Beasts Block's own pets
+    { id: 'voidbear',    name: 'Void Bear',    emoji: '🐻', rarity: 'legendary', boost: 1.5, fx: 'voidbear',    kind: 'walk', block: 'beasts' },
+    { id: 'crystalfox',  name: 'Crystal Fox',  emoji: '🦊', rarity: 'legendary', boost: 1.6, fx: 'crystalfox',  kind: 'walk', block: 'beasts' },
+    { id: 'solarlion',   name: 'Solar Lion',   emoji: '🦁', rarity: 'mythic',    boost: 3,   fx: 'solarlion',   kind: 'walk', block: 'beasts' },
+    { id: 'metalrhino',  name: 'Metal Rhino',  emoji: '🦏', rarity: 'mythic',    boost: 3.2, fx: 'metalrhino',  kind: 'walk', block: 'beasts' },
+    { id: 'galaxyshark', name: 'Galaxy Shark', emoji: '🦈', rarity: 'secret',    boost: 6,   fx: 'galaxyshark', kind: 'swim', block: 'beasts' },
+    { id: 'spirittiger', name: 'Spirit Tiger', emoji: '🐯', rarity: 'secret',    boost: 6.5, fx: 'spirittiger', kind: 'walk', block: 'beasts' },
+    { id: 'lavagolem',   name: 'Lava Golem',   emoji: '🗿', rarity: 'celestial', boost: 10,  fx: 'lavagolem',   kind: 'walk', block: 'beasts' },
+    { id: 'voidkraken',  name: 'Void Kraken',  emoji: '🐙', rarity: 'celestial', boost: 11,  fx: 'voidkraken',  kind: 'swim', block: 'beasts' },
+    { id: 'chaoshydra',  name: 'Chaos Hydra',  emoji: '🐲', rarity: 'chaos',     boost: 100, fx: 'chaoshydra',  kind: 'walk', block: 'beasts' },
   ];
   // 💰 Sell Shop: what a pet sells for, by rarity. Always less than the lucky block costs on average,
   // so buying blocks just to sell the pets never makes money.
   const PET_SELL = { common: 200, uncommon: 800, rare: 4000, epic: 40000, legendary: 400000, mythic: 3e6, secret: 15e6,
-    celestial: 40e6, divine: 100e6, infinity: 300e6, cyber: 600e6, glass: 700e6 };
+    celestial: 40e6, divine: 100e6, infinity: 300e6, cyber: 600e6, glass: 700e6, chaos: 1e9 };
+  // ⬆️ Pet Upgrade Shop: each level makes that kind of pet give 25% more of its own boost (level 0 = how it is now)
+  const PET_MAX_LEVEL = 10;
+  const petUpgradeCost = (pet, lvl) => Math.round(Math.max(500, PET_SELL[pet.rarity] || 0) * 2 * Math.pow(2.2, lvl));
+  const petBoostAt = (pet, lvl) => pet.boost * (1 + 0.25 * (lvl || 0));
   const MAX_PETS = 200; // when you're full, let go of pets you don't want in My Pets
 
   // Lucky blocks at the Pet Shop: `odds` = chance of each rarity (they add up to 100)
@@ -157,7 +173,7 @@
   // ---------- 🔮 Glass Event (online: admins only until it drops) ----------
   // Everything is made of glass: see-through, with rainbow light bending through it and sparkles.
   // GLASS_EVENT dates: none yet = on for testing (only admins can see it online); set them when it drops.
-  const GLASS_EVENT = { start: null, end: null };
+  const GLASS_EVENT = { start: Date.UTC(2026, 10, 15), end: Date.UTC(2026, 10, 22) }; // Nov 15 to Nov 22, 2026
   FLAVORS.push({ id: 'glassice', name: 'Glass Ice Cream', rarity: 'glass', price: 30000, cost: 60e6, color: '#e7f5ff', effect: 'glass', event: 'glass' });
   // the Glass Block's own pets: new animals made of glass (no other block gives them)
   PETS.push(
@@ -172,6 +188,9 @@
   );
   LUCKY_BLOCKS.push({ id: 'glass', name: 'Glass Block', cost: 1.2e9, color: 'glass', event: 'glass', ownPets: true,
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Squid 2% each
+  // 🐲 Mythic Beasts Block: its own beasts, always in the Pet Shop (the last and most expensive block)
+  LUCKY_BLOCKS.push({ id: 'beasts', name: 'Mythic Beasts Block', cost: 2e9, color: 'beasts', ownPets: true,
+    odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, chaos: 0.5 } }); // Golem and Kraken 2% each
   // 🔮 Glass Pass: sell scoops during the Glass Event to unlock prizes (the bottom row needs the Premium Glass Pass)
   const GLASS_PASS = {
     free: [
@@ -356,7 +375,7 @@
   // 🔮 the Glass look: see-through glass with rainbow light, a crystal crown and a prism mask
   for (const part of Object.keys(AVATAR)) AVATAR[part].push('glass');
 
-  const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
+  const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,

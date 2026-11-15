@@ -1,5 +1,5 @@
 (() => {
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
+  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
     CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, PET_SELL, sellPrice, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
@@ -396,6 +396,12 @@
         confetti(player.x, player.y - 30, 12);
         break;
       }
+      case 'petUpgraded': {
+        const p = petById[msg.pet];
+        toast(`⬆️ ${p.name} is now level ${msg.level}! It gives ${pct(petBoostAt(p, msg.level))} money.`);
+        confetti(player.x, player.y - 30, 16);
+        break;
+      }
       case 'petReleased':
         toast(`👋 You let go of your ${petById[msg.pet].name}.`);
         break;
@@ -431,6 +437,7 @@
         if (openWindow === 'petshop') updatePetShop();
         if (openWindow === 'sell') updateSell();
         if (openWindow === 'pets') updatePets();
+        if (openWindow === 'petup') updatePetUp();
         if (openWindow === 'inventory') updateInventory();
         if (openWindow === 'gift' && giftRefresh && giftTo !== null) { giftRefresh = false; showGiftItems(); }
         break;
@@ -766,6 +773,7 @@
     $('sellModal').classList.add('hidden');
     $('shardShopModal').classList.add('hidden');
     $('petsModal').classList.add('hidden');
+    $('petUpModal').classList.add('hidden');
     $('adminPetsModal').classList.add('hidden');
     $('passModal').classList.add('hidden');
     $('growModal').classList.add('hidden');
@@ -1079,7 +1087,7 @@
 
   // ---------- ⚡ Cyber Event: the Cyber Pass and Game Passes (online: admins only for now) ----------
   // lucky block colors (fancy ones get a CSS class instead)
-  const fancyBlock = b => ['rainbow', 'infinity', 'cyber', 'glass'].includes(b.color) ? b.color : '';
+  const fancyBlock = b => ['rainbow', 'infinity', 'cyber', 'glass', 'beasts'].includes(b.color) ? b.color : '';
   const blockBg = b => fancyBlock(b) ? '' : `background:${b.color}`;
   let cyberState = { on: false, endsAt: 0 };
   const cyberIsOn = () => CYBER && cyberState.on;
@@ -1514,10 +1522,10 @@
     const s = me();
     if (!s) return;
     const worn = s.worn || [];
-    const key = s.pets.join() + '|' + worn.join();
+    const key = s.pets.join() + '|' + worn.join() + '|' + JSON.stringify(s.petLevels || {});
     if (key === petsKey) return;
     petsKey = key;
-    const boost = worn.reduce((sum, id) => sum + petById[id].boost, 0);
+    const boost = worn.reduce((sum, id) => sum + petPower(s, id), 0);
     $('petsSub').textContent = `You have ${s.pets.length}/${MAX_PETS} pets. Wearing ${worn.length}/${MAX_WORN}` +
       (worn.length ? `: they give you ${pct(boost)} money from every scoop!` : '. Tap Wear on a pet, or press Equip Best.') +
       (s.pets.length ? '' : ' Get pets from lucky blocks at the 🐾 Pet Shop.');
@@ -1527,7 +1535,7 @@
     // every pet gets its own card, best first; the ones you wear are marked
     const wornLeft = {};
     for (const id of worn) wornLeft[id] = (wornLeft[id] || 0) + 1;
-    const sorted = [...s.pets].sort((a, b) => petById[b].boost - petById[a].boost);
+    const sorted = [...s.pets].sort((a, b) => petPower(s, b) - petPower(s, a));
     for (const id of sorted) {
       const p = petById[id], r = RARITIES[p.rarity];
       const on = wornLeft[id] > 0;
@@ -1536,7 +1544,7 @@
       card.className = 'petCard' + (on ? ' equipped' : '');
       card.innerHTML = `<div class="petEmoji">${petIcon(p)}</div><div class="name">${p.name}</div>
         <span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
-        <div class="boost">${pct(p.boost)} money</div>
+        <div class="boost">${pct(petPower(s, id))} money${s.petLevels?.[id] ? ` · ⬆️ Lv ${s.petLevels[id]}` : ''}</div>
         <button type="button">${on ? 'Take off' : 'Wear'}</button>
         <button type="button" class="letGo">Let go</button>`;
       card.querySelector('.letGo').addEventListener('click', () => {
@@ -1549,6 +1557,48 @@
       list.appendChild(card);
     }
   }
+  // ⬆️ Pet Upgrade Shop: one row for each kind of pet you own
+  const petPower = (s, id) => petBoostAt(petById[id], s.petLevels?.[id]);
+  let petUpKey = '';
+  function openPetUp() {
+    closeWindows();
+    openWindow = 'petup';
+    petUpKey = '';
+    $('petUpModal').classList.remove('hidden');
+    updatePetUp();
+  }
+  function updatePetUp() {
+    const s = me();
+    if (!s) return;
+    const kinds = [...new Set(s.pets)].sort((a, b) => petPower(s, b) - petPower(s, a));
+    const key = kinds.join() + '|' + JSON.stringify(s.petLevels || {}) + '|' + kinds.map(id => {
+      const lvl = s.petLevels?.[id] || 0;
+      return lvl < PET_MAX_LEVEL && s.money >= petUpgradeCost(petById[id], lvl) ? 1 : 0;
+    }).join('');
+    if (key === petUpKey) return;
+    petUpKey = key;
+    const list = $('petUpList');
+    list.innerHTML = kinds.length ? '' : '<p class="sub">You don\'t have any pets yet. Get some from lucky blocks at the 🐾 Pet Shop!</p>';
+    for (const id of kinds) {
+      const p = petById[id], r = RARITIES[p.rarity], lvl = s.petLevels?.[id] || 0, max = lvl >= PET_MAX_LEVEL;
+      const cost = max ? 0 : petUpgradeCost(p, lvl);
+      const row = document.createElement('div');
+      row.className = 'row petRow';
+      row.innerHTML = `<div class="petEmoji">${petIcon(p)}</div>
+        <div class="info"><div class="name">${p.name} <span class="lvl">Lv ${lvl}</span></div>
+          <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
+            <span class="boost">${pct(petBoostAt(p, lvl))}${max ? ' (max!)' : ` → ${pct(petBoostAt(p, lvl + 1))}`} money</span></div>
+          <div class="stars">${'★'.repeat(lvl)}${'☆'.repeat(PET_MAX_LEVEL - lvl)}</div></div>
+        <button type="button">${max ? 'MAX' : '⬆️ ' + fmt(cost)}</button>`;
+      const btn = row.querySelector('button');
+      btn.disabled = max || s.money < cost;
+      btn.addEventListener('click', () => send({ type: 'upgradePet', pet: id }));
+      list.appendChild(row);
+    }
+  }
+  $('petUpBtn').addEventListener('click', openPetUp);
+  $('petUpClose').addEventListener('click', closeWindows);
+
   $('equipBestBtn').addEventListener('click', () => { send({ type: 'equipBest' }); toast(`⭐ Wearing your ${MAX_WORN} best pets!`); });
   $('petsBtn').addEventListener('click', openPets);
   $('petsClose').addEventListener('click', closeWindows);
@@ -2607,7 +2657,7 @@
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+  const PET_SIZE = { lavagolem: 1.45, voidkraken: 1.4, chaoshydra: 1.7, galaxyshark: 1.35, solarlion: 1.25, metalrhino: 1.25, dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
   const CYAN = '#2ee8ff';
@@ -2796,6 +2846,19 @@
     ctx.restore();
   }
 
+  // emoji pets that get recolored: icy, dark purple, metal, galaxy, ghostly and lava
+  const PET_TINT = {
+    icephoenix: 'sepia(1) hue-rotate(160deg) saturate(2.5) brightness(1.7)',
+    frostdragon: 'hue-rotate(80deg) saturate(0.8) brightness(1.35)',
+    leviathan: 'hue-rotate(15deg) saturate(1.6) brightness(0.85)',
+    voidbear: 'brightness(0.55) sepia(1) hue-rotate(225deg) saturate(4)',
+    crystalfox: 'hue-rotate(170deg) saturate(1.2) brightness(1.35)',
+    metalrhino: 'grayscale(1) brightness(1.35) contrast(1.3)',
+    galaxyshark: 'sepia(1) hue-rotate(215deg) saturate(5) brightness(0.85)',
+    spirittiger: 'hue-rotate(160deg) saturate(1.5) brightness(1.4)',
+    lavagolem: 'brightness(0.7) sepia(1) hue-rotate(-25deg) saturate(4)',
+    voidkraken: 'hue-rotate(250deg) saturate(2) brightness(0.8)',
+  };
   const PET_MODELS = { cyberwhale: drawCyberWhale };
   for (const p of PETS) if (p.fx === 'cyber') PET_MODELS[p.id] = cyberPetModel(p.id, p.emoji);
   for (const p of PETS) if (p.fx === 'glass' || p.fx === 'glasswolf') PET_MODELS[p.id] = glassPetModel(p.id, p.emoji, p.fx === 'glasswolf');
@@ -2803,6 +2866,22 @@
   // pictures of the low-poly pets for the pet lists (made once each)
   const petIcons = {};
   function petIcon(p) {
+    if (!PET_MODELS[p.id] && (PET_TINT[p.fx] || p.fx === 'chaoshydra')) {
+      // recolored emoji pets get a recolored picture too
+      if (!petIcons[p.id]) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 96;
+        const g = c.getContext('2d');
+        g.font = `60px ${EMOJI_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+        if (p.fx === 'chaoshydra') {
+          [['hue-rotate(-100deg) saturate(2)', 26, 36, 40], ['hue-rotate(150deg) saturate(2)', 70, 36, 40], ['saturate(1.8)', 48, 56, 60]].forEach(([f, x, y, size]) => {
+            g.filter = f; g.font = `${size}px ${EMOJI_FONT}`; g.fillText(p.emoji, x, y);
+          });
+        } else { g.filter = PET_TINT[p.fx]; g.fillText(p.emoji, 48, 52); }
+        petIcons[p.id] = c.toDataURL();
+      }
+      return `<img class="petImg" src="${petIcons[p.id]}" alt="${p.name}">`;
+    }
     if (!PET_MODELS[p.id]) return p.emoji;
     if (!petIcons[p.id]) {
       const c = document.createElement('canvas');
@@ -2884,13 +2963,72 @@
           ctx.beginPath(); ctx.arc(x + Math.cos(a) * 24 + 2.5, y - 7 + Math.sin(a) * 10, 4.2, 0, Math.PI * 2); ctx.fill();
           if (chance(3)) petSpark(x + rnd() * 40, y - 10 + rnd() * 30, { shape: 'star', color: '#fff', vy: 0, life: 0.8, size: 3 });
         } break;
-      case 'rainbow': glow(x, y - 4, 30, hueRgb((time * 120) % 360), 0.55);
-        if (chance(25)) petSpark(x - pp.facing * 10 + rnd() * 6, y + rnd() * 10, { color: `hsl(${(time * 300) % 360},100%,60%)`, vy: 5, vx: -pp.facing * 20, life: 0.9, size: 4 });
-        if (chance(3)) petSpark(x + rnd() * 30, y - 10 + rnd() * 20, { shape: 'star', color: '#fff', vy: -5, life: 0.7, size: 3.5 }); break;
-      case 'shadow': glow(x, y - 4, 32, '90, 30, 140', 0.6);
-        if (chance(12)) petSpark(x + rnd() * 24, y + 4, { shape: 'smoke', color: 'rgba(40,10,60,0.5)', vy: -18, vx: rnd() * 14, life: 1.3, size: 7 }); break;
-      case 'fire': glow(x, y - 4, 36, '255, 90, 0', 0.65);
-        if (chance(30)) petSpark(x + rnd() * 22, y + 2, { shape: 'flame', color: Math.random() < 0.5 ? '#ff6a00' : '#ffd000', vy: -60, vx: rnd() * 20, life: 0.6, size: 5 }); break;
+      case 'unicorn': {
+        // 🦄 Rainbow Unicorn: a rainbow aura, a rainbow trail behind it, a little rainbow arching over it and star bursts
+        glow(x, y - 6, 40, hueRgb((time * 120) % 360), 0.55);
+        if (chance(30)) petSpark(x - pp.facing * 12 + rnd() * 6, y + rnd() * 10, { color: `hsl(${(time * 300) % 360},100%,60%)`, vy: 5, vx: -pp.facing * 30, life: 1, size: 4.5 });
+        const arc = (time + seed) % 4;
+        if (arc < 1.5) {
+          ctx.save(); ctx.globalAlpha = Math.sin(arc / 1.5 * Math.PI) * 0.7;
+          ['#ff6b6b', '#ffa94d', '#ffe066', '#69db7c', '#4dabf7', '#9775fa'].forEach((c, k) => {
+            ctx.strokeStyle = c; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y + 4, 34 - k * 3, Math.PI, Math.PI * 2); ctx.stroke();
+          });
+          ctx.restore();
+        }
+        if (chance(5)) petSpark(x + rnd() * 40, y - 14 + rnd() * 20, { shape: 'star', color: `hsl(${Math.random() * 360}, 100%, 75%)`, vy: -8, life: 0.8, size: 4 });
+        break;
+      }
+      case 'icephoenix': {
+        // 🧊 Ice Phoenix: cold blue flames, glowing frost wings, snowflakes and an icy breath
+        glow(x, y - 4, 44, '120, 200, 255', 0.6);
+        glow(x, y - 4, 22, '230, 250, 255', 0.6);
+        const flap = Math.sin(time * 10 + seed) * 0.35;
+        ctx.save();
+        for (const side of [-1, 1]) for (let k = 0; k < 4; k++) {
+          const a = -Math.PI / 2 + side * (0.7 + k * 0.28 + flap);
+          ctx.strokeStyle = `rgba(${k % 2 ? '165, 216, 255' : '230, 250, 255'}, 0.55)`; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x + Math.cos(a) * (40 - k * 4), y - 10 + Math.sin(a) * (40 - k * 4)); ctx.stroke();
+        }
+        ctx.restore();
+        if (chance(26)) petSpark(x + rnd() * 22, y + 2, { shape: 'flame', color: Math.random() < 0.5 ? '#74c0fc' : '#e7f5ff', vy: -60, vx: rnd() * 20, life: 0.6, size: 5 });
+        if (chance(4)) petSpark(x + rnd() * 50, y - 10, { shape: 'flake', color: '#fff', vy: 20, vx: rnd() * 20, life: 1.5, size: 3.5 });
+        if ((time + seed) % 4.5 < 0.9) breathe(x, y, pp.facing, ['#e7f5ff', '#a5d8ff', '#4dabf7'], rnd);
+        break;
+      }
+      case 'leviathan': {
+        // 🐋 Leviathan Whale: a deep ocean swirl, glowing water rings, bubbles and a giant water spout
+        glow(x, y - 4, 56, '20, 90, 200', 0.6);
+        glow(x, y - 4, 30, '100, 220, 255', 0.45);
+        ctx.save(); ctx.translate(x, y + 2); ctx.scale(1, 0.35);
+        for (let k = 0; k < 3; k++) {
+          ctx.strokeStyle = `rgba(116, 192, 252, ${0.5 - k * 0.12})`; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(0, 0, 34 + k * 10, time * (k % 2 ? 1.5 : -1.5) + k, time * (k % 2 ? 1.5 : -1.5) + k + 4.4); ctx.stroke();
+        }
+        ctx.restore();
+        if (chance(10)) petSpark(x + rnd() * 50, y + 6, { shape: 'bubble', color: '#a5d8ff', vy: -30, vx: rnd() * 10, life: 1.5, size: 2 + Math.random() * 4 });
+        const spout = (time + seed) % 4;
+        if (spout < 1.2) for (let k = 0; k < 3; k++) {
+          petSpark(x - pp.facing * 4 + rnd() * 6, y - 22, { color: k ? '#a5d8ff' : '#ffffff', vx: rnd() * 80, vy: -90 - Math.random() * 60, life: 0.7, size: 3 });
+        }
+        break;
+      }
+      case 'frostdragon': {
+        // 🐉 Frost Dragon: an icy blue aura, ice crystals circling it, snow, frost on the ground and freezing breath
+        const pulse = 1 + Math.sin(time * 4) * 0.12;
+        glow(x, y - 8, 64 * pulse, '80, 170, 255', 0.55);
+        glow(x, y - 8, 32 * pulse, '235, 250, 255', 0.55);
+        for (let k = 0; k < 8; k++) {
+          const a = -time * 2 + k * Math.PI / 4;
+          glassShard(x + Math.cos(a) * 44, y - 8 + Math.sin(a) * 17, 5, a * 2, 195 + (k % 2) * 15);
+        }
+        ctx.save(); ctx.translate(pp.x, pp.y + 9); ctx.scale(1, 0.3);
+        ctx.fillStyle = 'rgba(231, 245, 255, 0.45)'; ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        if (chance(8)) petSpark(x + rnd() * 60, y - 30, { shape: 'flake', color: '#fff', vy: 26, vx: rnd() * 20, life: 1.6, size: 4 });
+        if ((time + seed) % 4 < 1.1) breathe(x, y, pp.facing, ['#ffffff', '#d0ebff', '#74c0fc', '#1c7ed6'], rnd);
+        break;
+      }
       case 'bubbles': glow(x, y - 4, 32, '50, 150, 255', 0.55);
         if (chance(6)) petSpark(x + rnd() * 30, y + 6, { shape: 'bubble', color: '#a5d8ff', vy: -30, vx: rnd() * 10, life: 1.5, size: 2 + Math.random() * 3 }); break;
       case 'galaxy': glow(x, y - 4, 38, '120, 60, 255', 0.65);
@@ -2899,21 +3037,6 @@
           star(x + Math.cos(a) * 28, y - 4 + Math.sin(a) * 12, 4, ['#fff', '#ffd43b', '#ff8cc6'][k]);
         }
         if (chance(5)) petSpark(x + rnd() * 50, y - 10 + rnd() * 40, { shape: 'star', color: '#e5dbff', vy: 0, life: 0.8, size: 3 }); break;
-      case 'cosmic': glow(x - 10, y - 6, 40, '255, 80, 200', 0.5); glow(x + 10, y - 2, 40, '60, 180, 255', 0.5);
-        if (chance(10)) petSpark(x + rnd() * 60, y - 10 + rnd() * 40, { shape: 'star', color: Math.random() < 0.5 ? '#fff' : '#99e9f2', vy: -3, life: 1, size: 3 }); break;
-      case 'dragon': {
-        // a huge fiery aura, a ring of flames, embers, and fire breath
-        const pulse = 1 + Math.sin(time * 4) * 0.12;
-        glow(x, y - 8, 60 * pulse, '255, 60, 0', 0.55);
-        glow(x, y - 8, 34 * pulse, '255, 215, 0', 0.5);
-        for (let k = 0; k < 8; k++) {
-          const a = -time * 2.5 + k * Math.PI / 4;
-          glow(x + Math.cos(a) * 40, y - 8 + Math.sin(a) * 16, 7, k % 2 ? '255, 200, 0' : '255, 80, 0', 0.9);
-        }
-        if (chance(20)) petSpark(x + rnd() * 40, y + 4, { shape: 'flame', color: Math.random() < 0.5 ? '#ff4800' : '#ffc300', vy: -70, vx: rnd() * 30, life: 0.8, size: 5 });
-        if ((time + seed) % 4 < 1.1) breathe(x, y, pp.facing, ['#ff2a00', '#ff8c00', '#ffd000', '#fff3b0'], rnd);
-        break;
-      }
       case 'lava': {
         // 🦖 Lava Rex: a glowing lava pool under it, dripping magma, and burning footprints
         glow(pp.x, pp.y + 8, 46, '255, 70, 0', 0.55);
@@ -2966,6 +3089,140 @@
         const roar = (time + seed) % 3.5;
         if (roar < dt) petSpark(x, y - 8, { shape: 'ring', color: '#ffd43b', vy: 0, life: 0.8, size: 20, grow: 110 });
         if (roar < 1) breathe(x, y, pp.facing, ['#fff3bf', '#ffd43b', '#ffa94d'], rnd);
+        break;
+      }
+      case 'voidbear': {
+        // 🐻 Void Bear: dark purple smoke and little black holes circling it
+        glow(x, y - 6, 44, '110, 30, 200', 0.6);
+        for (let k = 0; k < 3; k++) {
+          const a = time * 1.6 + k * 2.09 + seed, hx = x + Math.cos(a) * 30, hy = y - 8 + Math.sin(a) * 12;
+          glow(hx, hy, 12, '200, 80, 255', 0.6);
+          ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(hx, hy, 4, 0, Math.PI * 2); ctx.fill();
+        }
+        if (chance(12)) petSpark(x + rnd() * 30, y + 4, { shape: 'smoke', color: 'rgba(60, 10, 90, 0.5)', vy: -18, vx: rnd() * 14, life: 1.3, size: 7 });
+        break;
+      }
+      case 'crystalfox': {
+        // 🦊 Crystal Fox: icy crystal shards floating around it and frosty twinkles
+        glow(x, y - 6, 38, '150, 230, 255', 0.55);
+        for (let k = 0; k < 4; k++) {
+          const a = time * 1.8 + k * Math.PI / 2 + seed;
+          glassShard(x + Math.cos(a) * 28, y - 10 + Math.sin(a) * 11, 4.5, a * 2, 190 + k * 8);
+        }
+        if (chance(8)) petSpark(x + rnd() * 40, y - 10 + rnd() * 26, { shape: 'star', color: '#e3fafc', vy: -6, life: 0.7, size: 3 });
+        if (pp.moving && chance(8)) petSpark(pp.x + rnd() * 10, pp.y + 8, { shape: 'flake', color: '#d0ebff', vy: 0, life: 1, size: 3 });
+        break;
+      }
+      case 'solarlion': {
+        // 🦁 Solar Lion: a blazing sun corona behind it and solar flares bursting out
+        ctx.save(); ctx.translate(x, y - 10); ctx.rotate(time * 0.8);
+        for (let k = 0; k < 14; k++) {
+          ctx.rotate(Math.PI / 7);
+          const len = 36 + 8 * Math.sin(time * 6 + k);
+          ctx.fillStyle = k % 2 ? 'rgba(255, 170, 0, 0.6)' : 'rgba(255, 230, 80, 0.6)';
+          ctx.beginPath(); ctx.moveTo(-4, 14); ctx.lineTo(0, len); ctx.lineTo(4, 14); ctx.fill();
+        }
+        ctx.restore();
+        glow(x, y - 10, 50, '255, 200, 0', 0.65);
+        if ((time + seed) % 3 < dt) petSpark(x, y - 10, { shape: 'ring', color: '#ffd43b', vy: 0, life: 0.8, size: 16, grow: 120 });
+        if (chance(14)) petSpark(x + rnd() * 30, y - 4, { shape: 'flame', color: Math.random() < 0.5 ? '#ffd43b' : '#ff922b', vy: -55, vx: rnd() * 30, life: 0.7, size: 4 });
+        break;
+      }
+      case 'metalrhino': {
+        // 🦏 Metal Rhino: a shine sliding across its armor, blue electric glints and sparks when it charges
+        glow(x, y - 6, 36, '173, 181, 189', 0.55);
+        const sh = (time * 0.8 + seed) % 2;
+        if (sh < 1) star(x - 16 + sh * 32, y - 18, 4 + Math.sin(sh * Math.PI) * 3, '#ffffff');
+        if (chance(2)) {
+          const a = Math.random() * Math.PI * 2;
+          zap(x + Math.cos(a) * 16, y - 10 + Math.sin(a) * 10, x + Math.cos(a) * 34, y - 10 + Math.sin(a) * 18, 4, 1);
+        }
+        if (pp.moving && chance(16)) petSpark(pp.x - pp.facing * 12, pp.y + 8, { color: Math.random() < 0.5 ? '#ffd43b' : '#fff', vx: -pp.facing * 80 + rnd() * 40, vy: -50 - Math.random() * 40, life: 0.5, size: 2 });
+        break;
+      }
+      case 'galaxyshark': {
+        // 🦈 Galaxy Shark: a nebula glow, a trail of stars and two little planets orbiting it
+        glow(x, y - 4, 52, '120, 60, 255', 0.6);
+        glow(x + 8, y, 30, '255, 80, 200', 0.4);
+        for (let k = 0; k < 2; k++) {
+          const a = time * 1.4 + k * Math.PI + seed, px = x + Math.cos(a) * 40, py = y - 4 + Math.sin(a) * 14;
+          ctx.fillStyle = k ? '#ff922b' : '#748ffc'; ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(px, py, 8, 2.5, -0.3, 0, Math.PI * 2); ctx.stroke();
+        }
+        if (chance(20)) petSpark(x - pp.facing * 20 + rnd() * 10, y + rnd() * 16, { shape: 'star', color: Math.random() < 0.5 ? '#fff' : '#e5dbff', vx: -pp.facing * 20, vy: 0, life: 1, size: 3 });
+        break;
+      }
+      case 'spirittiger': {
+        // 🐯 Spirit Tiger: a ghostly blue glow, floating spirit flames and a see-through copy that follows it
+        glow(x, y - 6, 48, '100, 220, 255', 0.5);
+        for (let k = 0; k < 4; k++) {
+          const a = time * 1.3 + k * Math.PI / 2 + seed, fx = x + Math.cos(a) * 32, fy = y - 12 + Math.sin(a * 2) * 8;
+          glow(fx, fy, 10, '120, 240, 255', 0.8);
+          ctx.fillStyle = 'rgba(200, 250, 255, 0.85)'; ctx.beginPath(); ctx.arc(fx, fy, 3, 0, Math.PI * 2); ctx.fill();
+        }
+        if (chance(10)) petSpark(x + rnd() * 30, y - 6, { shape: 'smoke', color: 'rgba(150, 240, 255, 0.35)', vy: -25, vx: rnd() * 10, life: 1, size: 5 });
+        break;
+      }
+      case 'lavagolem': {
+        // 🗿 Lava Golem: a pool of lava under it, rocks circling it, dripping magma and a ground-shaking stomp
+        glow(pp.x, pp.y + 8, 50, '255, 70, 0', 0.6);
+        glow(x, y - 10, 40, '255, 130, 0', 0.4);
+        for (let k = 0; k < 4; k++) {
+          const a = time * 1.1 + k * Math.PI / 2 + seed, rx = x + Math.cos(a) * 36, ry = y - 14 + Math.sin(a) * 14;
+          ctx.fillStyle = '#4a2c1a'; ctx.beginPath(); ctx.arc(rx, ry, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ff6b00'; ctx.beginPath(); ctx.arc(rx + 1, ry - 1, 1.8, 0, Math.PI * 2); ctx.fill();
+        }
+        if (chance(8)) petSpark(x + rnd() * 26, y - 4, { shape: 'flame', color: Math.random() < 0.5 ? '#ff3d00' : '#ff9100', vy: 45, vx: rnd() * 10, life: 0.6, size: 3.5 });
+        const stomp = (time + seed) % 3;
+        if (stomp < dt) {
+          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#ff6b00', vy: 0, life: 0.8, size: 14, grow: 160 });
+          for (let k = 0; k < 8; k++) petSpark(pp.x, pp.y + 6, { shape: 'flame', color: k % 2 ? '#ff6b00' : '#ffd43b', vx: rnd() * 200, vy: -Math.random() * 120, life: 0.7, size: 3.5 });
+        }
+        break;
+      }
+      case 'voidkraken': {
+        // 🐙 Void Kraken: a swirling purple portal under it pulling sparks in, and dark tentacles of light
+        ctx.save(); ctx.translate(x, y + 12); ctx.scale(1, 0.4);
+        for (let k = 0; k < 3; k++) {
+          ctx.strokeStyle = `rgba(${k % 2 ? '255, 43, 214' : '170, 90, 255'}, 0.65)`; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.arc(0, 0, 22 + k * 10, -time * 3 + k * 2, -time * 3 + k * 2 + 4); ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(10, 0, 30, 0.8)'; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        glow(x, y - 4, 50, '139, 44, 255', 0.5);
+        ctx.save(); ctx.strokeStyle = 'rgba(200, 120, 255, 0.55)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        for (let k = 0; k < 5; k++) {
+          const a = Math.PI * 0.15 + k * Math.PI * 0.175;
+          ctx.beginPath(); ctx.moveTo(x, y);
+          ctx.quadraticCurveTo(x + Math.cos(a) * 30 + Math.sin(time * 3 + k) * 10, y + 14, x + Math.cos(a) * 44, y + 6 + Math.sin(time * 4 + k) * 8);
+          ctx.stroke();
+        }
+        ctx.restore();
+        if (chance(12)) {
+          const a = Math.random() * Math.PI * 2;
+          petSpark(x + Math.cos(a) * 60, y + 12 + Math.sin(a) * 24, { color: Math.random() < 0.5 ? '#c77dff' : '#ff2bd6', vx: -Math.cos(a) * 80, vy: -Math.sin(a) * 30, life: 0.7, size: 2.5 });
+        }
+        break;
+      }
+      case 'chaoshydra': {
+        // 🐲 Chaos Hydra, the best beast: three heads (fire, void and toxic), each with its own aura and breath,
+        // a chaos ring under it and chaos lightning
+        const cols = [['255, 60, 0', '#ff4500', '#ffd43b'], ['170, 60, 255', '#ae3ec9', '#ff2bd6'], ['60, 255, 120', '#2bff88', '#d4ff3f']];
+        cols.forEach(([rgb], k) => glow(x + (k - 1) * 18, y - 18, 46, rgb, 0.45));
+        ctx.save(); ctx.translate(pp.x, pp.y + 9); ctx.scale(1, 0.32);
+        for (let k = 0; k < 6; k++) {
+          ctx.strokeStyle = cols[k % 3][1]; ctx.globalAlpha = 0.55; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(0, 0, 32 + k * 6, time * (k % 2 ? 2 : -2) + k, time * (k % 2 ? 2 : -2) + k + 3.6); ctx.stroke();
+        }
+        ctx.restore();
+        if (chance(3)) {
+          const a = Math.random() * Math.PI * 2;
+          zap(x + Math.cos(a) * 20, y - 14 + Math.sin(a) * 14, x + Math.cos(a) * 60, y - 14 + Math.sin(a) * 30, 6, 1.4);
+        }
+        // the three heads take turns breathing
+        const turn = Math.floor((time + seed) / 1.4) % 3, br = (time + seed) % 1.4;
+        if (br < 0.9) breathe(x + (turn - 1) * 14, y - 12, pp.facing, [cols[turn][1], cols[turn][2], '#ffffff'], rnd);
+        if (chance(14)) petSpark(x + rnd() * 60, y - 10 + rnd() * 40, { shape: 'star', color: cols[Math.floor(Math.random() * 3)][2], vy: -10, life: 0.8, size: 3 });
         break;
       }
       case 'glass': {
@@ -3204,6 +3461,8 @@
     ctx.rotate(tilt * pp.facing);
     ctx.scale(-pp.turn * big * sx, big * sy); // pet emojis face left; turn smoothly to face where they go
     if (pet.fx === 'infinity') ctx.filter = `hue-rotate(${(time * 90) % 360}deg) saturate(1.6)`;
+    else if (PET_TINT[pet.fx]) ctx.filter = PET_TINT[pet.fx];
+    if (pet.fx === 'spirittiger') ctx.globalAlpha *= 0.75 + 0.15 * Math.sin(time * 3 + seed); // a see-through spirit
     if (pet.fx === 'cyberwhale' && Math.random() < 0.04) ctx.translate((Math.random() - 0.5) * 6, 0); // a little glitch
     ctx.font = `30px ${EMOJI_FONT}`;
     ctx.textAlign = 'center';
@@ -3220,7 +3479,14 @@
     }
     if (pet.fx === 'glasswolf' && (time + seed) % 6 < 0.35) ctx.globalAlpha *= 0.15; // shattered for a moment
     if (PET_MODELS[pet.id]) PET_MODELS[pet.id](time, seed, pet.kind === 'fly' || pet.kind === 'swim', pp.moving);
-    else ctx.fillText(pet.emoji, 0, 10); // drawn from its feet, so squishing and sitting look right
+    else if (pet.fx === 'chaoshydra') {
+      // three heads: a fire one, a void one and a toxic one
+      [['hue-rotate(-100deg) saturate(2)', -14, -12, 0.75], ['hue-rotate(150deg) saturate(2)', 14, -12, 0.75], ['saturate(1.8)', 0, 0, 1]]
+        .forEach(([f, dx, dy, sc]) => {
+          ctx.save(); ctx.filter = f; ctx.translate(dx, dy + Math.sin(time * 3 + dx) * 2); ctx.scale(sc, sc);
+          ctx.fillText(pet.emoji, 0, 10); ctx.restore();
+        });
+    } else ctx.fillText(pet.emoji, 0, 10); // drawn from its feet, so squishing and sitting look right
     ctx.restore();
     ctx.textBaseline = 'alphabetic';
     if (pet.fx === 'holy') {

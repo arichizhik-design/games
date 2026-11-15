@@ -334,6 +334,11 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .btnRow { display: flex; gap: 6px; margin-top: 8px; }
 .giftBtn { flex: 1; background: #2f9e44; font-size: 14px; padding: 9px 6px; }
 .petsBtn { flex: 1; background: #f08c00; font-size: 14px; padding: 9px 6px; }
+.petUpBtn { width: 100%; margin-top: 6px; background: linear-gradient(90deg, #7048e8, #ae3ec9); font-size: 14px; padding: 9px 6px; }
+#petUpList .row .lvl { font-weight: bold; color: #7048e8; }
+#petUpList .row .info { flex: 1; min-width: 0; }
+#petUpList .row button { white-space: nowrap; }
+#petUpList .stars { color: #f59f00; letter-spacing: -1px; font-size: 11px; }
 #giftBody .row { gap: 10px; }
 #giftBody .who, #giftBody .info { flex: 1; min-width: 0; }
 #giftBody .iconWrap { width: 30px; display: flex; justify-content: center; }
@@ -781,3 +786,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 #revealModal.glassBoom #revealBurst i:nth-child(2) { animation-delay: 0.15s; border-color: #f3d9fa !important; }
 #revealModal.glassBoom #revealBurst i:nth-child(3) { animation-delay: 0.3s; border-color: #fff !important; }
 #revealModal.glassBoom .petImg { filter: drop-shadow(0 0 10px #a5d8ff) drop-shadow(0 0 20px #fff); }
+
+/* ---------- 🐲 Mythic Beasts Block and the Chaos rarity ---------- */
+.luckyBlock.beasts { background: radial-gradient(circle at 30% 25%, #ff6b6b, #7b2cbf 45%, #120024) !important; color: #ffd43b;
+  border: 2px solid #ff2bd6 !important; animation: beastsPulse 1.6s ease-in-out infinite alternate; }
+@keyframes beastsPulse { from { box-shadow: 0 0 6px #ff2bd6, 0 0 12px #7b2cbf; } to { box-shadow: 0 0 14px #ff6b00, 0 0 26px #ff2bd6; } }
+.badge.chaos { background: linear-gradient(90deg, #ff2b2b, #ff2bd6, #7b2cbf, #2bff88) !important; background-size: 300% 100% !important;
+  color: #fff !important; text-shadow: 0 1px 2px #000; animation: glassShimmer 2s linear infinite; box-shadow: 0 0 8px #ff2bd6; }

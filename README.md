@@ -98,9 +98,18 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   wait and look around when you stop, and sit down after a while. Bunnies hop, pandas and penguins waddle, birds
   and dragons flap in the air, and sea creatures swim through it.
   - Blocks: Wooden, Iron, Gold, Diamond, Rainbow, Rainbow ($15M), Cosmic ($50M), Divine ($150M) and Infinity ($500M).
-  - The 🐉 Dragon (+500%) is Secret. Even better are the new pet rarities: **Celestial** (🦖 Lava Rex +700%,
+  - Cooler versions of 4 pets: 🦄 **Rainbow Unicorn** (a rainbow trail and a rainbow arching over it), 🦅 **Ice Phoenix**
+    (frost wings, blue flames and icy breath; it was the Phoenix), 🐋 **Leviathan Whale** (ocean swirls and a giant water
+    spout; it was the Cosmic Whale) and 🐉 **Frost Dragon** (ice crystals circling it and freezing breath; it was the Dragon).
+  - The 🐉 Frost Dragon (+500%) is Secret. Even better are the new pet rarities: **Celestial** (🦖 Lava Rex +700%,
     🦈 Thunder Shark +800%), **Divine** (🕊️ Angel Dove +1,200%, 🐲 Dragon King +1,500%) and **Infinity**
     (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
+  - 🐲 **Mythic Beasts Block** ($2B, always there) with its own beasts: 🐻 Void Bear and 🦊 Crystal Fox (Legendary),
+    🦁 Solar Lion and 🦏 Metal Rhino (Mythic), 🦈 Galaxy Shark and 🐯 Spirit Tiger (Secret), 🗿 Lava Golem and
+    🐙 Void Kraken (Celestial), and the best pet in the game, the three-headed **🐲 Chaos Hydra** (new Chaos rarity,
+    +10,000%, 0.5%): fire, void and toxic heads that take turns breathing, a chaos ring and chaos lightning.
+  - **⬆️ Pet Upgrade Shop** (the button under My Pets): pay money to power up a kind of pet you own. Each level makes it
+    give 25% more of its own boost, up to level 10 (level 0 = how it was). Upgrades count for every copy of that pet.
   - Press **🐾 My Pets** to see every pet you have (each one gets its own card) and pick which ones follow you.
 - **💰 Sell Shop** (bottom of the park, below the Avatar Shop): sell ice cream tubs and toppings from your hotbar or
   Inventory for half of what they cost in the shop, and pets for a set price by rarity (Common $200, Uncommon $800,
@@ -158,11 +167,11 @@ Robo customers that pay x2, and a 🎁 Daily Gift (a free Gold Block, the Cyber 
   tubs get smaller so they all fit.
 - Admins can test the event with `/cyber off`, `/cyber on` and `/cyber auto` (back to the calendar).
 
-## 🔮 Glass Event (next event: admins only online until it drops)
+## 🔮 Glass Event (live for everyone: Nov 15 to Nov 22, 2026)
 
-Everything is made of glass: see-through, with rainbow light bending through it and sparkles. Online only admins can see
-it (regular players see none of it, except Glass pets an admin is wearing); the test file shows it to everyone. To drop it
-for everyone, set `GLASS=everyone` on the server and give `GLASS_EVENT` in `public/gamedata.js` its dates.
+Everything is made of glass: see-through, with rainbow light bending through it and sparkles. It dropped for everyone on
+November 15, 2026 and lasts a week (`GLASS_EVENT` in `public/gamedata.js`). To hide it from regular players again, set
+`GLASS=admins` on the server. Admins can turn it on or off with `/glass on`, `/glass off` or `/glass auto`.
 
 - **Glass Block** in the Pet Shop ($1.2B) with its own glass pets: 🐍 Glass Cobra and 🐆 Glass Leopard (Legendary),
   🦏 Glass Rhino and 🐻 Glass Bear (Mythic), 🐊 Glass Crocodile (Secret), 🐘 Glass Elephant and 🦑 Glass Squid
