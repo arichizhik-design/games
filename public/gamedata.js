@@ -61,17 +61,28 @@
     { id: 'storm',       name: 'Storm Cloud',      rarity: 'admin', price: 7500,  cost: 0, color: '#3b4a6b', effect: 'storm', adminOnly: true },
     { id: 'supernova',   name: 'Supernova',        rarity: 'admin', price: 10000, cost: 0, color: '#fff1c2', effect: 'nova',  adminOnly: true },
     { id: 'prism',       name: 'Prism Swirl',      rarity: 'admin', price: 15000, cost: 0, color: '#ff66cc', effect: 'prism', adminOnly: true },
+    // 🕳️💎👻 worth 1,000,000,000,000,000,000 times more than a normal admin ice cream
+    { id: 'blackhole',   name: 'Black Hole',       rarity: 'admin', price: 20000e18, cost: 0, color: '#14002b', effect: 'blackhole', adminOnly: true },
+    { id: 'diamond',     name: 'Diamond Freeze',   rarity: 'admin', price: 25000e18, cost: 0, color: '#d9f6ff', effect: 'diamond',   adminOnly: true },
+    { id: 'ghost',       name: 'Ghost Swirl',      rarity: 'admin', price: 30000e18, cost: 0, color: '#e9f0ff', effect: 'ghost',     adminOnly: true },
   ];
 
   // Toppings: bought at the Supplies Shop, then put on a tub on your stand.
   // Every scoop from that tub sells for `bonus` more (0.5 = +50%). One topping per tub.
   const TOPPINGS = [
     { id: 'sprinkles', name: 'Sprinkles',       emoji: '🌈', bonus: 0.25, cost: 40,      color: '#ff6fa5' },
+    { id: 'gummies',   name: 'Gummy Bears',     emoji: '🐻', bonus: 0.35, cost: 120,     color: '#ff922b' },
     { id: 'syrup',     name: 'Chocolate Syrup', emoji: '🍫', bonus: 0.5,  cost: 300,     color: '#5a2e14' },
+    { id: 'caramel',   name: 'Caramel Drizzle', emoji: '🍯', bonus: 0.6,  cost: 800,     color: '#d9822b' },
     { id: 'whipped',   name: 'Whipped Cream',   emoji: '☁️', bonus: 0.75, cost: 2000,    color: '#ffffff' },
+    { id: 'cookies',   name: 'Cookie Crumbles', emoji: '🍪', bonus: 0.85, cost: 5000,    color: '#3b2a20' },
     { id: 'cherry',    name: 'Cherry on Top',   emoji: '🍒', bonus: 1,    cost: 12000,   color: '#e3002b' },
+    { id: 'waffle',    name: 'Waffle Bits',     emoji: '🧇', bonus: 1.5,  cost: 40000,   color: '#e0a458' },
     { id: 'goldflakes',name: 'Gold Flakes',     emoji: '✨', bonus: 2,    cost: 150000,  color: '#ffd700' },
+    { id: 'diamonddust',name: 'Diamond Dust',   emoji: '💎', bonus: 3,    cost: 600000,  color: '#a5f3ff' },
     { id: 'stardust',  name: 'Stardust',        emoji: '🌟', bonus: 4,    cost: 2000000, color: '#b197fc' },
+    { id: 'planets',   name: 'Mini Planets',    emoji: '🪐', bonus: 6,    cost: 10000000, color: '#748ffc' },
+    { id: 'dragonfire',name: 'Dragon Fire',     emoji: '🔥', bonus: 10,   cost: 50000000, color: '#ff6b00' },
   ];
 
   // Pets: you get them from lucky blocks at the Pet Shop. Your equipped pet follows you

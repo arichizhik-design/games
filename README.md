@@ -35,7 +35,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 | Legendary | Golden Caramel, Lava Swirl, Dragon Fruit | $90–$110        |
 | Mythic    | Unicorn Dream, Frozen Aurora, Phoenix Fire | $300–$350       |
 | Secret    | ??? (buy it to find out!)        | $1,200          |
-| 👑 Admin | Crown Jewel, Storm Cloud, Supernova, Prism Swirl (admins only) | $5,000–$15,000 |
+| 👑 Admin | Crown Jewel, Storm Cloud, Supernova, Prism Swirl, Black Hole, Diamond Freeze, Ghost Swirl (admins only) | $5,000–$15,000; Black Hole, Diamond Freeze and Ghost Swirl are worth 1,000,000,000,000,000,000 times more ($20–$30 sextillion a scoop) |
 | ♾️ Celestial | Infinity Swirl (admins only, not in the shop; grows in 20 min) | $3,000 |
 
 - Rarer tubs take longer to fill up after you place them: Common 10 s, Uncommon 30 s, Rare 1 min, Epic 3 min,
@@ -79,7 +79,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
 - **💬 Chat:** the chat box in the top left corner talks to everyone in the park (press Enter to type).
   Mean words get turned into ****. Press — to hide it.
 - **🍒 Toppings:** the Supplies Shop has a Toppings square on the side. Hold a topping and tap an ice cream
-  on your stand: every scoop of it sells for more (Sprinkles +25% up to Stardust +400%). One topping per ice cream;
+  on your stand: every scoop of it sells for more (13 toppings, from Sprinkles +25% up to Dragon Fire +1000%). One topping per ice cream;
   you get it back if you take the ice cream off.
 - **🐾 Pet Shop:** at the top of the middle plaza. Open lucky blocks for a random pet. Your pet follows you
   with cool effects and gives you more money from every scoop. Pets move like real animals: they trot to catch up,
@@ -184,7 +184,7 @@ gold crown with an [ADMIN] tag, and get an **Admin commands** panel. You can use
 | `/say Hello!` | **All Server Talk**: your message pops up on everyone's screen (also the 📢 button) |
 | `/money 5t` | Adds money (use k, m, b or t, like `500k`, `2b`, `5t`) |
 | `/give rainbow sherbet 10` | Puts any ice cream in your hotbar, even if the shop is sold out |
-| `/spawn supernova` | 👑 Admin-only ice creams (Crown Jewel, Storm Cloud, Supernova, Prism Swirl) are never in the shop; admins get them with `/give` or `/spawn` |
+| `/spawn supernova` | 👑 Admin-only ice creams (Crown Jewel, Storm Cloud, Supernova, Prism Swirl, Black Hole, Diamond Freeze, Ghost Swirl) are never in the shop; admins get them with `/give` or `/spawn` |
 | `/spawn void 3` | Puts any ice cream straight onto your stand, already grown |
 | `/mutation rainbow godly blood moon` | Turns on one or more mutations at once, on top of any already going (`/mutation` alone starts a random one) |
 | `/mutation end` | Ends all mutations |

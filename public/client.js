@@ -47,7 +47,10 @@
   const shopFlavors = () => FLAVORS.filter(canSee); // admin ice creams only show up when an admin puts them in the shop
 
   // ---------- helpers ----------
+  // huge amounts: quadrillion (Qa), quintillion (Qi), sextillion (Sx) and up
+  const BIG = [[1e33, 'Dc'], [1e30, 'No'], [1e27, 'Oc'], [1e24, 'Sp'], [1e21, 'Sx'], [1e18, 'Qi'], [1e15, 'Qa']];
   function fmt(n) {
+    for (const [v, s] of BIG) if (n >= v * 0.999995) return '$' + +(n / v).toFixed(2) + s;
     if (n >= 1e12 || n >= 1e9 && +(n / 1e9).toFixed(2) >= 1000) return '$' + +(n / 1e12).toFixed(2) + 'T';
     if (n >= 1e9) return '$' + +(n / 1e9).toFixed(2) + 'B';
     if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
@@ -3343,6 +3346,65 @@
           star(x + Math.cos(a) * r * 0.9, y - 2 + Math.sin(a) * r * 0.5, 2.6, k % 2 ? '#e5dbff' : '#b197fc');
         }
         break;
+      case 'gummies':
+        ['#ff6b6b', '#fcc419', '#51cf66'].forEach((c, k) => {
+          const gx = x + (k - 1) * r * 0.45, gy = y - (k === 1 ? 2 : 0);
+          ctx.fillStyle = c;
+          ctx.beginPath(); ctx.ellipse(gx, gy, 1.6, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(gx, gy - 2.4, 1.3, 0, Math.PI * 2); ctx.fill();
+        });
+        break;
+      case 'caramel':
+        ctx.strokeStyle = '#d9822b'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(x - r * 0.7, y);
+        for (let k = 1; k <= 6; k++) ctx.lineTo(x - r * 0.7 + k * r * 0.23, y + (k % 2 ? -r * 0.25 : r * 0.1));
+        ctx.stroke();
+        ctx.fillStyle = '#d9822b';
+        ctx.fillRect(x - r * 0.2, y, 1.6, r * 0.55);
+        break;
+      case 'cookies':
+        for (let k = 0; k < 5; k++) {
+          const a = k * 1.25 + seed;
+          ctx.fillStyle = k % 2 ? '#3b2a20' : '#5c4033';
+          ctx.fillRect(x + Math.cos(a) * r * 0.55 - 1.2, y + Math.sin(a) * r * 0.3 - 1.2, 2.4, 2);
+        }
+        ctx.fillStyle = '#f8f9fa';
+        ctx.fillRect(x - 1, y - 1, 2, 1.2);
+        break;
+      case 'waffle':
+        ctx.fillStyle = '#e0a458'; ctx.strokeStyle = '#a0662a'; ctx.lineWidth = 0.6;
+        for (const [dx, dy, rot] of [[-0.4, 0, 0.3], [0.35, -0.2, -0.4]]) {
+          ctx.save(); ctx.translate(x + dx * r, y + dy * r); ctx.rotate(rot);
+          ctx.fillRect(-2.5, -2.5, 5, 5); ctx.strokeRect(-2.5, -2.5, 5, 5);
+          ctx.beginPath(); ctx.moveTo(0, -2.5); ctx.lineTo(0, 2.5); ctx.moveTo(-2.5, 0); ctx.lineTo(2.5, 0); ctx.stroke();
+          ctx.restore();
+        }
+        break;
+      case 'diamonddust':
+        ctx.shadowColor = '#a5f3ff'; ctx.shadowBlur = 7;
+        for (let k = 0; k < 4; k++) {
+          const a = k * 1.6 + seed + time * 0.8, dx = x + Math.cos(a) * r * 0.55, dy = y + Math.sin(a) * r * 0.3;
+          ctx.fillStyle = k % 2 ? '#e3fafc' : '#66d9e8';
+          ctx.beginPath(); ctx.moveTo(dx, dy - 2.2); ctx.lineTo(dx + 1.5, dy); ctx.lineTo(dx, dy + 2.2); ctx.lineTo(dx - 1.5, dy); ctx.fill();
+        }
+        break;
+      case 'planets':
+        for (let k = 0; k < 2; k++) {
+          const a = time * 1.5 + k * Math.PI + seed, px = x + Math.cos(a) * r * 0.7, py = y - 2 + Math.sin(a) * r * 0.35;
+          ctx.fillStyle = k ? '#ff922b' : '#748ffc';
+          ctx.beginPath(); ctx.arc(px, py, 2.2, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 0.6;
+          ctx.beginPath(); ctx.ellipse(px, py, 3.6, 1, -0.3, 0, Math.PI * 2); ctx.stroke();
+        }
+        break;
+      case 'dragonfire':
+        ctx.shadowColor = '#ff6b00'; ctx.shadowBlur = 10;
+        for (let k = 0; k < 3; k++) {
+          const fx = x + (k - 1) * r * 0.45, h = 4 + 2 * Math.sin(time * 9 + k * 2 + seed);
+          ctx.fillStyle = k === 1 ? '#ffd43b' : '#ff6b00';
+          ctx.beginPath(); ctx.moveTo(fx - 1.8, y); ctx.quadraticCurveTo(fx, y - h * 1.6, fx + 1.8, y); ctx.fill();
+        }
+        break;
     }
     ctx.restore();
   }
@@ -3694,6 +3756,55 @@
       ctx.restore();
       return;
     }
+    if (f.effect === 'blackhole') {
+      // Black Hole: a dark swirl pulled into a pitch black middle
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, '#000000'); g.addColorStop(0.45, '#000000'); g.addColorStop(0.8, '#4c1d95'); g.addColorStop(1, '#c084fc');
+      ctx.fillStyle = g;
+      outline(); ctx.fill();
+      ctx.save(); outline(); ctx.clip();
+      ctx.strokeStyle = 'rgba(216, 180, 254, 0.7)'; ctx.lineWidth = Math.max(0.5, r * 0.08);
+      for (let k = 0; k < 3; k++) {
+        const a0 = -nowSec * 2.5 + k * 2.09;
+        ctx.beginPath();
+        for (let j = 0; j <= 12; j++) {
+          const a = a0 + j * 0.35, d = r * (1 - j / 14);
+          ctx.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
+    if (f.effect === 'diamond') {
+      // Diamond Freeze: icy white-blue facets that catch the light
+      const g = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#c5f6fa'); g.addColorStop(1, '#66d9e8');
+      ctx.fillStyle = g;
+      outline(); ctx.fill();
+      ctx.save(); outline(); ctx.clip();
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = Math.max(0.5, r * 0.06);
+      ctx.beginPath();
+      ctx.moveTo(x - r, y - r * 0.2); ctx.lineTo(x, y - r); ctx.lineTo(x + r, y - r * 0.2);
+      ctx.moveTo(x - r * 0.5, y - r * 0.6); ctx.lineTo(x, y + r); ctx.lineTo(x + r * 0.5, y - r * 0.6);
+      ctx.stroke();
+      const shine = (nowSec * 0.8) % 2 - 0.5;
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fillRect(x + (shine - 0.5) * r * 2.4, y - r, r * 0.3, r * 2);
+      ctx.restore();
+      return;
+    }
+    if (f.effect === 'ghost') {
+      // Ghost Swirl: a see-through, softly glowing scoop that fades in and out
+      ctx.save();
+      ctx.globalAlpha = 0.55 + 0.3 * Math.sin(nowSec * 2);
+      const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#a5b4fc');
+      ctx.fillStyle = g;
+      outline(); ctx.fill();
+      ctx.restore();
+      return;
+    }
     if (f.effect === 'nova' || f.effect === 'storm' || f.effect === 'crown') {
       const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
       const stops = { nova: ['#ffffff', '#ffe066', '#ff8a00'], storm: ['#8aa0c8', '#3b4a6b', '#1b2238'],
@@ -3923,6 +4034,49 @@
             ctx.lineWidth = Math.max(0.6, r * 0.12 * (1 - ph));
             ctx.beginPath(); ctx.arc(x, y, r * (1 + ph * 2.2), 0, Math.PI * 2); ctx.stroke();
           }
+        }
+        break;
+      case 'blackhole': // 🕳️ Black Hole: a purple glow and a spinning ring, with sparkles getting sucked in
+        if (back) {
+          glow(x, y, r * 3.4, '124, 58, 237', 0.5 + 0.25 * pulse);
+          ctx.save(); ctx.translate(x, y); ctx.rotate(t * 1.2);
+          ctx.strokeStyle = 'rgba(232, 121, 249, 0.75)'; ctx.lineWidth = Math.max(0.6, r * 0.14);
+          ctx.beginPath(); ctx.ellipse(0, 0, r * 1.7, r * 0.5, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        } else {
+          for (let k = 0; k < 5; k++) {
+            const ph = (t * 0.7 + k / 5) % 1, a = k * 1.26 + ph * 4, d = r * 2.4 * (1 - ph);
+            ctx.fillStyle = `rgba(243, 232, 255, ${ph})`;
+            ctx.beginPath(); ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.6, Math.max(0.4, r * 0.12), 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        break;
+      case 'diamond': // 💎 Diamond Freeze: a frosty glow, and little diamonds twinkling around it
+        if (back) glow(x, y, r * 3, '153, 233, 242', 0.5 + 0.25 * pulse);
+        else {
+          for (let k = 0; k < 4; k++) {
+            const a = t * 1.2 + k * 1.57, dx = x + Math.cos(a) * r * 1.6, dy = y + Math.sin(a) * r * 0.8, s = r * 0.3;
+            ctx.fillStyle = k % 2 ? '#e3fafc' : '#66d9e8';
+            ctx.beginPath(); ctx.moveTo(dx, dy - s); ctx.lineTo(dx + s * 0.7, dy); ctx.lineTo(dx, dy + s); ctx.lineTo(dx - s * 0.7, dy); ctx.fill();
+          }
+          sparkle(x - r * 0.4, y - r * 0.5, r * 0.45 * Math.max(0, Math.sin(t * 3)), '#ffffff');
+        }
+        break;
+      case 'ghost': // 👻 Ghost Swirl: a misty glow and a little ghost floating around it
+        if (back) glow(x, y, r * 3, '199, 210, 254', 0.35 + 0.25 * pulse);
+        else {
+          const gx = x + Math.cos(t * 1.3) * r * 1.6, gy = y - r * 0.6 + Math.sin(t * 2.6) * r * 0.4, s = r * 0.42;
+          ctx.save();
+          ctx.globalAlpha = 0.85;
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(gx, gy, s, Math.PI, 0);
+          ctx.lineTo(gx + s, gy + s);
+          for (let k = 0; k < 3; k++) ctx.lineTo(gx + s - (k + 0.5) * s * 2 / 3, gy + s * (k % 2 ? 1 : 0.6));
+          ctx.lineTo(gx - s, gy + s); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#212529';
+          ctx.beginPath(); ctx.arc(gx - s * 0.35, gy - s * 0.1, s * 0.15, 0, Math.PI * 2); ctx.arc(gx + s * 0.35, gy - s * 0.1, s * 0.15, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
         }
         break;
       case 'prism': // 🌈 Prism Swirl: rainbow glow and sparkles in every color circling it

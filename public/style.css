@@ -246,6 +246,19 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   background: conic-gradient(#ff4040, #ffb000, #ffee00, #39d353, #3d9bff, #9b5cff, #ff4fd8, #ff4040) !important;
   box-shadow: 0 0 10px 4px rgba(255, 100, 220, 0.8); animation: fxSpin 2s linear infinite;
 }
+.fx-blackhole.scoop, .fx-blackhole .ball {
+  background: radial-gradient(circle, #000 0 40%, #4c1d95 70%, #c084fc) !important;
+  box-shadow: 0 0 10px 4px rgba(124, 58, 237, 0.9); animation: fxSpin 3s linear infinite;
+}
+.fx-diamond.scoop, .fx-diamond .ball {
+  background: linear-gradient(135deg, #ffffff, #c5f6fa 50%, #66d9e8) !important;
+  box-shadow: 0 0 10px 4px rgba(153, 233, 242, 0.9);
+}
+.fx-ghost.scoop, .fx-ghost .ball {
+  background: radial-gradient(circle at 30% 30%, #ffffff, #a5b4fc) !important;
+  box-shadow: 0 0 10px 4px rgba(199, 210, 254, 0.9); animation: fxGhost 2s ease-in-out infinite alternate;
+}
+@keyframes fxGhost { to { opacity: 0.45; } }
 .fx-chips.scoop, .fx-chips .ball { background: radial-gradient(#5a3a1e 1.4px, transparent 2px) 0 0 / 7px 7px, #e6c79c !important; }
 
 /* ---------- shop and inventory windows ---------- */
