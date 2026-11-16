@@ -7,6 +7,8 @@
   // 🔮 The Glass Event (the next event): in the online game only admins can see it until it drops.
   // The test file shows it to everyone. To drop it for everyone, start the server with GLASS=everyone.
   const GLASS_ADMINS_ONLY = typeof process !== 'undefined' && !!process.env && process.env.GLASS === 'admins'; // 🔮 dropped for everyone
+  // 🎄 the Christmas Event: online only admins see it until it drops (set CHRISTMAS=everyone on the server to drop it)
+  const CHRISTMAS_ADMINS_ONLY = typeof process !== 'undefined' && !!process.env && process.env.CHRISTMAS !== 'everyone';
 
   // growSec: how long a placed tub takes to grow before customers can buy it
   // stock: chance the shop has this rarity after a restock, and how many tubs
@@ -30,6 +32,8 @@
     cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1800, stock: { chance: 0.001, min: 1, max: 1 } },
     // 🔮 Glass: the Glass Peacock pet and Glass Ice Cream (0.1% chance to be in the shop)
     glass:     { name: 'Glass',     color: '#74c0fc', order: 12, growSec: 2100, stock: { chance: 0.001, min: 1, max: 1 } },
+    // 🎄 Christmas: Santa's Reindeer and the Candy Cane Swirl (0.1% chance to be in the shop)
+    christmas: { name: 'Christmas', color: '#e03131', order: 14, growSec: 2400, stock: { chance: 0.001, min: 1, max: 1 } },
     // 🌙 Astral: the 4 best beasts from the Mythic Beasts Block, 0.5% together (pets only)
     astral:    { name: 'Astral',    color: '#7950f2', order: 13, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
   };
@@ -132,7 +136,7 @@
   // 💰 Sell Shop: what a pet sells for, by rarity. Always less than the lucky block costs on average,
   // so buying blocks just to sell the pets never makes money.
   const PET_SELL = { common: 200, uncommon: 800, rare: 4000, epic: 40000, legendary: 400000, mythic: 3e6, secret: 15e6,
-    celestial: 40e6, divine: 100e6, infinity: 300e6, cyber: 600e6, glass: 700e6, astral: 1e9 };
+    celestial: 40e6, divine: 100e6, infinity: 300e6, cyber: 600e6, glass: 700e6, christmas: 650e6, astral: 1e9 };
   // ⬆️ Pet Upgrade Shop: each level makes that kind of pet give 25% more of its own boost (level 0 = how it is now)
   const PET_MAX_LEVEL = 10;
   const petUpgradeCost = (pet, lvl) => Math.round(Math.max(500, PET_SELL[pet.rarity] || 0) * 2 * Math.pow(2.2, lvl));
@@ -195,6 +199,24 @@
   // 🐲 Mythic Beasts Block: its own beasts, always in the Pet Shop (the last and most expensive block)
   LUCKY_BLOCKS.push({ id: 'beasts', name: 'Mythic Beasts Block', cost: 2e9, color: 'beasts', ownPets: true, drop: 'glass',
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, astral: 0.5 } });
+  // ---------- 🎄 Christmas Event (online: admins only until it drops) ----------
+  // CHRISTMAS_EVENT dates: none yet = on for testing (only admins can see it online); set them when it drops.
+  const CHRISTMAS_EVENT = { start: null, end: null };
+  FLAVORS.push({ id: 'candycane', name: 'Candy Cane Swirl', rarity: 'christmas', price: 40000, cost: 80e6, color: '#ffffff', effect: 'candycane', event: 'christmas' });
+  // the Christmas Block's own pets: Christmas animals with lights, scarves, snow and presents
+  PETS.push(
+    { id: 'gingercat',    name: 'Gingerbread Cat',  emoji: '🐱', rarity: 'legendary', boost: 1.4,  fx: 'xmas', kind: 'walk', event: 'christmas', block: 'christmas' },
+    { id: 'santapenguin', name: 'Santa Penguin',    emoji: '🐧', rarity: 'legendary', boost: 1.5,  fx: 'xmas', kind: 'waddle', event: 'christmas', block: 'christmas' },
+    { id: 'arcticfox',    name: 'Arctic Fox',       emoji: '🦊', rarity: 'mythic',    boost: 2.9,  fx: 'xmas', kind: 'walk', event: 'christmas', block: 'christmas' },
+    { id: 'nutcracker',   name: 'Nutcracker Squirrel', emoji: '🐿️', rarity: 'mythic', boost: 3,   fx: 'xmas', kind: 'hop', event: 'christmas', block: 'christmas' },
+    { id: 'snowseal',     name: 'Twinkle Seal',     emoji: '🦭', rarity: 'secret',    boost: 5.8,  fx: 'xmas', kind: 'waddle', event: 'christmas', block: 'christmas' },
+    { id: 'polarbear',    name: 'Polar Bear',       emoji: '🐻‍❄️', rarity: 'celestial', boost: 9.4, fx: 'xmas', kind: 'walk', event: 'christmas', block: 'christmas' },
+    { id: 'frostyowl',    name: 'Frosty Owl',       emoji: '🦉', rarity: 'celestial', boost: 9.6,  fx: 'xmas', kind: 'fly',  event: 'christmas', block: 'christmas' },
+    // the best Christmas pet: Santa's Reindeer with a glowing red nose, pulling a little sleigh full of presents
+    { id: 'reindeer',     name: "Santa's Reindeer", emoji: '🦌', rarity: 'christmas', boost: 65,  fx: 'reindeer', kind: 'walk', event: 'christmas', block: 'christmas' },
+  );
+  LUCKY_BLOCKS.push({ id: 'christmas', name: 'Christmas Block', cost: 1.5e9, color: 'christmas', event: 'christmas', ownPets: true,
+    odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, christmas: 0.5 } }); // Polar Bear and Frosty Owl 2% each
   // 🔮 Glass Pass: sell scoops during the Glass Event to unlock prizes (the bottom row needs the Premium Glass Pass)
   const GLASS_PASS = {
     free: [
@@ -356,6 +378,9 @@
   // 🔮 Glass: a sparkling see-through mutation (x75). It starts in Glass Storms during the Glass Event, or when an admin turns it on.
   MUTATIONS.push({ id: 'glass', name: 'Glass', emoji: '🔮', mult: 75, weight: 0, adminOnly: true, event: 'glass',
     colors: ['#e7f5ff', '#a5d8ff', '#f3d9fa', '#c3fae8'] });
+  // 🎄 Christmas mutation (x80): only during the Christmas Event, when an admin turns it on
+  MUTATIONS.push({ id: 'christmas', name: 'Christmas', emoji: '🎄', mult: 80, weight: 0, adminOnly: true, event: 'christmas',
+    colors: ['#e03131', '#2f9e44', '#ffd43b', '#ffffff'] });
   // 💠 Prismatic: the best mutation by far (x1000). It never starts by itself; only admins can turn it on.
   MUTATIONS.push({ id: 'prismatic', name: 'Prismatic', emoji: '💠', mult: 1000, weight: 0, adminOnly: true,
     colors: ['#ff8fab', '#ffd166', '#b9fbc0', '#8ecae6', '#cdb4db', '#ffffff'] });
@@ -397,12 +422,14 @@
   for (const part of Object.keys(AVATAR)) AVATAR[part].push('robo');
   // 🔮 the Glass look: see-through glass with rainbow light, a crystal crown and a prism mask
   for (const part of Object.keys(AVATAR)) AVATAR[part].push('glass');
+  // 🎄 the Santa look: a red Santa suit, a Santa hat, and rosy cheeks with a white beard
+  for (const part of Object.keys(AVATAR)) AVATAR[part].push('santa');
 
   const GameData = { WEATHERS, WEATHER_SEC, WEATHER_GAPS_MIN, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY, SHARD_PACKS, MONTHLY_LIMIT_USD, MAX_LIMIT_USD,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, CHRISTMAS_ADMINS_ONLY, CHRISTMAS_EVENT, GAME_PASSES, ICE_CREAM_PRICES, SHARD_SCOOPS, SHARD_WEEKLY, SHARD_PACKS, MONTHLY_LIMIT_USD, MAX_LIMIT_USD,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE };
   if (typeof module !== 'undefined' && module.exports) module.exports = GameData;
   else root.GameData = GameData;

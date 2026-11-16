@@ -321,3 +321,25 @@ The full plan is in `docs/shards-payments-plan.pdf`.
 After T (trillion) money goes Qa, Qi, Sx, Sp, Oc, No, Dc (decillion), then Ud, Dd, Td, Qad, Qid, Sxd, Spd, Ocd, Nod,
 Vg (vigintillion), Uvg … Tg (trigintillion) … and so on all the way to **Ce** (centillion, a 1 with 303 zeros). Money tops
 out at $1000Ce, the biggest number the game can count. You can type these names too, like `/money 5dc` or a gift of `3vg`.
+
+## 🎄 Christmas Event (admins only online until it drops)
+
+Online only admins can see it (regular players see none of it, except Christmas pets an admin is wearing); the test file
+shows it to everyone. Admins can turn it on or off with `/christmas on`, `/christmas off` or `/christmas auto`. To drop it
+for everyone, set `CHRISTMAS=everyone` on the server and give `CHRISTMAS_EVENT` in `public/gamedata.js` its dates.
+
+- **🎄 MERRY CHRISTMAS!** launch screen when you join.
+- **A giant Christmas tree** in the middle of the park with snowy branches, twinkling lights, ornaments, a glowing star and
+  presents under it, and a waving snowman with a scarf and top hat.
+- **Christmas Block** in the Pet Shop ($1.5B) with its own Christmas pets, all wearing little Santa hats with twinkling
+  lights around them: 🐱 Gingerbread Cat and 🐧 Santa Penguin (Legendary), 🦊 Arctic Fox and 🐿️ Nutcracker Squirrel
+  (Mythic), 🦭 Twinkle Seal (Secret), 🐻‍❄️ Polar Bear and 🦉 Frosty Owl (Celestial), and the best one, **🦌 Santa's
+  Reindeer** (new Christmas rarity, +6,500%, 0.5%): a glowing red nose, a little sleigh full of presents behind it,
+  jingle bells, a trail of gold stars and bursts of presents.
+- **🍭 Candy Cane Swirl** ice cream (Christmas rarity, 0.1% in the shop): spinning red and white stripes, a candy cane
+  and Christmas lights around it.
+- **🎁 A Christmas present every day:** a free Diamond Block once a day (the Christmas Block on the last day).
+- **🎅 Santa look** in the Avatar Shop: Santa suit (with a belt and buttons), Santa pants, Santa skin (a big white beard),
+  a Santa hat and Santa glasses.
+- **🎄 Christmas mutation** (x80, admins turn it on): strings of Christmas lights across the sky, presents popping open
+  everywhere and golden twinkles.

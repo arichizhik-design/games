@@ -1,5 +1,5 @@
 (() => {
-  const { WEATHERS, GLASS_EVENT, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
+  const { WEATHERS, GLASS_EVENT, CHRISTMAS_ADMINS_ONLY, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
     CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, PET_SELL, sellPrice, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
@@ -45,8 +45,10 @@
   // ⚡ in the online game only admins can see the Cyber stuff for now (the server says so when you join)
   let seeCyber = !CYBER_ADMINS_ONLY;
   let seeGlass = !GLASS_ADMINS_ONLY; // 🔮 the Glass Event (online: admins only until it drops)
+  let seeXmas = !CHRISTMAS_ADMINS_ONLY; // 🎄 the Christmas Event (online: admins only until it drops)
   const canSee = x => (seeCyber || (x.rarity !== 'cyber' && x.id !== 'cyber' && x.event !== 'cyber')) &&
-    (seeGlass || (x.rarity !== 'glass' && x.id !== 'glass' && x.event !== 'glass'));
+    (seeGlass || (x.rarity !== 'glass' && x.id !== 'glass' && x.event !== 'glass')) &&
+    (seeXmas || (x.rarity !== 'christmas' && x.id !== 'christmas' && x.event !== 'christmas'));
   const guideFlavors = () => FLAVORS.filter(f => (!f.adminOnly || iAmAdmin) && canSee(f));
   const shopFlavors = () => FLAVORS.filter(canSee); // admin ice creams only show up when an admin puts them in the shop
 
@@ -262,6 +264,7 @@
         iAmAdmin = !!msg.admin;
         seeCyber = msg.cyber !== false;
         seeGlass = msg.glass !== false;
+        seeXmas = msg.christmas !== false;
         buildStore();
         buildPanel();
         buildHotbar();
@@ -446,6 +449,7 @@
         shop = msg.shop;
         if (msg.cyber) cyberState = msg.cyber;
         if (msg.glass) glassState = msg.glass;
+        if (msg.christmas) xmasState = msg.christmas;
         if (CYBER) updateCyber();
         if (!player.placed && me()) {
           player.x = me().x; player.y = me().y; player.placed = true;
@@ -1109,14 +1113,16 @@
 
   // ---------- ⚡ Cyber Event: the Cyber Pass and Game Passes (online: admins only for now) ----------
   // lucky block colors (fancy ones get a CSS class instead)
-  const fancyBlock = b => ['rainbow', 'infinity', 'cyber', 'glass', 'beasts'].includes(b.color) ? b.color : '';
+  const fancyBlock = b => ['rainbow', 'infinity', 'cyber', 'glass', 'beasts', 'christmas'].includes(b.color) ? b.color : '';
   const blockBg = b => fancyBlock(b) ? '' : `background:${b.color}`;
   let cyberState = { on: false, endsAt: 0 };
   const cyberIsOn = () => CYBER && cyberState.on;
   let glassState = { on: false, endsAt: null };
   const glassIsOn = () => seeGlass && glassState.on;
-  const evOn = ev => ev === 'glass' ? glassIsOn() : cyberIsOn();
-  const evEnds = ev => { const at = (ev === 'glass' ? glassState : cyberState).endsAt; return at ? 'ends in ' + timeLeft(at) : 'being tested by admins'; };
+  let xmasState = { on: false, endsAt: null };
+  const xmasIsOn = () => seeXmas && xmasState.on;
+  const evOn = ev => ev === 'glass' ? glassIsOn() : ev === 'christmas' ? xmasIsOn() : cyberIsOn();
+  const evEnds = ev => { const at = ({ glass: glassState, christmas: xmasState }[ev] || cyberState).endsAt; return at ? 'ends in ' + timeLeft(at) : 'being tested by admins'; };
   function timeLeft(at) {
     const sec = Math.max(0, Math.floor((at - Date.now()) / 1000));
     const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
@@ -1267,17 +1273,20 @@
   }
 
   // ⚡ the launch moment: once per visit, when the event is on (or the moment it starts)
-  let launchShown = false, glassLaunchShown = false;
+  let launchShown = false, glassLaunchShown = false, xmasLaunchShown = false;
   // 🐲 the Mythic Beasts Block and the Pet Upgrade Shop come out with the Glass Event drop and stay after
   const droppedNow = () => Date.now() >= GLASS_EVENT.start || glassIsOn();
   function showCyberLaunch(ev = 'cyber') {
-    if (ev === 'glass') glassLaunchShown = true; else launchShown = true;
+    if (ev === 'glass') glassLaunchShown = true; else if (ev === 'christmas') xmasLaunchShown = true; else launchShown = true;
     const el = $('cyberLaunch');
-    const glass = ev === 'glass';
+    const glass = ev === 'glass', xmas = ev === 'christmas';
     el.classList.toggle('glassLaunch', glass);
+    el.classList.toggle('xmasLaunch', xmas);
     const title = el.querySelector('.clTitle');
-    title.textContent = title.dataset.text = glass ? '🔮 THE GLASS EVENT IS HERE! 🔮' : '⚡ CYBER EVENT IS HERE! ⚡';
-    el.querySelector('.clSub').textContent = glass
+    title.textContent = title.dataset.text = xmas ? '🎄 MERRY CHRISTMAS! 🎄' : glass ? '🔮 THE GLASS EVENT IS HERE! 🔮' : '⚡ CYBER EVENT IS HERE! ⚡';
+    el.querySelector('.clSub').textContent = xmas
+      ? `Christmas Block · Santa's Reindeer · Candy Cane Swirl ice cream · a giant Christmas tree · a present every day · Santa suit · Christmas mutation · ${evEnds('christmas')}`
+      : glass
       ? `NEW: 🐲 Mythic Beasts Block · ⬆️ Pet Upgrade Shop · Glass Block · Glass Wolf · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
       : `Cyber Block · Cyber Whale · Robo Ice Cream · Cyber Storms · Robo customers pay x2 · ${evEnds('cyber')}`;
     el.classList.remove('hidden');
@@ -1286,11 +1295,13 @@
   }
   $('dailyGiftBtn').addEventListener('click', () => send({ type: 'eventGift', event: 'cyber' }));
   $('glassGiftBtn').addEventListener('click', () => send({ type: 'eventGift', event: 'glass' }));
+  $('xmasGiftBtn').addEventListener('click', () => send({ type: 'eventGift', event: 'christmas' }));
   $('glassPassBtn').addEventListener('click', () => openPass('glass'));
   $('cyberLaunch').addEventListener('click', () => $('cyberLaunch').classList.add('hidden'));
   function updateCyber() {
     if (!launchShown && seeCyber && cyberIsOn() && myId) showCyberLaunch();
     else if (!glassLaunchShown && glassIsOn() && myId && $('cyberLaunch').classList.contains('hidden')) showCyberLaunch('glass');
+    else if (!xmasLaunchShown && xmasIsOn() && myId && $('cyberLaunch').classList.contains('hidden')) showCyberLaunch('christmas');
     $('cyberBtns').classList.toggle('hidden', !seeCyber);
     const s = me();
     if (s && seeCyber) $('storeBtn').textContent = `💎 ${shardText(s)} · Game Passes`;
@@ -1300,6 +1311,7 @@
     $('glassPassBtn').classList.toggle('hidden', !glassIsOn());
     $('petUpBtn').classList.toggle('hidden', !droppedNow());
     $('glassGiftBtn').classList.toggle('hidden', !glassIsOn() || !meNow || meNow.glassGiftDay === today);
+    $('xmasGiftBtn').classList.toggle('hidden', !xmasIsOn() || !meNow || meNow.xmasGiftDay === today);
     if (openWindow === 'pass') { if (evOn(passEv)) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
   }
@@ -1320,7 +1332,7 @@
     const odds = Object.entries(b.odds).map(([r, c]) =>
       `<b style="color:${RARITIES[r].color === '#111111' ? '#000' : RARITIES[r].color}">${RARITIES[r].name} ${c}%</b>`).join(' · ');
     row.innerHTML = `<div class="luckyBlock ${fancyBlock(b)}" style="${blockBg(b)}"></div>
-      <div class="info"><div class="name">${b.name} ${b.event ? `<span class="eventTag ${b.event}">${b.event === 'glass' ? '🔮 GLASS EVENT' : '⚡ CYBER EVENT'} · <span class="left"></span></span>` : ''}</div>
+      <div class="info"><div class="name">${b.name} ${b.event ? `<span class="eventTag ${b.event}">${{ glass: '🔮 GLASS EVENT', christmas: '🎄 CHRISTMAS' }[b.event] || '⚡ CYBER EVENT'} · <span class="left"></span></span>` : ''}</div>
         <div class="odds">${odds}</div></div>
       <button type="button">${fmt(b.cost)}</button>`;
     row.querySelector('button').addEventListener('click', () => send({ type: 'buyBlock', block: b.id }));
@@ -1894,8 +1906,8 @@
   // ---------- Avatar Shop ----------
   const AVATAR_LABELS = {
     hat: { cap: 'Cap', none: 'No hat', tophat: 'Top hat', beanie: 'Beanie', party: 'Party hat',
-      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat', robo: '📡 Robo antennas', glass: '👑 Crystal crown' },
-    face: { happy: 'Happy', cool: 'Sunglasses', wink: 'Wink', silly: 'Silly', wow: 'Wow', robo: '🤖 Robo visor', glass: '🔮 Prism mask' },
+      cowboy: 'Cowboy hat', wizard: 'Wizard hat', bunny: 'Bunny ears', cone: 'Ice cream hat', robo: '📡 Robo antennas', glass: '👑 Crystal crown', santa: '🎅 Santa hat' },
+    face: { happy: 'Happy', cool: 'Sunglasses', wink: 'Wink', silly: 'Silly', wow: 'Wow', robo: '🤖 Robo visor', glass: '🔮 Prism mask', santa: '🎅 Santa glasses' },
   };
   const AVATAR_PARTS = [['shirt', 'Shirt'], ['pants', 'Pants'], ['skin', 'Skin'], ['hat', 'Hat'], ['face', 'Face']];
 
@@ -1932,7 +1944,7 @@
       row.innerHTML = `<div class="avLabel">${label}</div>`;
       const opts = document.createElement('div');
       opts.className = 'avOpts';
-      for (const value of AVATAR[part].filter(v => (seeCyber || v !== 'robo') && (seeGlass || v !== 'glass'))) {
+      for (const value of AVATAR[part].filter(v => (seeCyber || v !== 'robo') && (seeGlass || v !== 'glass') && (seeXmas || v !== 'santa'))) {
         const b = document.createElement('button');
         b.type = 'button';
         const isColor = part === 'shirt' || part === 'pants' || part === 'skin';
@@ -1940,8 +1952,9 @@
         if (isColor) {
           if (value === 'robo') b.classList.add('robo'); // a piece of polished robot armor
           if (value === 'glass') b.classList.add('glass'); // a piece of rainbow glass
+          else if (value === 'santa') b.classList.add('santa'); // 🎅 red Santa cloth with white fluff
           else b.style.background = value === 'stand' ? s.color : value;
-          b.title = value === 'stand' ? 'Your stand color' : value === 'robo' ? 'Robo' : value === 'glass' ? 'Glass' : '';
+          b.title = value === 'stand' ? 'Your stand color' : value === 'robo' ? 'Robo' : value === 'glass' ? 'Glass' : value === 'santa' ? 'Santa' : '';
         } else b.textContent = AVATAR_LABELS[part][value];
         b.addEventListener('click', () => {
           avatarDraft[part] = value; // try it on in the preview; Save makes it your look
@@ -2223,6 +2236,11 @@
         const mode = (args[0] || '').toLowerCase();
         if (!['on', 'off', 'auto'].includes(mode)) return toast('Try: /glass on, /glass off or /glass auto');
         return send({ type: 'adminGlass', mode });
+      }
+      case 'christmas': case 'xmas': { // /christmas on, /christmas off, /christmas auto (turn the Christmas Event on or off)
+        const mode = (args[0] || '').toLowerCase();
+        if (!['on', 'off', 'auto'].includes(mode)) return toast('Try: /christmas on, /christmas off or /christmas auto');
+        return send({ type: 'adminChristmas', mode });
       }
       case 'cyber': { // /cyber on, /cyber off, /cyber auto (turn the Cyber Event on or off to test it)
         if (!CYBER) return toast('The Cyber Event is only in the test file for now.');
@@ -2912,6 +2930,15 @@
     ancientmammoth: { colors: ['#e7f5ff', '#4dabf7', '#1c3d5a'], veins: 'crystal', rim: '#74c0fc' },
     swampleviathan: { colors: ['#d8f5a2', '#2b8a3e', '#0b2e0b'], veins: 'spots', rim: '#69db7c' },
     stormbison:     { colors: ['#dee2e6', '#5c7cfa', '#1b2238'], veins: 'cracks', veinColor: '#a5d8ff', rim: '#74c0fc' },
+    // 🎄 the Christmas Block pets
+    gingercat:    { colors: ['#ffe8cc', '#c2692e', '#6b3410'], veins: 'icing', rim: '#ffd43b' },
+    santapenguin: { colors: ['#ffffff', '#ffc9c9', '#1a1a2e'], keep: 0.4, veins: 'lights', rim: '#ff6b6b' },
+    arcticfox:    { colors: ['#ffffff', '#e7f5ff', '#a5d8ff'], bright: 0.55, veins: 'frost', rim: '#a5d8ff' },
+    nutcracker:   { colors: ['#ffd8a8', '#c92a2a', '#5c1a00'], veins: 'chrome', rim: '#ffd43b' },
+    snowseal:     { colors: ['#ffffff', '#d0ebff', '#748ffc'], keep: 0.3, veins: 'lights', rim: '#74c0fc' },
+    polarbear:    { colors: ['#ffffff', '#f1f3f5', '#a5d8ff'], bright: 0.5, veins: 'lights', rim: '#ffd43b' },
+    frostyowl:    { colors: ['#ffffff', '#d0ebff', '#4dabf7'], bright: 0.4, veins: 'frost', rim: '#a5d8ff' },
+    reindeer:     { colors: ['#ffe8cc', '#a0522d', '#4a2410'], veins: 'lights', rim: '#ffd43b' },
     // ✨ every regular pet gets painted too (the cute common ones keep some of their own colors)
     puppy:      { colors: ['#fff4e6', '#ffa94d', '#c2410c'], keep: 0.6, veins: 'spots', rim: '#ff8787' },
     kitty:      { colors: ['#fff0f6', '#f783ac', '#862e9c'], keep: 0.6, veins: 'stripes', rim: '#f783ac' },
@@ -3030,6 +3057,22 @@
             c.beginPath(); c.arc(x, y, rr, 0, Math.PI * 2); glow ? c.stroke() : c.fill();
           }
           break;
+        case 'lights': // 🎄 a string of colored Christmas lights wrapped around it
+          for (let k = 0; k < 3; k++) {
+            const y0 = 45 + k * 32;
+            c.strokeStyle = glow ? 'rgba(0,0,0,0)' : '#2b8a3e'; c.lineWidth = 2;
+            c.beginPath(); for (let x = 0; x <= S; x += 10) c.lineTo(x, y0 + Math.sin(x / 18 + k) * 8); c.stroke();
+            for (let x = 8; x <= S; x += 18) {
+              c.fillStyle = ['#ff3b3b', '#ffd43b', '#40c057', '#4dabf7', '#ff6bd6'][(x / 18 + k) % 5 | 0];
+              c.beginPath(); c.arc(x, y0 + Math.sin(x / 18 + k) * 8 + 4, glow ? 5 : 4, 0, Math.PI * 2); c.fill();
+            }
+          }
+          break;
+        case 'icing': // 🍪 white gingerbread icing swirls and candy buttons
+          c.strokeStyle = '#ffffff'; c.lineWidth = glow ? 2 : 3;
+          for (let k = 0; k < 6; k++) { const y0 = 30 + k * 20; c.beginPath(); for (let x = 20; x <= 140; x += 8) c.lineTo(x, y0 + (x % 16 ? 4 : -4)); c.stroke(); }
+          for (let k = 0; k < 5; k++) { c.fillStyle = ['#e03131', '#40c057', '#ffd43b'][k % 3]; c.beginPath(); c.arc(60 + k * 9, 70 + k * 12, glow ? 4 : 5, 0, Math.PI * 2); c.fill(); }
+          break;
         case 'rainbow': { // rainbow streaks through the mane and tail
           for (let k = 0; k < 6; k++) {
             c.strokeStyle = `hsla(${k * 55}, 100%, 65%, ${glow ? 0.9 : 0.4})`; c.lineWidth = glow ? 3 : 6;
@@ -3068,6 +3111,29 @@
     const look = BEAST_LOOKS[p.id] || BEAST_LOOKS[p.fx];
     if (look) PET_MODELS[p.id] = (time, seed) => drawBeast(p.id, look, time, seed);
   }
+  // 🦌 Santa's Reindeer: a glowing red nose and a little red sleigh full of presents behind it
+  PET_MODELS.reindeer = (time, seed) => {
+    // the sleigh (behind it, so drawn first)
+    ctx.save();
+    ctx.translate(26, 6);
+    ctx.strokeStyle = '#ffd43b'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(-14, -6); ctx.lineTo(-4, -4); ctx.stroke(); // the reins
+    [['#e03131', -3, -14], ['#2f9e44', 3, -16], ['#4dabf7', 8, -13]].forEach(([c, dx, dy]) => {
+      ctx.fillStyle = c; ctx.fillRect(dx - 3, dy, 6, 6);
+      ctx.fillStyle = '#ffd43b'; ctx.fillRect(dx - 0.6, dy, 1.2, 6); ctx.fillRect(dx - 3, dy + 2.4, 6, 1.2);
+    });
+    ctx.fillStyle = '#c92a2a'; ctx.strokeStyle = '#ffd43b'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-6, -8); ctx.lineTo(12, -8); ctx.quadraticCurveTo(16, -8, 14, 0); ctx.lineTo(-4, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#ffd43b'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(-8, 3); ctx.lineTo(14, 3); ctx.quadraticCurveTo(18, 3, 17, -1); ctx.stroke();
+    ctx.restore();
+    drawBeast('reindeer', BEAST_LOOKS.reindeer, time, seed);
+    // the red nose, glowing on and off
+    const n = 0.65 + 0.35 * Math.sin(time * 5 + seed);
+    glow(-17, -16, 9, '255, 40, 40', 0.9 * n);
+    ctx.fillStyle = '#ff2b2b'; ctx.beginPath(); ctx.arc(-17, -16, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(-17.6, -16.7, 0.7, 0, Math.PI * 2); ctx.fill();
+  };
   // 🦌 Cosmic Stag: its antlers glow with twinkling stars at the tips
   PET_MODELS.cosmicstag = (time, seed) => {
     drawBeast('cosmicstag', BEAST_LOOKS.cosmicstag, time, seed);
@@ -3389,6 +3455,41 @@
         if (chance(12)) {
           const a = Math.random() * Math.PI * 2;
           petSpark(x + Math.cos(a) * 60, y + 12 + Math.sin(a) * 24, { color: Math.random() < 0.5 ? '#c77dff' : '#ff2bd6', vx: -Math.cos(a) * 80, vy: -Math.sin(a) * 30, life: 0.7, size: 2.5 });
+        }
+        break;
+      }
+      case 'xmas': {
+        // 🎄 the Christmas Block pets: twinkling Christmas lights circling them, snowy sparkles and (rarer ones) presents
+        const lvl = { legendary: 1, mythic: 2, secret: 3, celestial: 4 }[pet.rarity] || 1;
+        glow(x, y - 8, 32 + lvl * 8, '255, 212, 59', 0.3 + 0.05 * lvl);
+        const n = 5 + lvl * 2;
+        for (let k = 0; k < n; k++) {
+          const a = time * 1.1 + k * Math.PI * 2 / n + seed, lx = x + Math.cos(a) * (26 + lvl * 4), ly = y - 10 + Math.sin(a) * (10 + lvl);
+          const on = Math.sin(time * 4 + k * 1.7) > -0.2;
+          const col = ['224, 49, 49', '47, 158, 68', '255, 212, 59', '77, 171, 247', '255, 107, 214'][k % 5];
+          if (on) glow(lx, ly, 6, col, 0.9);
+          ctx.fillStyle = `rgb(${col})`; ctx.beginPath(); ctx.arc(lx, ly, 1.8, 0, Math.PI * 2); ctx.fill();
+        }
+        if (chance(3 + lvl)) petSpark(x + rnd() * 40, y - 20 + rnd() * 20, { shape: 'flake', color: '#ffffff', vy: -6, life: 1.2, size: 3 });
+        if (lvl >= 3 && (time + seed) % 4 < dt) for (let k = 0; k < 4; k++) petSpark(x, y - 14, { shape: 'bit', text: '🎁', color: '#fff', vx: rnd() * 120, vy: -60 - Math.random() * 60, life: 1, size: 9 });
+        break;
+      }
+      case 'reindeer': {
+        // 🦌 Santa's Reindeer, the best Christmas pet: a golden glow, jingle-bell sparkles, a trail of magic gold stars,
+        // and every few seconds a burst of presents and snow pops out
+        glow(x, y - 10, 60, '255, 212, 59', 0.45);
+        glow(x, y - 10, 30, '255, 255, 230', 0.4);
+        for (let k = 0; k < 3; k++) {
+          const a = time * 2 + k * 2.09 + seed, bx = x + Math.cos(a) * 36, by = y - 14 + Math.sin(a) * 13;
+          glow(bx, by, 7, '255, 212, 59', 0.8);
+          ctx.fillStyle = '#ffd43b'; ctx.beginPath(); ctx.arc(bx, by, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#8a5a00'; ctx.fillRect(bx - 1.5, by + 0.5, 3, 0.8);
+        }
+        if (chance(pp.moving ? 18 : 6)) petSpark(pp.x - pp.facing * 20 + rnd() * 10, pp.y - Math.random() * 20, { shape: 'star', color: Math.random() < 0.5 ? '#ffd43b' : '#fff3bf', vx: -pp.facing * 20, vy: -10, life: 1.2, size: 3.5 });
+        if ((time + seed) % 4.5 < dt) {
+          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#ffd43b', vy: 0, life: 0.9, size: 14, grow: 150 });
+          for (let k = 0; k < 6; k++) petSpark(x, y - 16, { shape: 'bit', text: '🎁', color: '#fff', vx: rnd() * 180, vy: -80 - Math.random() * 80, life: 1.1, size: 11 });
+          for (let k = 0; k < 8; k++) petSpark(x, y - 16, { shape: 'flake', color: '#fff', vx: rnd() * 160, vy: -Math.random() * 120, life: 1, size: 4 });
         }
         break;
       }
@@ -3718,6 +3819,15 @@
       ctx.shadowColor = '#ffd43b'; ctx.shadowBlur = 10;
       ctx.beginPath(); ctx.ellipse(x, y - 30 * big - 4, 11, 4, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.shadowBlur = 0;
+    }
+    if (pet.fx === 'xmas' || pet.fx === 'reindeer') {
+      // 🎅 a little Santa hat
+      const hx = x - pp.facing * 6 * big, hy = y - 28 * big;
+      ctx.fillStyle = '#e03131';
+      ctx.beginPath(); ctx.moveTo(hx - 8, hy + 3); ctx.quadraticCurveTo(hx - 2, hy - 14, hx + pp.facing * -9, hy - 9); ctx.lineTo(hx + 8, hy + 3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.ellipse(hx, hy + 3, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(hx + pp.facing * -9, hy - 9, 2.6, 0, Math.PI * 2); ctx.fill();
     }
     if (pet.fx === 'king') {
       // a golden crown on the Dragon King
@@ -4251,6 +4361,19 @@
     }
     if (f.effect === 'robo') { drawRoboScoop(x, y, r, outline); return; }
     if (f.effect === 'glass') { drawGlassScoop(x, y, r, outline); return; }
+    if (f.effect === 'candycane') {
+      // 🎄 Candy Cane Swirl: red and white candy stripes spinning, with a minty shine
+      ctx.fillStyle = '#ffffff'; outline(); ctx.fill();
+      ctx.save(); outline(); ctx.clip();
+      ctx.translate(x, y); ctx.rotate(nowSec * 0.8);
+      ctx.fillStyle = '#e03131';
+      for (let k = -4; k <= 4; k++) { ctx.beginPath(); ctx.rect(k * r * 0.5 - r * 0.12, -r * 2, r * 0.24, r * 4); ctx.fill(); }
+      ctx.restore();
+      ctx.save(); outline(); ctx.clip();
+      ctx.fillStyle = 'rgba(178, 242, 187, 0.35)'; ctx.beginPath(); ctx.arc(x - r * 0.3, y - r * 0.35, r * 0.45, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      return;
+    }
     if (f.effect === 'infinity') {
       // Infinity Swirl: every color swirling around and slowly spinning
       const spin = nowSec * 1.5;
@@ -4645,6 +4768,24 @@
           }
         }
         break;
+      case 'candycane': // 🎄 Candy Cane Swirl: a warm golden glow, a little candy cane and twinkling Christmas lights around it
+        if (back) glow(x, y, r * 3.2, '255, 212, 59', 0.4 + 0.2 * pulse);
+        else {
+          ctx.save(); ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1, r * 0.22);
+          const cx = x + r * 1.2, cy = y - r * 0.6;
+          for (const [col, dash] of [['#ffffff', []], ['#e03131', [r * 0.25, r * 0.25]]]) {
+            ctx.strokeStyle = col; ctx.setLineDash(dash);
+            ctx.beginPath(); ctx.moveTo(cx, cy + r * 1.1); ctx.lineTo(cx, cy); ctx.arc(cx - r * 0.3, cy, r * 0.3, 0, Math.PI, true); ctx.stroke();
+          }
+          ctx.setLineDash([]); ctx.restore();
+          for (let k = 0; k < 5; k++) {
+            const a = t * 1.2 + k * 1.26;
+            ctx.fillStyle = ['#e03131', '#2f9e44', '#ffd43b', '#4dabf7', '#ff6bd6'][k];
+            if (Math.sin(t * 6 + k * 2) > -0.3) glow(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 0.7, r * 0.5, ['224, 49, 49', '47, 158, 68', '255, 212, 59', '77, 171, 247', '255, 107, 214'][k], 0.9);
+            ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 0.7, Math.max(0.6, r * 0.18), 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        break;
       case 'glass': // 🔮 Glass Ice Cream: a soft rainbow glow, little glass shards circling it, and twinkles
         if (back) {
           glow(x, y, r * 3.4, '208, 235, 255', 0.45 + 0.2 * pulse);
@@ -4891,8 +5032,8 @@
     const av = p.avatar || {};
     const ROBO = { shirt: '#2c343c', pants: '#1f262e', skin: '#3a444e' }; // ⚡ robo parts are dark armor with glowing cyan cracks
     const GLASS = 'rgba(200, 232, 255, 0.62)';                             // 🔮 glass parts are see-through
-    const shirt = !av.shirt || av.shirt === 'stand' ? p.color : av.shirt === 'robo' ? ROBO.shirt : av.shirt === 'glass' ? GLASS : av.shirt;
-    const skin = av.skin === 'robo' ? ROBO.skin : av.skin === 'glass' ? GLASS : av.skin || '#f8d5b8';
+    const shirt = !av.shirt || av.shirt === 'stand' ? p.color : av.shirt === 'robo' ? ROBO.shirt : av.shirt === 'glass' ? GLASS : av.shirt === 'santa' ? '#d62828' : av.shirt;
+    const skin = av.skin === 'robo' ? ROBO.skin : av.skin === 'glass' ? GLASS : av.skin === 'santa' ? '#ffd8c2' : av.skin || '#f8d5b8';
     const bounce = p.moving ? Math.abs(Math.sin(time * 12)) * 3 : 0;
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -4912,7 +5053,7 @@
     ctx.scale(1.7 * (p.facing || 1), 1.7);
     const y = -bounce / 1.7;
     const roboLegs = av.pants === 'robo', roboBody = av.shirt === 'robo', roboHead = av.skin === 'robo';
-    const pants = roboLegs ? ROBO.pants : av.pants === 'glass' ? GLASS : av.pants || '#3b3b58';
+    const pants = roboLegs ? ROBO.pants : av.pants === 'glass' ? GLASS : av.pants === 'santa' ? '#b71c1c' : av.pants || '#3b3b58';
     const glassParts = ['shirt', 'pants', 'skin', 'hat', 'face'].filter(k => av[k] === 'glass').length;
     if (glassParts) {
       // 🔮 glass parts shine, and someone all made of glass twinkles with rainbow light
@@ -4971,6 +5112,16 @@
       ctx.beginPath(); ctx.moveTo(-3.5, y - 7); ctx.lineTo(0, y - 4.5); ctx.lineTo(3.5, y - 7); ctx.closePath(); ctx.fill();
     }
     arm(true);
+    if (av.shirt === 'santa') {
+      // 🎅 the Santa suit: fluffy white trim, a black belt with a gold buckle, and white buttons
+      ctx.fillStyle = '#ffffff';
+      roundRect(-9, y + 5.5, 18, 2.5, 1.2); ctx.fill();
+      ctx.fillRect(-0.9, y - 6.5, 1.8, 12);
+      ctx.fillStyle = '#1a1a1a'; ctx.fillRect(-9, y + 1.5, 18, 2.5);
+      ctx.strokeStyle = '#ffd43b'; ctx.lineWidth = 0.8; ctx.strokeRect(-2, y + 1.3, 4, 2.9);
+      ctx.fillStyle = '#ffffff';
+      for (const by of [y - 4, y - 1.5]) { ctx.beginPath(); ctx.arc(2.5, by, 0.7, 0, Math.PI * 2); ctx.fill(); }
+    }
     if (av.shirt === 'glass') {
       // light streaks and a rainbow shimmer on the glass shirt
       ctx.save();
@@ -5016,8 +5167,16 @@
         ctx.fillStyle = '#4a2f1d';
         ctx.beginPath(); ctx.arc(0, y - 15, 8.3, Math.PI * 0.95, Math.PI * 2.05); ctx.lineTo(-7.8, y - 13); ctx.fill();
       }
-      ctx.fillStyle = 'rgba(255, 120, 140, 0.25)'; // rosy cheek
+      ctx.fillStyle = av.skin === 'santa' ? 'rgba(255, 90, 110, 0.5)' : 'rgba(255, 120, 140, 0.25)'; // rosy cheek
       ctx.beginPath(); ctx.arc(6, y - 11.5, 1.5, 0, Math.PI * 2); ctx.fill();
+      if (av.skin === 'santa') {
+        // 🎅 a big fluffy white beard and mustache
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.moveTo(-5, y - 12); ctx.quadraticCurveTo(-6, y - 2, 2, y - 1); ctx.quadraticCurveTo(9, y - 3, 8.5, y - 11); ctx.closePath(); ctx.fill();
+        for (const [bx, by, br] of [[-3, y - 5, 2.5], [1, y - 3, 2.8], [5, y - 5, 2.5]]) { ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = '#f1f3f5';
+        ctx.beginPath(); ctx.ellipse(5, y - 10.5, 3.2, 1.3, 0, 0, Math.PI * 2); ctx.fill();
+      }
     }
     drawFace(av.face || 'happy', y, time);
     // admins wear their crown unless they picked a special hat in the Avatar Shop
@@ -5066,6 +5225,14 @@
       ctx.beginPath(); ctx.arc(3, y - 15.2, 0.9, 0, Math.PI * 2); ctx.arc(6.5, y - 15.2, 0.9, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#222'; ctx.lineWidth = 0.9;
       ctx.beginPath(); ctx.arc(5, y - 11.5, 2, 0.2, Math.PI - 0.2); ctx.stroke();
+      return;
+    }
+    if (face === 'santa') {
+      // 🎅 happy eyes behind little round gold glasses
+      drawFace('happy', y, time);
+      ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 0.6;
+      for (const ex of [3, 6.5]) { ctx.beginPath(); ctx.arc(ex, y - 14, 2, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(5, y - 14); ctx.lineTo(4.5, y - 14); ctx.stroke();
       return;
     }
     if (face === 'robo') {
@@ -5117,6 +5284,17 @@
 
   function drawHat(hat, y, shirt) {
     switch (hat) {
+      case 'santa': { // 🎅 a floppy red Santa hat with white fluffy trim and a pom-pom
+        ctx.fillStyle = '#d62828';
+        ctx.beginPath(); ctx.moveTo(-8, y - 19); ctx.quadraticCurveTo(-4, y - 33, 6, y - 30); ctx.quadraticCurveTo(11, y - 28, 12, y - 22);
+        ctx.lineTo(8, y - 19); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.beginPath(); ctx.moveTo(2, y - 20); ctx.quadraticCurveTo(6, y - 28, 11, y - 23); ctx.lineTo(8, y - 19); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        roundRect(-9, y - 21.5, 18, 4, 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(12, y - 22, 2.6, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
       case 'glass': { // 🔮 a crystal crown: see-through glass points with rainbow light and a twinkle
         const pts = [[-7, -21], [-6, -28], [-3.5, -23.5], [0, -31], [3.5, -23.5], [6, -28], [7, -21]];
         ctx.save();
@@ -5239,6 +5417,70 @@
   }
 
   // 💰 the Sell Shop building at the bottom of the plaza
+  // 🎄 the Christmas Event in the park: a giant Christmas tree with lights and a star, presents under it, and a snowman
+  function drawChristmasPark(time) {
+    const tx = 1075, ty = 700;
+    // snow on the ground around them
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    for (const [x, y, rx, ry] of [[tx, ty + 4, 70, 18], [725, ty + 4, 40, 12]]) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); }
+    glow(tx, ty - 70, 120, '255, 212, 59', 0.25 + 0.08 * Math.sin(time * 2));
+    // the trunk and three layers of branches
+    ctx.fillStyle = '#6b3f1d'; ctx.fillRect(tx - 9, ty - 18, 18, 20);
+    [[ty - 10, 62, 50], [ty - 48, 50, 46], [ty - 82, 38, 42]].forEach(([by, w, h], k) => {
+      const g = ctx.createLinearGradient(tx - w, 0, tx + w, 0);
+      g.addColorStop(0, '#1b5e20'); g.addColorStop(0.5, '#2f9e44'); g.addColorStop(1, '#1b5e20');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(tx - w, by); ctx.lineTo(tx, by - h); ctx.lineTo(tx + w, by); ctx.quadraticCurveTo(tx, by + 8, tx - w, by); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'; // snow on the branches
+      ctx.beginPath(); ctx.moveTo(tx - w * 0.9, by - 2); ctx.quadraticCurveTo(tx - w * 0.5, by - 8, tx - w * 0.2, by - 3); ctx.quadraticCurveTo(tx, by - 6, tx + w * 0.3, by - 3); ctx.lineTo(tx + w * 0.3, by - 1); ctx.quadraticCurveTo(tx, by + 2, tx - w * 0.9, by); ctx.fill();
+    });
+    // a garland of twinkling lights winding up the tree
+    const cols = ['224, 49, 49', '255, 212, 59', '77, 171, 247', '64, 192, 87', '255, 107, 214'];
+    for (let k = 0; k < 26; k++) {
+      const f = k / 26, ly = ty - 14 - f * 112, half = (1 - f) * 52 + 6;
+      const lx = tx + Math.sin(f * Math.PI * 7) * half * 0.85;
+      const on = Math.sin(time * 3 + k * 1.3) > -0.3;
+      if (on) glow(lx, ly, 7, cols[k % 5], 0.9);
+      ctx.fillStyle = `rgb(${cols[k % 5]})`; ctx.beginPath(); ctx.arc(lx, ly, 2.4, 0, Math.PI * 2); ctx.fill();
+    }
+    // ornaments
+    [[-30, -30, '#e03131'], [25, -38, '#ffd43b'], [-14, -66, '#4dabf7'], [16, -82, '#e03131'], [0, -104, '#ffd43b'], [-36, -14, '#cc5de8'], [34, -16, '#4dabf7']]
+      .forEach(([dx, dy, c]) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(tx + dx, ty + dy, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.arc(tx + dx - 1.4, ty + dy - 1.4, 1.3, 0, Math.PI * 2); ctx.fill(); });
+    // the star on top
+    const sy = ty - 132;
+    glow(tx, sy, 30, '255, 230, 120', 0.7 + 0.2 * Math.sin(time * 3));
+    ctx.save(); ctx.translate(tx, sy); ctx.rotate(Math.sin(time) * 0.1);
+    ctx.fillStyle = '#ffd43b'; ctx.strokeStyle = '#e8a200'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? 6 : 14; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+    // presents under it
+    [[-52, 6, 22, 18, '#e03131', '#ffd43b'], [-26, 10, 18, 14, '#2f9e44', '#e03131'], [30, 8, 24, 16, '#4dabf7', '#ffffff'], [56, 10, 16, 14, '#cc5de8', '#ffd43b']]
+      .forEach(([dx, dy, w, h, c, rib]) => {
+        const px = tx + dx, py = ty + dy;
+        ctx.fillStyle = c; ctx.fillRect(px - w / 2, py - h, w, h);
+        ctx.fillStyle = rib; ctx.fillRect(px - 1.5, py - h, 3, h); ctx.fillRect(px - w / 2, py - h / 2 - 1.5, w, 3);
+        ctx.beginPath(); ctx.ellipse(px - 4, py - h - 2, 4, 2.5, -0.4, 0, Math.PI * 2); ctx.ellipse(px + 4, py - h - 2, 4, 2.5, 0.4, 0, Math.PI * 2); ctx.fill();
+      });
+    // the snowman, waving
+    const sx = 725, sb = ty;
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#d0ebff'; ctx.lineWidth = 1.5;
+    for (const [dy, rr] of [[-18, 20], [-50, 15], [-74, 11]]) { ctx.beginPath(); ctx.arc(sx, sb + dy, rr, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(sx - 4, sb - 77, 1.6, 0, Math.PI * 2); ctx.arc(sx + 4, sb - 77, 1.6, 0, Math.PI * 2); ctx.fill();
+    for (const dy of [-55, -47, -39]) { ctx.beginPath(); ctx.arc(sx, sb + dy, 1.8, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = '#ff922b'; ctx.beginPath(); ctx.moveTo(sx, sb - 73); ctx.lineTo(sx + 12, sb - 71); ctx.lineTo(sx, sb - 70); ctx.fill();
+    ctx.fillStyle = '#e03131'; ctx.fillRect(sx - 12, sb - 64, 24, 5); ctx.fillRect(sx + 5, sb - 64, 5, 14); // a scarf
+    ctx.fillStyle = '#212529'; ctx.fillRect(sx - 9, sb - 86, 18, 3); ctx.fillRect(sx - 6, sb - 100, 12, 14); // a top hat
+    ctx.strokeStyle = '#6b3f1d'; ctx.lineWidth = 2;
+    const wave = Math.sin(time * 4) * 0.4;
+    ctx.beginPath(); ctx.moveTo(sx - 14, sb - 52); ctx.lineTo(sx - 30, sb - 62); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx + 14, sb - 52); ctx.lineTo(sx + 28, sb - 66 - wave * 12); ctx.stroke();
+    ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.strokeText('🎄 Merry Christmas!', tx, ty + 34);
+    ctx.fillStyle = '#c92a2a'; ctx.fillText('🎄 Merry Christmas!', tx, ty + 34);
+  }
+
   function drawSellShop(time) {
     const { x, y } = SELL_SHOP;
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
@@ -5359,7 +5601,7 @@
       drawMutationExtras(m, time, dt, share); // no rain: only Gold, Galaxy and Meteor Shower have things falling
     } else if (m) {
       const tint = ({ impossible: 0.1, sakura: 0.08, galaxy: 0.32, meteor: 0.12, cyber: 0.3, glass: 0.12, cereal: 0.1, frostbite: 0.18,
-        inferno: 0.12, radioactive: 0.12, tornado: 0.14, vampire: 0.45, aura: 0.07, darkmatter: 0.5, prismatic: 0.16 }[m.id] ?? 0.13) * Math.max(share, 0.5);
+        inferno: 0.12, radioactive: 0.12, tornado: 0.14, vampire: 0.45, aura: 0.07, darkmatter: 0.5, prismatic: 0.16, christmas: 0.08 }[m.id] ?? 0.13) * Math.max(share, 0.5);
       const TINT = { cyber: '#04121c', cereal: '#fff3c4', vampire: '#1a0005', darkmatter: '#07000f', tornado: '#495057' };
       if (tint) {
         ctx.globalAlpha = tint;
@@ -5646,6 +5888,25 @@
         }
         break;
       }
+      case 'christmas': {
+        // 🎄 strings of Christmas lights across the sky, presents popping open everywhere and golden twinkles
+        for (let row = 0; row < 2; row++) {
+          const y0 = 40 + row * 60;
+          ctx.strokeStyle = 'rgba(33, 37, 41, 0.6)'; ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          for (let x = 0; x <= world.width; x += 20) ctx.lineTo(x, y0 + Math.abs(Math.sin((x + row * 90) / 180 * Math.PI)) * 30);
+          ctx.stroke();
+          for (let x = 15, k = 0; x <= world.width; x += 45, k++) {
+            const ly = y0 + Math.abs(Math.sin((x + row * 90) / 180 * Math.PI)) * 30 + 5;
+            const col = ['224, 49, 49', '255, 212, 59', '64, 192, 87', '77, 171, 247', '255, 107, 214'][(k + row) % 5];
+            if (Math.sin(time * 3 + k * 1.1 + row) > -0.3) glow(x, ly, 14, col, 0.8);
+            ctx.fillStyle = `rgb(${col})`; ctx.beginPath(); ctx.ellipse(x, ly, 3.5, 5, 0, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        if (chance(2.5)) addMutFx({ kind: 'present', ...randSpot(), life: 2.2, color: ['#e03131', '#2f9e44', '#4dabf7', '#cc5de8'][Math.floor(Math.random() * 4)] });
+        if (chance(4)) { const p = randSpot(); star(p.x, p.y, 4, Math.random() < 0.5 ? '#ffd43b' : '#ffffff'); }
+        break;
+      }
       case 'prismatic': {
         // 💠 the best mutation: giant floating prism crystals shooting rainbow beams, a rainbow aurora across the sky,
         // and rainbow sparkle bursts all over
@@ -5917,6 +6178,23 @@
           if (Math.random() < 0.5) {
             const an = Math.random() * Math.PI * 2, d = 90;
             petSpark(f.x + Math.cos(an) * d, f.y + Math.sin(an) * d * 0.5, { color: Math.random() < 0.5 ? '#c77dff' : '#ff2bd6', vx: -Math.cos(an) * d * 1.4, vy: -Math.sin(an) * d * 0.7, life: 0.7, size: 2 });
+          }
+          break;
+        }
+        case 'present': { // a present pops up out of the snow, its lid flies off and stars burst out
+          const up = Math.min(1, f.t * 4), lid = Math.max(0, f.t - 0.6) * 120;
+          ctx.globalAlpha = Math.min(1, a * 3);
+          const w = 22 * up, h = 18 * up;
+          ctx.fillStyle = f.color; ctx.fillRect(f.x - w / 2, f.y - h, w, h);
+          ctx.fillStyle = '#ffd43b'; ctx.fillRect(f.x - 2, f.y - h, 4, h);
+          ctx.save(); ctx.translate(f.x, f.y - h - 3 - lid); ctx.rotate(Math.min(1, lid / 60) * 0.8);
+          ctx.fillStyle = f.color; ctx.fillRect(-w / 2 - 2, -3, w + 4, 6);
+          ctx.fillStyle = '#ffd43b'; ctx.fillRect(-2, -3, 4, 6);
+          ctx.beginPath(); ctx.ellipse(-4, -5, 4, 2.5, -0.4, 0, Math.PI * 2); ctx.ellipse(4, -5, 4, 2.5, 0.4, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+          if (f.t > 0.6 && !f.burst) {
+            f.burst = true;
+            for (let j = 0; j < 10; j++) petSpark(f.x, f.y - h, { shape: 'star', color: j % 2 ? '#ffd43b' : '#ffffff', vx: (Math.random() - 0.5) * 160, vy: -60 - Math.random() * 120, life: 0.9, size: 4 });
           }
           break;
         }
@@ -6318,6 +6596,7 @@
     drawAvatarShop(time);
     drawPetShop(time);
     drawSellShop(time);
+    if (xmasIsOn()) drawChristmasPark(time);
     const used = new Set(stands.map(s => s.slot));
     slots.forEach((slot, i) => { if (!used.has(i)) drawEmptySlot(slot); });
     for (const s of stands) drawStand(s, time);

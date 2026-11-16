@@ -5,7 +5,7 @@
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
   const { WEATHERS, WEATHER_SEC, WEATHER_GAPS_MIN, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
-    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
+    CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, CHRISTMAS_ADMINS_ONLY, CHRISTMAS_EVENT, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice } = GameData;
 
@@ -114,17 +114,17 @@
   // In the online game an event can be for admins only (CYBER_ADMINS_ONLY, GLASS_ADMINS_ONLY). Everyone else never
   // gets that event's block, pets (except ones someone is wearing, which follow them around for all to see),
   // ice cream, avatar look, mutation or pass, and the messages they get from the server have all of it taken out.
-  const EVENT_IDS = ['cyber', 'glass'];
-  const EVENT_LOOK = { cyber: 'robo', glass: 'glass' };      // each event's avatar look
-  const EVENT_ADMINS_ONLY = { cyber: CYBER_ADMINS_ONLY, glass: GLASS_ADMINS_ONLY };
+  const EVENT_IDS = ['cyber', 'glass', 'christmas'];
+  const EVENT_LOOK = { cyber: 'robo', glass: 'glass', christmas: 'santa' };      // each event's avatar look
+  const EVENT_ADMINS_ONLY = { cyber: CYBER_ADMINS_ONLY, glass: GLASS_ADMINS_ONLY, christmas: CHRISTMAS_ADMINS_ONLY };
   const sees = (s, ev) => !EVENT_ADMINS_ONLY[ev] || !!s.admin;
   const seesCyber = s => sees(s, 'cyber');
   // which event something belongs to (a pet, ice cream, mutation or block id), or null
   const eventOf = id => {
-    if (id === 'cyber' || id === 'glass') return id;
+    if (EVENT_IDS.includes(id)) return id;
     const x = flavorById[id] || petById[id];
     if (!x) return null;
-    return x.event || (x.rarity === 'cyber' ? 'cyber' : x.rarity === 'glass' ? 'glass' : null);
+    return x.event || (EVENT_IDS.includes(x.rarity) ? x.rarity : null);
   };
   const isCyber = id => eventOf(id) === 'cyber';
   // pets that changed (the Cyber Hydra became the Cyber Whale; the first Glass pets became cooler ones;
@@ -157,7 +157,8 @@
     const stock = { ...msg.shop.stock };
     for (const id of Object.keys(stock)) if (isEv(id)) delete stock[id];
     const slots = list => list.map(x => x && isEv(x.flavor) ? null : x);
-    const passFields = ev === 'cyber' ? ['passXP', 'passClaimed', 'premiumPass', 'shards'] : ['glassXP', 'glassClaimed', 'premiumGlass'];
+    const passFields = { cyber: ['passXP', 'passClaimed', 'premiumPass', 'shards'], glass: ['glassXP', 'glassClaimed', 'premiumGlass'],
+      christmas: ['xmasGiftDay'] }[ev];
     return { ...msg, [ev]: null,
       event: { ...msg.event, id: ids[0] || null, ids },
       shop: { ...msg.shop, stock },
@@ -335,7 +336,10 @@
     // 🐲 the Mythic Beasts Block and the ⬆️ Pet Upgrade Shop came out with the Glass Event drop and stay after it ends
     // (admins can see them early while they turn the event on with /glass on)
     const dropped = s => Date.now() >= GLASS_EVENT.start || (glassOn() && sees(s, 'glass'));
-    const eventOn = ev => ev === 'glass' ? glassOn() : cyberOn();
+    // 🎄 the Christmas Event (no dates yet = on for testing; online only admins see it until it drops)
+    let christmasOverride = null;
+    const christmasOn = () => christmasOverride ?? (CHRISTMAS_EVENT.start ? Date.now() >= CHRISTMAS_EVENT.start && Date.now() < CHRISTMAS_EVENT.end : true);
+    const eventOn = ev => ev === 'glass' ? glassOn() : ev === 'christmas' ? christmasOn() : cyberOn();
     let glassStormNext = 15 * 60; // Glass Storms: like Cyber Storms, the first one 15 minutes after the server starts
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
     let nextId = 1;
@@ -355,6 +359,7 @@
         ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
         shards: s.shards, shardWeek: s.shardWeek, shardScoops: s.shardScoops, giftDay: s.giftDay,
         glassXP: s.glassXP, glassClaimed: s.glassClaimed, premiumGlass: s.premiumGlass, glassGiftDay: s.glassGiftDay,
+        xmasGiftDay: s.xmasGiftDay,
         ...(s.adminDevice ? { adminDevice: s.adminDevice } : {}) };
     }
 
@@ -408,6 +413,7 @@
         glassClaimed: { free: [...(saved.glassClaimed?.free || [])], premium: [...(saved.glassClaimed?.premium || [])] },
         premiumGlass: !!saved.premiumGlass,
         glassGiftDay: saved.glassGiftDay || 0,
+        xmasGiftDay: saved.xmasGiftDay || 0,                       // 🎄 the day the Christmas present was last opened
         worn: (saved.worn || (saved.pet ? [saved.pet] : [])).map(renamedPet), // the pets following you
         // ⬆️ Pet Upgrade Shop levels: pet id -> level (0 = not upgraded)
         petLevels: Object.fromEntries(Object.entries(saved.petLevels || {})
@@ -661,6 +667,7 @@
         weathers: weathers.map(w => ({ id: w.id, left: Math.ceil(w.left) })),
         cyber: CYBER ? { on: cyberOn(), endsAt: CYBER_EVENT.end, override: cyberOverride } : null,
         glass: { on: glassOn(), endsAt: GLASS_EVENT.end, override: glassOverride },
+        christmas: { on: christmasOn(), endsAt: CHRISTMAS_EVENT.end, override: christmasOverride },
         stands: [...stands.values()].map(s => ({
           id: s.id, name: s.name, slot: s.slot, color: s.color,
           money: s.money, totalEarned: s.totalEarned, sold: s.sold,
@@ -671,6 +678,7 @@
           ...(CYBER ? { passXP: s.passXP, passClaimed: s.passClaimed, premiumPass: s.premiumPass } : {}),
           shards: s.shards, giftDay: s.giftDay,
           glassXP: s.glassXP, glassClaimed: s.glassClaimed, premiumGlass: s.premiumGlass, glassGiftDay: s.glassGiftDay,
+          xmasGiftDay: s.xmasGiftDay,
           serve: s.scoopEvery ? s.serveProgress / s.scoopEvery : 0, scoopEvery: s.scoopEvery || null,
         })),
         customers: [...customers.values()].map(c => ({
@@ -709,7 +717,7 @@
           const wearing = autoWear(stand, pet.id);
           stand.conn.send({ type: 'petGot', pet: pet.id, block: prize.block, equipped: wearing });
           if (RARITIES[pet.rarity].order >= 5) {
-            broadcast({ type: 'chat', id: 0, from: ev === 'glass' ? '🔮 Glass Event' : '⚡ Cyber Event', admin: false,
+            broadcast({ type: 'chat', id: 0, from: { glass: '🔮 Glass Event', christmas: '🎄 Christmas Event' }[ev] || '⚡ Cyber Event', admin: false,
               text: `WOW! ${stand.name} got a ${RARITIES[pet.rarity].name} ${pet.name} ${pet.emoji}!` }, eventOf(pet.id) || ev);
           }
         }
@@ -779,7 +787,7 @@
         if (needsCode && device) s.adminDevice = device;
         if (s.admin && s.money < ADMIN_MONEY) s.money = ADMIN_MONEY;
         conn.send({ type: 'welcome', id: s.id, world: WORLD, slots: SLOTS, key: s.key,
-          returning: !!saves[s.key], restored, admin: s.admin, cyber: seesCyber(s), glass: sees(s, 'glass') });
+          returning: !!saves[s.key], restored, admin: s.admin, cyber: seesCyber(s), glass: sees(s, 'glass'), christmas: sees(s, 'christmas') });
         sendBackup(s);
         return;
       }
@@ -993,18 +1001,22 @@
         } else return;
         if (!stand.admin) stand.shards -= price;
         conn.send({ type: 'gamePassDone', id, flavor: msg.flavor, price });
-      } else if (msg.type === 'eventGift' && sees(stand, msg.event === 'glass' ? 'glass' : 'cyber')) {
-        // ⚡🔮 a free lucky block once a day during an event (the event's own block on the last day!)
-        const ev = msg.event === 'glass' ? 'glass' : 'cyber';
+      } else if (msg.type === 'eventGift' && sees(stand, EVENT_IDS.includes(msg.event) ? msg.event : 'cyber')) {
+        // ⚡🔮🎄 a free lucky block once a day during an event (the event's own block on the last day!)
+        const ev = EVENT_IDS.includes(msg.event) ? msg.event : 'cyber';
         if (!eventOn(ev)) return err('That event is over.');
         const day = Math.floor(Date.now() / 86400e3);
-        const dayKey = ev === 'glass' ? 'glassGiftDay' : 'giftDay';
+        const dayKey = { cyber: 'giftDay', glass: 'glassGiftDay', christmas: 'xmasGiftDay' }[ev];
         if (stand[dayKey] === day) return err('You already got today\'s gift. Come back tomorrow!');
-        const end = (ev === 'glass' ? GLASS_EVENT : CYBER_EVENT).end;
+        const end = { cyber: CYBER_EVENT, glass: GLASS_EVENT, christmas: CHRISTMAS_EVENT }[ev].end;
         const lastDay = !!end && Date.now() >= end - 86400e3;
-        const error = givePrize(stand, { block: lastDay ? ev : 'gold' }, ev);
+        // 🎁 Christmas presents: a Diamond Block (the Christmas Block on the last day)
+        const error = givePrize(stand, { block: lastDay ? ev : ev === 'christmas' ? 'diamond' : 'gold' }, ev);
         if (error) return err(error);
         stand[dayKey] = day;
+      } else if (stand.admin && msg.type === 'adminChristmas') {
+        christmasOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
+        conn.send({ type: 'admin', text: `🎄 Christmas Event is ${christmasOn() ? 'ON' : 'OFF'}` + (christmasOverride === null ? ' (following the calendar)' : '') });
       } else if (stand.admin && msg.type === 'adminGlass') {
         glassOverride = msg.mode === 'on' ? true : msg.mode === 'off' ? false : null;
         conn.send({ type: 'admin', text: `🔮 Glass Event is ${glassOn() ? 'ON' : 'OFF'}` + (glassOverride === null ? ' (following the calendar)' : '') });
