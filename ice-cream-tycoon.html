@@ -1122,6 +1122,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <button id="adminMutBtn">Turn on</button>
           <button id="adminEndBtn">End all mutations</button>
         </div>
+        <div class="sub">⛅ Start a weather event for the whole park (3 minutes):</div>
+        <div class="adminRow">
+          <select id="adminWeather"></select>
+          <button id="adminWeatherBtn" type="button">Start</button>
+          <button id="adminWeatherOff" type="button">Stop</button>
+        </div>
         <div class="adminRow">
           <input id="adminCmd" placeholder="Type a command, like /give rainbow 5" autocomplete="off">
           <button id="adminRunBtn" type="button">Run</button>
@@ -1527,6 +1533,18 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   MUTATIONS.push({ id: 'glass', name: 'Glass', emoji: '🔮', mult: 75, weight: 0, adminOnly: true, event: 'glass',
     colors: ['#e7f5ff', '#a5d8ff', '#f3d9fa', '#c3fae8'] });
   MUTATIONS.sort((a, b) => a.mult - b.mult); // lowest to highest money, for the Mutations list
+  // ⛅ weather events: one for each Mythic Beast. Only admins start them (/weather spirit); everyone in the park sees it.
+  const WEATHERS = {
+    voidbear:    { name: 'Void Storm',     emoji: '🌌' },
+    crystalfox:  { name: 'Crystal Breeze', emoji: '💎' },
+    solarlion:   { name: 'Heat Wave',      emoji: '☀️' },
+    metalrhino:  { name: 'Iron Storm',     emoji: '⚙️' },
+    galaxyshark: { name: 'Starry Night',   emoji: '🌠' },
+    spirittiger: { name: 'Spirit Mist',    emoji: '👻' },
+    voidkraken:  { name: 'Abyss Tide',     emoji: '🌊' },
+    kitsune:     { name: 'Moonlit Night',  emoji: '🌙' },
+  };
+  const WEATHER_SEC = 180; // how long a weather event lasts
   const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
   const MUTATION_CHANCE = 0.35;           // chance a scoop mutates while an event is on
@@ -1549,7 +1567,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // 🔮 the Glass look: see-through glass with rainbow light, a crystal crown and a prism mask
   for (const part of Object.keys(AVATAR)) AVATAR[part].push('glass');
 
-  const GameData = { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
+  const GameData = { WEATHERS, WEATHER_SEC, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,
@@ -1566,7 +1584,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
+  const { WEATHERS, WEATHER_SEC, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
     CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice } = GameData;
@@ -1906,6 +1924,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const event = { active: [], next: pick(MUTATION_GAPS_MIN) * 60 };
     // the shop's stock is the same for everyone; each player can buy up to that many of each
     const shop = { stock: rollStock(), left: RESTOCK_SEC };
+    let weather = { id: null, left: 0 }; // ⛅ the weather event going on now (admins start them)
 
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
@@ -2142,6 +2161,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     let backupTimer = 0;
     function tick(dt) {
       updateTimers(dt);
+      if (weather.id && (weather.left -= dt) <= 0) weather = { id: null, left: 0 };
       backupTimer -= dt;
       if (backupTimer <= 0) { // refresh everyone's backup every few seconds
         backupTimer = 5;
@@ -2205,6 +2225,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           next: Math.ceil(event.next),
         },
         shop: { stock: shop.stock, left: Math.ceil(shop.left) },
+        weather: weather.id ? { id: weather.id, left: Math.ceil(weather.left) } : null,
         cyber: CYBER ? { on: cyberOn(), endsAt: CYBER_EVENT.end, override: cyberOverride } : null,
         glass: { on: glassOn(), endsAt: GLASS_EVENT.end, override: glassOverride },
         stands: [...stands.values()].map(s => ({
@@ -2747,6 +2768,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         for (let k = 0; k < n; k++) autoWear(stand, pet.id);
         conn.send({ type: 'admin', text: `Spawned ${n} ${pet.emoji} ${pet.name} in your pets` });
         broadcast({ type: 'adminSpawned', by: stand.name, pet: pet.id, count: n });
+      } else if (stand.admin && msg.type === 'adminWeather') {
+        // ⛅ start a weather event for the whole park (or 'off' to end it)
+        if (msg.id === 'off') { weather = { id: null, left: 0 }; return conn.send({ type: 'admin', text: '⛅ The weather is back to normal.' }); }
+        if (!WEATHERS[msg.id]) return err('No weather with that name.');
+        weather = { id: msg.id, left: WEATHER_SEC };
+        broadcast({ type: 'weatherStart', id: msg.id, by: stand.name });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();
       } else if (stand.admin && msg.type === 'adminMutations') {
@@ -2827,7 +2854,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   <script>window.SOLO = true;</script>
   <script>
 (() => {
-  const { GLASS_EVENT, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
+  const { WEATHERS, GLASS_EVENT, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
     CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, PET_SELL, sellPrice, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
@@ -2858,6 +2885,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   let view = { scale: 1, ox: 0, oy: 0, w: 0, h: 0 };
   let spaceBtn = null; // Extra Space button area (world coords) while it's showing
   let gameEvent = { id: null, ids: [], left: 0, next: 0 }; // mutation events going on now
+  let parkWeather = null; // ⛅ { id, left }: the weather event an admin started
   const activeMuts = () => (gameEvent.ids || []).map(id => mutationById[id]).filter(Boolean);
   let shop = { stock: {}, left: 0 };
 
@@ -3250,9 +3278,15 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           ' You lost everything and have to start over from the beginning.';
         $('bannedModal').classList.remove('hidden');
         break;
+      case 'weatherStart': {
+        const w = WEATHERS[msg.id];
+        toast(`${w.emoji} ${w.name}! ${msg.by} started a weather event.`);
+        break;
+      }
       case 'state':
         stands = msg.stands;
         gameEvent = msg.event;
+        parkWeather = msg.weather || null;
         shop = msg.shop;
         if (msg.cyber) cyberState = msg.cyber;
         if (msg.glass) glassState = msg.glass;
@@ -4908,6 +4942,17 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   $('adminGiveBtn').addEventListener('click', () =>
     send({ type: 'adminGive', flavor: $('adminFlavor').value, count: Number($('adminCount').value) }));
   $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
+  // ⛅ weather events
+  for (const [id, w] of Object.entries(WEATHERS)) {
+    const opt = document.createElement('option');
+    opt.value = id; opt.textContent = `${w.emoji} ${w.name}`;
+    $('adminWeather').appendChild(opt);
+  }
+  $('adminWeatherBtn').addEventListener('click', () => send({ type: 'adminWeather', id: $('adminWeather').value }));
+  $('adminWeatherOff').addEventListener('click', () => send({ type: 'adminWeather', id: 'off' }));
+  // "/weather spirit", "/weather moonlit night", "/weather kitsune" all work
+  const findWeather = t => Object.keys(WEATHERS).find(id => squash(id) === squash(t) || squash(WEATHERS[id].name).includes(squash(t)) ||
+    squash(petById[id].name).includes(squash(t)));
   // 🎁 Give in Lucky Block: whatever you type comes out of a lucky block
   function giveInBlock() {
     const text = $('adminBlockInput').value.trim();
@@ -4990,6 +5035,13 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         const f = findFlavor(args.join(' '));
         if (!f) return toast('Try: /shop void 3 (any ice cream name)');
         return send({ type: 'adminShopSpawn', flavor: f.id, count });
+      }
+      case 'weather': {
+        const t = args.join(' ');
+        if (['off', 'stop', 'end'].includes(squash(t))) return send({ type: 'adminWeather', id: 'off' });
+        const id = t && findWeather(t);
+        if (!id) return toast('Try: /weather spirit, /weather moonlit, /weather heat … or /weather off');
+        return send({ type: 'adminWeather', id });
       }
       case 'pet': case 'pets': {
         // put any pet in your pets: /pet dragon 2
@@ -8749,7 +8801,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.globalAlpha = 1;
   }
 
-  // ⛅ pet weather: wearing a Mythic Beast brings its own weather to your screen (your best one if you wear a few)
+  // ⛅ weather events (admins start them): each Mythic Beast has its own weather that covers everyone's screen
   const PET_WEATHER = {
     voidbear:    { name: '🌌 Void Storm',    tint: '30, 0, 60',    alpha: 0.22 },
     crystalfox:  { name: '💎 Crystal Breeze', tint: '200, 240, 255', alpha: 0.14 },
@@ -8763,9 +8815,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const weatherParts = [];
   let weatherOn = null;
   function drawPetWeather(time, dt) {
-    const s = me();
-    const worn = (s && s.worn || []).filter(id => PET_WEATHER[id]).sort((a, b) => petById[b].boost - petById[a].boost);
-    const id = worn[0], w = PET_WEATHER[id];
+    const id = parkWeather && parkWeather.id, w = PET_WEATHER[id];
     if (id !== weatherOn) { weatherOn = id; weatherParts.length = 0; }
     if (!w) return;
     const W = view.w, H = view.h, chance = k => Math.random() < dt * k, add = p => { if (weatherParts.length < 160) weatherParts.push({ t: 0, ...p }); };
@@ -8892,7 +8942,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.globalAlpha = 1;
     // the weather's name under the top of the screen
     ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'center';
-    const label = `${w.name} · from your ${petById[id].name}`, lw = ctx.measureText(label).width + 20, ly = activeMuts().length ? 48 : 10;
+    const label = `${w.name} weather · ${clock(parkWeather.left)}`, lw = ctx.measureText(label).width + 20, ly = activeMuts().length ? 48 : 10;
     ctx.fillStyle = 'rgba(30, 15, 40, 0.6)'; roundRect(W / 2 - lw / 2, ly, lw, 22, 10); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.fillText(label, W / 2, ly + 15);
     ctx.restore();

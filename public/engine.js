@@ -4,7 +4,7 @@
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
+  const { WEATHERS, WEATHER_SEC, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
     CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice } = GameData;
@@ -344,6 +344,7 @@
     const event = { active: [], next: pick(MUTATION_GAPS_MIN) * 60 };
     // the shop's stock is the same for everyone; each player can buy up to that many of each
     const shop = { stock: rollStock(), left: RESTOCK_SEC };
+    let weather = { id: null, left: 0 }; // ⛅ the weather event going on now (admins start them)
 
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
@@ -580,6 +581,7 @@
     let backupTimer = 0;
     function tick(dt) {
       updateTimers(dt);
+      if (weather.id && (weather.left -= dt) <= 0) weather = { id: null, left: 0 };
       backupTimer -= dt;
       if (backupTimer <= 0) { // refresh everyone's backup every few seconds
         backupTimer = 5;
@@ -643,6 +645,7 @@
           next: Math.ceil(event.next),
         },
         shop: { stock: shop.stock, left: Math.ceil(shop.left) },
+        weather: weather.id ? { id: weather.id, left: Math.ceil(weather.left) } : null,
         cyber: CYBER ? { on: cyberOn(), endsAt: CYBER_EVENT.end, override: cyberOverride } : null,
         glass: { on: glassOn(), endsAt: GLASS_EVENT.end, override: glassOverride },
         stands: [...stands.values()].map(s => ({
@@ -1185,6 +1188,12 @@
         for (let k = 0; k < n; k++) autoWear(stand, pet.id);
         conn.send({ type: 'admin', text: `Spawned ${n} ${pet.emoji} ${pet.name} in your pets` });
         broadcast({ type: 'adminSpawned', by: stand.name, pet: pet.id, count: n });
+      } else if (stand.admin && msg.type === 'adminWeather') {
+        // ⛅ start a weather event for the whole park (or 'off' to end it)
+        if (msg.id === 'off') { weather = { id: null, left: 0 }; return conn.send({ type: 'admin', text: '⛅ The weather is back to normal.' }); }
+        if (!WEATHERS[msg.id]) return err('No weather with that name.');
+        weather = { id: msg.id, left: WEATHER_SEC };
+        broadcast({ type: 'weatherStart', id: msg.id, by: stand.name });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();
       } else if (stand.admin && msg.type === 'adminMutations') {
