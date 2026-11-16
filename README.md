@@ -333,9 +333,10 @@ for everyone, set `CHRISTMAS=everyone` on the server and give `CHRISTMAS_EVENT` 
   presents under it, and a waving snowman with a scarf and top hat.
 - **Christmas Block** in the Pet Shop ($1.5B) with its own Christmas pets, all wearing little Santa hats with twinkling
   lights around them: 🐱 Gingerbread Cat and 🐧 Santa Penguin (Legendary), 🦊 Arctic Fox and 🐿️ Nutcracker Squirrel
-  (Mythic), 🦭 Twinkle Seal (Secret), 🐻‍❄️ Polar Bear and 🦉 Frosty Owl (Celestial), and the best one, **🦌 Santa's
-  Reindeer** (new Christmas rarity, +6,500%, 0.5%): a glowing red nose, a little sleigh full of presents behind it,
-  jingle bells, a trail of gold stars and bursts of presents.
+  (Mythic), 🦭 Twinkle Seal (Secret), 🐻‍❄️ Polar Bear and 🦉 Frosty Owl (Celestial), and the 2 Christmas-rarity pets
+  (0.5% together): **🦌 Santa's Reindeer** (+6,500%: a glowing red nose, a little sleigh full of presents behind it,
+  jingle bells, a trail of gold stars and bursts of presents) and the best one, the **🐅 Candy Cane Tiger** (+7,500%:
+  red and white candy cane stripes, peppermint candies spinning around it, a candy trail and a roar of candy canes).
 - **🍭 Candy Cane Swirl** ice cream (Christmas rarity, 0.1% in the shop): spinning red and white stripes, a candy cane
   and Christmas lights around it.
 - **🎁 A Christmas present every day:** a free Diamond Block once a day (the Christmas Block on the last day).

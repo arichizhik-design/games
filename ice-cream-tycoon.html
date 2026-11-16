@@ -1417,6 +1417,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'frostyowl',    name: 'Frosty Owl',       emoji: '🦉', rarity: 'celestial', boost: 9.6,  fx: 'xmas', kind: 'fly',  event: 'christmas', block: 'christmas' },
     // the best Christmas pet: Santa's Reindeer with a glowing red nose, pulling a little sleigh full of presents
     { id: 'reindeer',     name: "Santa's Reindeer", emoji: '🦌', rarity: 'christmas', boost: 65,  fx: 'reindeer', kind: 'walk', event: 'christmas', block: 'christmas' },
+    // the very best Christmas pet: a tiger whose stripes are red and white like a candy cane
+    { id: 'candytiger',   name: 'Candy Cane Tiger', emoji: '🐅', rarity: 'christmas', boost: 75,  fx: 'candytiger', kind: 'walk', event: 'christmas', block: 'christmas' },
   );
   LUCKY_BLOCKS.push({ id: 'christmas', name: 'Christmas Block', cost: 1.5e9, color: 'christmas', event: 'christmas', ownPets: true,
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, christmas: 0.5 } }); // Polar Bear and Frosty Owl 2% each
@@ -5664,7 +5666,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { voidkraken: 1.4, cosmicstag: 1.5, ancientmammoth: 1.6, swampleviathan: 1.5, stormbison: 1.55, galaxyshark: 1.35, solarlion: 1.25, metalrhino: 1.25, dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+  const PET_SIZE = { candytiger: 1.4, reindeer: 1.3, voidkraken: 1.4, cosmicstag: 1.5, ancientmammoth: 1.6, swampleviathan: 1.5, stormbison: 1.55, galaxyshark: 1.35, solarlion: 1.25, metalrhino: 1.25, dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
   const CYAN = '#2ee8ff';
@@ -5882,6 +5884,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     polarbear:    { colors: ['#ffffff', '#f1f3f5', '#a5d8ff'], bright: 0.5, veins: 'lights', rim: '#ffd43b' },
     frostyowl:    { colors: ['#ffffff', '#d0ebff', '#4dabf7'], bright: 0.4, veins: 'frost', rim: '#a5d8ff' },
     reindeer:     { colors: ['#ffe8cc', '#a0522d', '#4a2410'], veins: 'lights', rim: '#ffd43b' },
+    candytiger:   { colors: ['#ffffff', '#fff5f5', '#ffc9c9'], bright: 0.6, keep: 0.25, veins: 'candy', rim: '#ff4d4d' },
     // ✨ every regular pet gets painted too (the cute common ones keep some of their own colors)
     puppy:      { colors: ['#fff4e6', '#ffa94d', '#c2410c'], keep: 0.6, veins: 'spots', rim: '#ff8787' },
     kitty:      { colors: ['#fff0f6', '#f783ac', '#862e9c'], keep: 0.6, veins: 'stripes', rim: '#f783ac' },
@@ -6010,6 +6013,16 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
               c.beginPath(); c.arc(x, y0 + Math.sin(x / 18 + k) * 8 + 4, glow ? 5 : 4, 0, Math.PI * 2); c.fill();
             }
           }
+          break;
+        case 'candy': // 🍭 bold red candy cane stripes, with a minty shine
+          c.save(); c.translate(80, 80); c.rotate(-0.6);
+          for (let x = -120; x <= 120; x += 26) {
+            c.fillStyle = glow ? 'rgba(255, 90, 90, 0.9)' : 'rgba(232, 32, 42, 0.85)';
+            c.fillRect(x, -120, 7, 240);
+            if (!glow) { c.fillStyle = 'rgba(64, 192, 87, 0.35)'; c.fillRect(x + 12, -120, 3, 240); }
+          }
+          c.restore();
+          if (!glow) { c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.moveTo(40, 20); c.lineTo(58, 20); c.lineTo(22, 150); c.lineTo(4, 150); c.fill(); }
           break;
         case 'icing': // 🍪 white gingerbread icing swirls and candy buttons
           c.strokeStyle = '#ffffff'; c.lineWidth = glow ? 2 : 3;
@@ -6417,8 +6430,28 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (lvl >= 3 && (time + seed) % 4 < dt) for (let k = 0; k < 4; k++) petSpark(x, y - 14, { shape: 'bit', text: '🎁', color: '#fff', vx: rnd() * 120, vy: -60 - Math.random() * 60, life: 1, size: 9 });
         break;
       }
+      case 'candytiger': {
+        // 🐅 Candy Cane Tiger, the best Christmas pet: peppermint candies spinning around it, a candy cane trail where it
+        // walks, sugar sparkles, and every few seconds it roars out a burst of little candy canes
+        glow(x, y - 10, 60, '255, 77, 77', 0.4);
+        glow(x, y - 10, 30, '255, 255, 255', 0.45);
+        for (let k = 0; k < 4; k++) {
+          const a = time * 1.6 + k * Math.PI / 2 + seed, cx = x + Math.cos(a) * 40, cy = y - 14 + Math.sin(a) * 15;
+          ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#e8202a';
+          for (let j = 0; j < 4; j++) { const s0 = time * 4 + j * Math.PI / 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, 6, s0, s0 + Math.PI / 4); ctx.fill(); }
+          ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.stroke();
+        }
+        if (chance(10)) petSpark(x + rnd() * 40, y - 20 + rnd() * 30, { shape: 'star', color: Math.random() < 0.5 ? '#ffffff' : '#ff8787', vy: -10, life: 0.9, size: 3 });
+        if (pp.moving && chance(8)) petSpark(pp.x - pp.facing * 14, pp.y + 6, { shape: 'bit', text: '🍬', color: '#fff', vx: 0, vy: -4, life: 1.2, size: 8 });
+        if ((time + seed) % 4 < dt) {
+          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#ff4d4d', vy: 0, life: 0.8, size: 14, grow: 150 });
+          for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; petSpark(x, y - 16, { shape: 'bit', text: '🍭', color: '#fff', vx: Math.cos(a) * 150, vy: Math.sin(a) * 100 - 40, life: 1, size: 11 }); }
+        }
+        break;
+      }
       case 'reindeer': {
-        // 🦌 Santa's Reindeer, the best Christmas pet: a golden glow, jingle-bell sparkles, a trail of magic gold stars,
+        // 🦌 Santa's Reindeer: a golden glow, jingle-bell sparkles, a trail of magic gold stars,
         // and every few seconds a burst of presents and snow pops out
         glow(x, y - 10, 60, '255, 212, 59', 0.45);
         glow(x, y - 10, 30, '255, 255, 230', 0.4);
@@ -6763,9 +6796,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       ctx.beginPath(); ctx.ellipse(x, y - 30 * big - 4, 11, 4, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.shadowBlur = 0;
     }
-    if (pet.fx === 'xmas' || pet.fx === 'reindeer') {
+    if (pet.fx === 'xmas' || pet.fx === 'reindeer' || pet.fx === 'candytiger') {
       // 🎅 a little Santa hat
-      const hx = x - pp.facing * 6 * big, hy = y - 28 * big;
+      const tiger = pet.fx === 'candytiger';
+      const hx = tiger ? x + pp.facing * 13 * big : x - pp.facing * 6 * big, hy = y - (tiger ? 19 : 28) * big; // the tiger's head is out in front
       ctx.fillStyle = '#e03131';
       ctx.beginPath(); ctx.moveTo(hx - 8, hy + 3); ctx.quadraticCurveTo(hx - 2, hy - 14, hx + pp.facing * -9, hy - 9); ctx.lineTo(hx + 8, hy + 3); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#fff';
