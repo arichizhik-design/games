@@ -310,3 +310,9 @@ The full plan is in `docs/shards-payments-plan.pdf`.
 - `public/gamedata.js`: flavors, rarities, prices, grow times, shop stock, upgrades and mutations (shared by server and browser)
 - `public/client.js`: drawing the park and the shop panel in the browser
 - `public/index.html`, `public/style.css`: page layout and styles
+
+## 💰 Big money names
+
+After T (trillion) money goes Qa, Qi, Sx, Sp, Oc, No, Dc (decillion), then Ud, Dd, Td, Qad, Qid, Sxd, Spd, Ocd, Nod,
+Vg (vigintillion), Uvg … Tg (trigintillion) … and so on all the way to **Ce** (centillion, a 1 with 303 zeros). Money tops
+out at $1000Ce, the biggest number the game can count. You can type these names too, like `/money 5dc` or a gift of `3vg`.

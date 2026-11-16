@@ -1661,6 +1661,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // ---------- wearing pets: up to MAX_WORN follow you, and their money boosts add up ----------
   const MAX_WORN = 3;
+  const MAX_MONEY = 1e306;
   // ⬆️ a pet's boost with your upgrades from the Pet Upgrade Shop
   const power = (who, id) => petById[id] ? petBoostAt(petById[id], who.petLevels?.[id]) : 0;
   const petBoost = (who, list) => list.reduce((sum, id) => sum + power(who, id), 0);
@@ -1831,7 +1832,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // a bundle is { money, items: { itemId: count }, pets: { petId: count } }
   function cleanBundle(b) {
     b = b || {};
-    const out = { money: Math.min(1e18, Math.max(0, Math.floor(Number(b.money) || 0))), items: {}, pets: {} };
+    const out = { money: Math.min(MAX_MONEY, Math.max(0, Math.floor(Number(b.money) || 0))), items: {}, pets: {} };
     for (const [id, n] of Object.entries(b.items || {})) {
       const c = Math.min(99999, Math.floor(Number(n) || 0));
       if (itemById[id] && c > 0) out.items[id] = c;
@@ -2191,6 +2192,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       }
 
       for (const stand of stands.values()) {
+        // money tops out at a 1 with 306 zeros (any bigger and the computer can't count it, and saves would break)
+        if (!(stand.money <= MAX_MONEY)) stand.money = MAX_MONEY;
+        if (!(stand.totalEarned <= MAX_MONEY)) stand.totalEarned = MAX_MONEY;
         for (const t of stand.tubs) if (t && t.grow > 0) t.grow = Math.max(0, t.grow - dt);
 
         // ⏱️ a scoop is sold every few seconds (see scoopSeconds), only if there's grown ice cream
@@ -2692,7 +2696,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${from.name} done!` });
         }
       } else if (stand.admin && msg.type === 'adminMoney') {
-        const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
+        const amount = Math.min(MAX_MONEY, Math.max(0, Number(msg.amount) || 0));
         stand.money += amount;
         conn.send({ type: 'admin', text: `Added $${amount.toLocaleString()}` });
       } else if (stand.admin && msg.type === 'adminGive') {
@@ -2923,9 +2927,20 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const shopFlavors = () => FLAVORS.filter(canSee); // admin ice creams only show up when an admin puts them in the shop
 
   // ---------- helpers ----------
-  // huge amounts: quadrillion (Qa), quintillion (Qi), sextillion (Sx) and up
-  const BIG = [[1e33, 'Dc'], [1e30, 'No'], [1e27, 'Oc'], [1e24, 'Sp'], [1e21, 'Sx'], [1e18, 'Qi'], [1e15, 'Qa']];
+  // huge amounts: Qa (quadrillion), Qi, Sx, Sp, Oc, No, Dc (decillion), then Ud, Dd, Td … Vg (vigintillion) … all the
+  // way to Ce (centillion, a 1 with 303 zeros), the biggest money there is
+  const BIG = (() => {
+    const units = ['', 'U', 'D', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No'];
+    const tens = ['', 'd', 'vg', 'tg', 'qag', 'qig', 'sxg', 'spg', 'ocg', 'nog'], Tens = ['', 'Dc', 'Vg', 'Tg', 'Qag', 'Qig', 'Sxg', 'Spg', 'Ocg', 'Nog'];
+    const out = [];
+    for (let d = 4; d <= 100; d++) { // d = which "-illion": 4 = quadrillion (1e15), 10 = decillion (1e33), 100 = centillion
+      const name = d === 100 ? 'Ce' : d < 10 ? units[d] : units[d % 10] ? units[d % 10] + tens[Math.floor(d / 10)] : Tens[d / 10];
+      out.push([Number(`1e${3 * d + 3}`), name]);
+    }
+    return out.reverse();
+  })();
   function fmt(n) {
+    if (!isFinite(n)) return '$∞';
     for (const [v, s] of BIG) if (n >= v * 0.999995) return '$' + +(n / v).toFixed(2) + s;
     if (n >= 1e12 || n >= 1e9 && +(n / 1e9).toFixed(2) >= 1000) return '$' + +(n / 1e12).toFixed(2) + 'T';
     if (n >= 1e9) return '$' + +(n / 1e9).toFixed(2) + 'B';
@@ -3714,10 +3729,12 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   let tradeOffer = null; // a trade someone offered you, waiting for your answer
 
   // "5k", "2.5m", "1b", "3t" or "1,000,000" -> a number
+  // the money names you can type: k, m, b, t, q (and qa), qi, sx … dc, ud … ce
+  const MONEY_WORDS = { '': 1, k: 1e3, m: 1e6, b: 1e9, t: 1e12, q: 1e15, ...Object.fromEntries(BIG.map(([v, s]) => [s.toLowerCase(), v])) };
   function parseMoney(text) {
-    const m = String(text || '').replace(/[,$\s]/g, '').toLowerCase().match(/^(\d*\.?\d+)([kmbtq]?)$/);
-    if (!m) return 0;
-    return Math.floor(Number(m[1]) * { '': 1, k: 1e3, m: 1e6, b: 1e9, t: 1e12, q: 1e15 }[m[2]]);
+    const m = String(text || '').replace(/[,$\s]/g, '').toLowerCase().match(/^(\d*\.?\d+)([a-z]*)$/);
+    if (!m || !(m[2] in MONEY_WORDS)) return 0;
+    return Math.floor(Number(m[1]) * MONEY_WORDS[m[2]]);
   }
 
   // what someone has: { items: { id: count }, pets: { id: count } }
@@ -5027,9 +5044,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   const findMutation = t => MUTATIONS.find(m => squash(m.id) === squash(t) || squash(m.name) === squash(t));
 
   function parseAmount(t) {
-    const m = String(t || '').toLowerCase().replace(/[$,]/g, '').match(/^(\d+(?:\.\d+)?)([kmbt]?)$/);
-    if (!m) return NaN;
-    return Number(m[1]) * { '': 1, k: 1e3, m: 1e6, b: 1e9, t: 1e12 }[m[2]];
+    const m = String(t || '').toLowerCase().replace(/[$,]/g, '').match(/^(\d+(?:\.\d+)?)([a-z]*)$/);
+    if (!m || !(m[2] in MONEY_WORDS)) return NaN;
+    return Number(m[1]) * MONEY_WORDS[m[2]];
   }
 
   function runCommand(line) {

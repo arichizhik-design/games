@@ -75,6 +75,7 @@
 
   // ---------- wearing pets: up to MAX_WORN follow you, and their money boosts add up ----------
   const MAX_WORN = 3;
+  const MAX_MONEY = 1e306;
   // ⬆️ a pet's boost with your upgrades from the Pet Upgrade Shop
   const power = (who, id) => petById[id] ? petBoostAt(petById[id], who.petLevels?.[id]) : 0;
   const petBoost = (who, list) => list.reduce((sum, id) => sum + power(who, id), 0);
@@ -245,7 +246,7 @@
   // a bundle is { money, items: { itemId: count }, pets: { petId: count } }
   function cleanBundle(b) {
     b = b || {};
-    const out = { money: Math.min(1e18, Math.max(0, Math.floor(Number(b.money) || 0))), items: {}, pets: {} };
+    const out = { money: Math.min(MAX_MONEY, Math.max(0, Math.floor(Number(b.money) || 0))), items: {}, pets: {} };
     for (const [id, n] of Object.entries(b.items || {})) {
       const c = Math.min(99999, Math.floor(Number(n) || 0));
       if (itemById[id] && c > 0) out.items[id] = c;
@@ -605,6 +606,9 @@
       }
 
       for (const stand of stands.values()) {
+        // money tops out at a 1 with 306 zeros (any bigger and the computer can't count it, and saves would break)
+        if (!(stand.money <= MAX_MONEY)) stand.money = MAX_MONEY;
+        if (!(stand.totalEarned <= MAX_MONEY)) stand.totalEarned = MAX_MONEY;
         for (const t of stand.tubs) if (t && t.grow > 0) t.grow = Math.max(0, t.grow - dt);
 
         // ⏱️ a scoop is sold every few seconds (see scoopSeconds), only if there's grown ice cream
@@ -1106,7 +1110,7 @@
           conn.send({ type: 'tradeDone', ok: true, text: `🤝 Trade with ${from.name} done!` });
         }
       } else if (stand.admin && msg.type === 'adminMoney') {
-        const amount = Math.min(1e15, Math.max(0, Number(msg.amount) || 0));
+        const amount = Math.min(MAX_MONEY, Math.max(0, Number(msg.amount) || 0));
         stand.money += amount;
         conn.send({ type: 'admin', text: `Added $${amount.toLocaleString()}` });
       } else if (stand.admin && msg.type === 'adminGive') {
