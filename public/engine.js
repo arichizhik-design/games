@@ -344,7 +344,7 @@
     const event = { active: [], next: pick(MUTATION_GAPS_MIN) * 60 };
     // the shop's stock is the same for everyone; each player can buy up to that many of each
     const shop = { stock: rollStock(), left: RESTOCK_SEC };
-    let weather = { id: null, left: 0 }; // ⛅ the weather event going on now (admins start them, or it starts by itself)
+    let weathers = []; // ⛅ the weather events going on now, as many at once as admins want ({ id, left })
     let weatherNext = pick(WEATHER_GAPS_MIN) * 60;
 
     function toSave(s) {
@@ -582,12 +582,14 @@
     let backupTimer = 0;
     function tick(dt) {
       updateTimers(dt);
-      if (weather.id && (weather.left -= dt) <= 0) weather = { id: null, left: 0 };
+      for (const w of weathers) w.left -= dt;
+      weathers = weathers.filter(w => w.left > 0);
       // ⛅ now and then a random weather starts by itself
-      if (!weather.id && (weatherNext -= dt) <= 0) {
-        weather = { id: pick(Object.keys(WEATHERS)), left: WEATHER_SEC };
+      if (!weathers.length && (weatherNext -= dt) <= 0) {
+        const id = pick(Object.keys(WEATHERS));
+        weathers.push({ id, left: WEATHER_SEC });
         weatherNext = pick(WEATHER_GAPS_MIN) * 60;
-        broadcast({ type: 'weatherStart', id: weather.id });
+        broadcast({ type: 'weatherStart', id });
       }
       backupTimer -= dt;
       if (backupTimer <= 0) { // refresh everyone's backup every few seconds
@@ -652,7 +654,7 @@
           next: Math.ceil(event.next),
         },
         shop: { stock: shop.stock, left: Math.ceil(shop.left) },
-        weather: weather.id ? { id: weather.id, left: Math.ceil(weather.left) } : null,
+        weathers: weathers.map(w => ({ id: w.id, left: Math.ceil(w.left) })),
         cyber: CYBER ? { on: cyberOn(), endsAt: CYBER_EVENT.end, override: cyberOverride } : null,
         glass: { on: glassOn(), endsAt: GLASS_EVENT.end, override: glassOverride },
         stands: [...stands.values()].map(s => ({
@@ -1196,10 +1198,11 @@
         conn.send({ type: 'admin', text: `Spawned ${n} ${pet.emoji} ${pet.name} in your pets` });
         broadcast({ type: 'adminSpawned', by: stand.name, pet: pet.id, count: n });
       } else if (stand.admin && msg.type === 'adminWeather') {
-        // ⛅ start a weather event for the whole park (or 'off' to end it)
-        if (msg.id === 'off') { weather = { id: null, left: 0 }; return conn.send({ type: 'admin', text: '⛅ The weather is back to normal.' }); }
+        // ⛅ start a weather event for the whole park, on top of any already going (or 'off' to end them all)
+        if (msg.id === 'off') { weathers = []; return conn.send({ type: 'admin', text: '⛅ The weather is back to normal.' }); }
         if (!WEATHERS[msg.id]) return err('No weather with that name.');
-        weather = { id: msg.id, left: WEATHER_SEC };
+        const going = weathers.find(w => w.id === msg.id);
+        if (going) going.left = WEATHER_SEC; else weathers.push({ id: msg.id, left: WEATHER_SEC });
         weatherNext = pick(WEATHER_GAPS_MIN) * 60;
         broadcast({ type: 'weatherStart', id: msg.id, by: stand.name });
       } else if (stand.admin && msg.type === 'adminEndMutation') {

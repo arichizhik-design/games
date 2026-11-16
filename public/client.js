@@ -30,7 +30,7 @@
   let view = { scale: 1, ox: 0, oy: 0, w: 0, h: 0 };
   let spaceBtn = null; // Extra Space button area (world coords) while it's showing
   let gameEvent = { id: null, ids: [], left: 0, next: 0 }; // mutation events going on now
-  let parkWeather = null; // ⛅ { id, left }: the weather event an admin started
+  let parkWeathers = []; // ⛅ [{ id, left }]: the weather events going on now (several can play at once)
   const activeMuts = () => (gameEvent.ids || []).map(id => mutationById[id]).filter(Boolean);
   let shop = { stock: {}, left: 0 };
 
@@ -431,7 +431,7 @@
       case 'state':
         stands = msg.stands;
         gameEvent = msg.event;
-        parkWeather = msg.weather || null;
+        parkWeathers = msg.weathers || [];
         shop = msg.shop;
         if (msg.cyber) cyberState = msg.cyber;
         if (msg.glass) glassState = msg.glass;
@@ -6001,16 +6001,31 @@
     kitsune:     { name: '🌙 Moonlit Night',  tint: '25, 15, 70',    alpha: 0.3 },
   };
   const weatherParts = [];
-  let weatherOn = null;
   function drawPetWeather(time, dt) {
-    const id = parkWeather && parkWeather.id, w = PET_WEATHER[id];
-    if (id !== weatherOn) { weatherOn = id; weatherParts.length = 0; }
-    if (!w) return;
-    const W = view.w, H = view.h, chance = k => Math.random() < dt * k, add = p => { if (weatherParts.length < 160) weatherParts.push({ t: 0, ...p }); };
+    const list = parkWeathers.filter(x => PET_WEATHER[x.id]);
+    // bits from a weather that ended disappear with it
+    for (let i = weatherParts.length - 1; i >= 0; i--) if (!list.some(x => x.id === weatherParts[i].w)) weatherParts.splice(i, 1);
+    if (!list.length) return;
+    const W = view.w, H = view.h, share = 1 / Math.sqrt(list.length);
     ctx.save();
+    for (const { id } of list) drawOneWeather(id, time, dt, W, H, share);
+    drawWeatherParts(time, dt, W, H);
+    // the weather names under the top of the screen
+    ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'center';
+    let label = list.map(x => `${PET_WEATHER[x.id].name} ${clock(x.left)}`).join('  ·  ');
+    // too many to fit: just the emojis
+    if (ctx.measureText(label).width > W - 40) label = `⛅ ${list.length} weathers: ${list.map(x => PET_WEATHER[x.id].name.split(' ')[0]).join(' ')} · ${clock(Math.max(...list.map(x => x.left)))}`;
+    const lw = ctx.measureText(label).width + 20, ly = activeMuts().length ? 48 : 10;
+    ctx.fillStyle = 'rgba(30, 15, 40, 0.6)'; roundRect(W / 2 - lw / 2, ly, lw, 22, 10); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(label, W / 2, ly + 15);
+    ctx.restore();
+  }
+  function drawOneWeather(id, time, dt, W, H, share) {
+    const w = PET_WEATHER[id];
+    const chance = k => Math.random() < dt * k * share, add = p => { if (weatherParts.length < 260) weatherParts.push({ t: 0, w: id, ...p }); };
     // the sky color, stronger at the edges
     const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.75);
-    v.addColorStop(0, `rgba(${w.tint}, ${w.alpha * 0.5})`); v.addColorStop(1, `rgba(${w.tint}, ${w.alpha * 1.6})`);
+    v.addColorStop(0, `rgba(${w.tint}, ${w.alpha * 0.5 * share})`); v.addColorStop(1, `rgba(${w.tint}, ${w.alpha * 1.6 * share})`);
     ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
     switch (id) {
       case 'voidbear': // void motes floating up, and purple cracks flashing at the edges
@@ -6072,6 +6087,8 @@
         break;
       }
     }
+  }
+  function drawWeatherParts(time, dt, W, H) {
     for (let i = weatherParts.length - 1; i >= 0; i--) {
       const p = weatherParts[i];
       p.t += dt;
@@ -6128,12 +6145,6 @@
       }
     }
     ctx.globalAlpha = 1;
-    // the weather's name under the top of the screen
-    ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'center';
-    const label = `${w.name} weather · ${clock(parkWeather.left)}`, lw = ctx.measureText(label).width + 20, ly = activeMuts().length ? 48 : 10;
-    ctx.fillStyle = 'rgba(30, 15, 40, 0.6)'; roundRect(W / 2 - lw / 2, ly, lw, 22, 10); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.fillText(label, W / 2, ly + 15);
-    ctx.restore();
   }
 
   // the mutation banner stays at the top of the screen (screen coordinates)
