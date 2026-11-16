@@ -105,9 +105,14 @@ A multiplayer browser game where every player runs their own ice cream stand in 
     🦈 Thunder Shark +800%), **Divine** (🕊️ Angel Dove +1,200%, 🐲 Dragon King +1,500%) and **Infinity**
     (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
   - 🐲 **Mythic Beasts Block** ($2B, always there) with its own beasts: 🐻 Void Bear and 🦊 Crystal Fox (Legendary),
-    🦁 Solar Lion and 🦏 Metal Rhino (Mythic), 🦈 Galaxy Shark and 🐯 Spirit Tiger (Secret), 🗿 Lava Golem and
-    🐙 Void Kraken (Celestial), and the best pet in the game, the three-headed **🐲 Chaos Hydra** (new Chaos rarity,
+    🦁 Solar Lion and 🦏 Metal Rhino (Mythic), 🦈 Galaxy Shark and 🐅 Spirit Tiger (Secret), 🐙 Void Kraken
+    (Celestial, 4%), and the best pet in the game, the three-headed **🐲 Chaos Hydra** (new Chaos rarity,
     +10,000%, 0.5%): fire, void and toxic heads that take turns breathing, a chaos ring and chaos lightning.
+    (The Lava Golem left the game; anyone who had one got a Void Kraken.)
+  - The beasts and the 4 cooler pets are painted like their element, not plain emojis: crystal facets (Crystal Fox,
+    Frost Dragon, Ice Phoenix), flames (Solar Lion), void cracks (Void Bear), chrome plates (Metal Rhino), a galaxy
+    inside (Galaxy Shark), glowing spirit stripes (Spirit Tiger), glowing ocean waves (Leviathan Whale), glowing
+    spots (Void Kraken) and rainbow streaks (Rainbow Unicorn). Their glowing veins pulse and they have a glowing outline.
   - **⬆️ Pet Upgrade Shop** (the button under My Pets): pay money to power up a kind of pet you own. Each level makes it
     give 25% more of its own boost, up to level 10 (level 0 = how it was). Upgrades count for every copy of that pet.
   - Press **🐾 My Pets** to see every pet you have (each one gets its own card) and pick which ones follow you.

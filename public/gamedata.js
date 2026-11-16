@@ -121,8 +121,7 @@
     { id: 'solarlion',   name: 'Solar Lion',   emoji: '🦁', rarity: 'mythic',    boost: 3,   fx: 'solarlion',   kind: 'walk', block: 'beasts' },
     { id: 'metalrhino',  name: 'Metal Rhino',  emoji: '🦏', rarity: 'mythic',    boost: 3.2, fx: 'metalrhino',  kind: 'walk', block: 'beasts' },
     { id: 'galaxyshark', name: 'Galaxy Shark', emoji: '🦈', rarity: 'secret',    boost: 6,   fx: 'galaxyshark', kind: 'swim', block: 'beasts' },
-    { id: 'spirittiger', name: 'Spirit Tiger', emoji: '🐯', rarity: 'secret',    boost: 6.5, fx: 'spirittiger', kind: 'walk', block: 'beasts' },
-    { id: 'lavagolem',   name: 'Lava Golem',   emoji: '🗿', rarity: 'celestial', boost: 10,  fx: 'lavagolem',   kind: 'walk', block: 'beasts' },
+    { id: 'spirittiger', name: 'Spirit Tiger', emoji: '🐅', rarity: 'secret',    boost: 6.5, fx: 'spirittiger', kind: 'walk', block: 'beasts' },
     { id: 'voidkraken',  name: 'Void Kraken',  emoji: '🐙', rarity: 'celestial', boost: 11,  fx: 'voidkraken',  kind: 'swim', block: 'beasts' },
     { id: 'chaoshydra',  name: 'Chaos Hydra',  emoji: '🐲', rarity: 'chaos',     boost: 100, fx: 'chaoshydra',  kind: 'walk', block: 'beasts' },
   ];
@@ -190,7 +189,7 @@
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Squid 2% each
   // 🐲 Mythic Beasts Block: its own beasts, always in the Pet Shop (the last and most expensive block)
   LUCKY_BLOCKS.push({ id: 'beasts', name: 'Mythic Beasts Block', cost: 2e9, color: 'beasts', ownPets: true,
-    odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, chaos: 0.5 } }); // Golem and Kraken 2% each
+    odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, chaos: 0.5 } });
   // 🔮 Glass Pass: sell scoops during the Glass Event to unlock prizes (the bottom row needs the Premium Glass Pass)
   const GLASS_PASS = {
     free: [
