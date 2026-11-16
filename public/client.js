@@ -2661,7 +2661,7 @@
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { voidkraken: 1.4, glitchmanticore: 1.6, galaxyshark: 1.35, solarlion: 1.25, metalrhino: 1.25, dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+  const PET_SIZE = { voidkraken: 1.4, kitsune: 1.4, galaxyshark: 1.35, solarlion: 1.25, metalrhino: 1.25, dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
   const CYAN = '#2ee8ff';
@@ -2865,7 +2865,7 @@
     galaxyshark: { colors: ['#748ffc', '#5f3dc4', '#1a0b4d'], dark: 0.3, veins: 'stars', rim: '#b197fc' },
     spirittiger: { colors: ['#e3fafc', '#66d9e8', '#1098ad'], veins: 'stripes', rim: '#3bc9db' },
     voidkraken:  { colors: ['#e64980', '#7b2cbf', '#10002b'], dark: 0.35, veins: 'spots', rim: '#ff2bd6' },
-    glitchmanticore: { colors: ['#e0fbff', '#00b8d9', '#2b0050'], veins: 'pixels', rim: 'glitch' },
+    kitsune:     { colors: ['#ffffff', '#fff3bf', '#d0bfff'], bright: 0.75, veins: 'stars', rim: '#b197fc' },
   };
   const beastSprites = {};
   function makeBeast(emoji, look) {
@@ -2888,7 +2888,7 @@
     const grad = g.createLinearGradient(30, 20, 130, 150);
     look.colors.forEach((c, i, a) => grad.addColorStop(i / (a.length - 1), c));
     g.globalCompositeOperation = 'multiply'; g.fillStyle = grad; g.fillRect(0, 0, S, S);
-    g.globalCompositeOperation = 'screen'; g.globalAlpha = 0.35; g.fillRect(0, 0, S, S); g.globalAlpha = 1;
+    g.globalCompositeOperation = 'screen'; g.globalAlpha = look.bright || 0.35; g.fillRect(0, 0, S, S); g.globalAlpha = 1;
     if (look.dark) { g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgba(20, 0, 40, ${look.dark})`; g.fillRect(0, 0, S, S); }
     if (keep) { // a bit of the original colors stays (the unicorn keeps its pink mane)
       const o = mk(), oc = o.getContext('2d'), oi = oc.createImageData(S, S); oi.data.set(orig); oc.putImageData(oi, 0, 0);
@@ -2969,17 +2969,6 @@
             c.beginPath(); c.arc(x, y, rr, 0, Math.PI * 2); glow ? c.stroke() : c.fill();
           }
           break;
-        case 'pixels': // 👾 glitchy pixel blocks and scan lines
-          for (let y = 0; y < S; y += 6) { c.fillStyle = glow ? 'rgba(0,0,0,0)' : 'rgba(0, 0, 0, 0.18)'; c.fillRect(0, y, S, 2); }
-          for (let k = 0; k < 26; k++) {
-            const sz = 4 + Math.floor(rnd() * 3) * 4;
-            c.fillStyle = k % 3 === 0 ? '#ff00e6' : k % 3 === 1 ? '#00e5ff' : '#ffffff';
-            c.globalAlpha = glow ? 0.95 : 0.55;
-            c.fillRect(Math.floor((15 + rnd() * 130) / 4) * 4, Math.floor((15 + rnd() * 130) / 4) * 4, sz, sz);
-          }
-          c.globalAlpha = 1;
-          if (glow) for (let k = 0; k < 4; k++) { c.fillStyle = k % 2 ? '#ff00e6' : '#00e5ff'; c.fillRect(0, 20 + rnd() * 120, S, 2); }
-          break;
         case 'rainbow': { // rainbow streaks through the mane and tail
           for (let k = 0; k < 6; k++) {
             c.strokeStyle = `hsla(${k * 55}, 100%, 65%, ${glow ? 0.9 : 0.4})`; c.lineWidth = glow ? 3 : 6;
@@ -3002,7 +2991,7 @@
     const pet = petById[id];
     if (!beastSprites[id]) beastSprites[id] = makeBeast(pet.emoji, look);
     const { body, veins } = beastSprites[id];
-    const rim = look.rim === 'rainbow' ? `hsl(${(time * 120) % 360}, 100%, 65%)` : look.rim === 'glitch' ? (Math.floor(time * 6) % 2 ? '#ff00e6' : '#00e5ff') : look.rim;
+    const rim = look.rim === 'rainbow' ? `hsl(${(time * 120) % 360}, 100%, 65%)` : look.rim;
     ctx.save();
     ctx.shadowColor = rim; ctx.shadowBlur = 10 + 4 * Math.sin(time * 4 + seed);
     ctx.drawImage(body, x - size / 2, y - size * 0.625, size, size);
@@ -3015,46 +3004,35 @@
 
   const PET_MODELS = { cyberwhale: drawCyberWhale };
   for (const p of PETS) if (BEAST_LOOKS[p.fx]) PET_MODELS[p.id] = (time, seed) => drawBeast(p.id, BEAST_LOOKS[p.fx], time, seed);
-  // 👾 Glitch Manticore: bat wings and a scorpion tail behind a glitch-painted lion head; every couple of seconds
-  // it glitches: it splits into cyan and pink copies and jumps around like a broken video game
-  PET_MODELS.glitchmanticore = (time, seed) => {
-    const glitching = (time + seed) % 2.2 < 0.3;
-    const jx = glitching ? (Math.random() - 0.5) * 8 : 0, jy = glitching ? (Math.random() - 0.5) * 4 : 0;
-    ctx.save(); ctx.translate(jx, jy);
-    // bat wings (flapping), dark with glowing cyan bones and edges
-    const flap = Math.sin(time * 5 + seed) * 0.25;
-    for (const side of [1, 0.6]) {
-      ctx.save(); ctx.translate(6, -14); ctx.rotate(-0.5 - flap * side); ctx.scale(side, side);
-      ctx.fillStyle = 'rgba(43, 0, 80, 0.9)'; ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(10, -26); ctx.lineTo(22, -18);
-      ctx.quadraticCurveTo(18, -10, 24, -4); ctx.quadraticCurveTo(16, -2, 18, 6); ctx.quadraticCurveTo(10, 2, 0, 6); ctx.closePath();
-      ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = 'rgba(0, 229, 255, 0.7)'; ctx.lineWidth = 0.8;
-      for (const [tx, ty] of [[22, -18], [24, -4], [18, 6]]) { ctx.beginPath(); ctx.moveTo(10, -26); ctx.lineTo(tx, ty); ctx.stroke(); }
+  // 🦊 Celestial Kitsune: a crescent moon behind it, nine glowing tails fanning out and waving, and a painted fox face
+  PET_MODELS.kitsune = (time, seed) => {
+    // the moon
+    glow(10, -26, 22, '255, 236, 153', 0.5);
+    ctx.fillStyle = '#fff3bf';
+    ctx.beginPath(); ctx.arc(10, -26, 10, Math.PI * 0.2, Math.PI * 1.8); // a crescent: the outside edge…
+    ctx.arc(15, -28, 8, Math.PI * 1.55, Math.PI * 0.45, true);         // …and the inside edge back
+    ctx.closePath(); ctx.fill();
+    // nine tails: white at the base, glowing purple and gold at the tips
+    const flare = (time + seed) % 5 < 0.6 ? 1 + 0.25 * Math.sin(((time + seed) % 5) / 0.6 * Math.PI) : 1;
+    for (let k = 0; k < 9; k++) {
+      const a = -Math.PI * 0.95 + k * (Math.PI * 0.9 / 8) + Math.sin(time * 2 + k * 0.7 + seed) * 0.08;
+      const len = (24 + (k % 2) * 4) * flare;
+      const bx = 8, by = 2, tx = bx + Math.cos(a) * len, ty = by + Math.sin(a) * len;
+      const cx = bx + Math.cos(a + 0.5) * len * 0.6, cy = by + Math.sin(a + 0.5) * len * 0.6;
+      const g = ctx.createLinearGradient(bx, by, tx, ty);
+      g.addColorStop(0, 'rgba(255, 255, 255, 0.95)'); g.addColorStop(0.55, 'rgba(208, 191, 255, 0.95)');
+      g.addColorStop(1, k % 2 ? 'rgba(255, 212, 59, 0.95)' : 'rgba(151, 117, 250, 0.95)');
+      ctx.save();
+      ctx.shadowColor = k % 2 ? '#ffd43b' : '#9775fa'; ctx.shadowBlur = 8;
+      ctx.strokeStyle = g; ctx.lineCap = 'round'; ctx.lineWidth = 5.5;
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(cx, cy, tx, ty); ctx.stroke();
+      ctx.fillStyle = k % 2 ? '#fff3bf' : '#e5dbff';
+      ctx.beginPath(); ctx.arc(tx, ty, 3.2, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
-    // a scorpion tail curling up over its back, with a glowing pink stinger
-    const sway = Math.sin(time * 2.4 + seed) * 3;
-    let px = 12, py = 4;
-    for (let k = 0; k < 7; k++) {
-      const a = -0.2 - k * 0.42, nx = px + Math.cos(a) * 5, ny = py + Math.sin(a) * 5 + (k > 3 ? sway * 0.3 : 0);
-      ctx.fillStyle = k % 2 ? '#3b0a6b' : '#5f3dc4'; ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 0.7;
-      ctx.beginPath(); ctx.arc(nx, ny, 3.4 - k * 0.25, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      px = nx; py = ny;
-    }
-    glow(px - 2, py - 1, 9, '255, 0, 230', 0.8);
-    ctx.fillStyle = '#ff00e6';
-    ctx.beginPath(); ctx.moveTo(px, py - 2); ctx.lineTo(px - 8, py + 1); ctx.lineTo(px - 1, py + 2); ctx.closePath(); ctx.fill();
-    // the lion head (with cyan and pink copies when it glitches)
-    if (glitching) {
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55;
-      drawBeast('glitchmanticore', BEAST_LOOKS.glitchmanticore, time, seed, -3, 0);
-      drawBeast('glitchmanticore', BEAST_LOOKS.glitchmanticore, time, seed, 3, 0);
-      ctx.restore();
-    }
-    drawBeast('glitchmanticore', BEAST_LOOKS.glitchmanticore, time, seed);
-    ctx.restore();
+    drawBeast('kitsune', BEAST_LOOKS.kitsune, time, seed, -2, 2, 38);
   };
+
 
   for (const p of PETS) if (p.fx === 'cyber') PET_MODELS[p.id] = cyberPetModel(p.id, p.emoji);
   for (const p of PETS) if (p.fx === 'glass' || p.fx === 'glasswolf') PET_MODELS[p.id] = glassPetModel(p.id, p.emoji, p.fx === 'glasswolf');
@@ -3367,33 +3345,35 @@
         }
         break;
       }
-      case 'glitchmanticore': {
-        // 👾 Glitch Manticore, the best beast: a pixel ring under it, pixels breaking off, ERROR codes floating up,
-        // glitch bars, and a digital stinger zap
-        glow(x, y - 10, 56, '0, 229, 255', 0.45);
-        glow(x + 10, y - 6, 40, '255, 0, 230', 0.35);
-        // a ring of pixels spinning under it
-        for (let k = 0; k < 16; k++) {
-          const a = time * 1.5 + k * Math.PI / 8;
-          ctx.fillStyle = k % 2 ? '#00e5ff' : '#ff00e6';
-          ctx.fillRect(Math.round(pp.x + Math.cos(a) * 40), Math.round(pp.y + 9 + Math.sin(a) * 12), 4, 4);
+      case 'kitsune': {
+        // 🦊 Celestial Kitsune, the best beast: foxfire (spirit flames) circling it, a glowing magic circle under it,
+        // falling star sparkles, and every few seconds its tails flare with a burst of foxfire
+        glow(x, y - 12, 60, '151, 117, 250', 0.5);
+        glow(x, y - 12, 30, '255, 243, 191', 0.45);
+        ctx.save(); ctx.translate(pp.x, pp.y + 9); ctx.scale(1, 0.32); ctx.rotate(time * 0.6);
+        ctx.strokeStyle = 'rgba(177, 151, 250, 0.7)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 42, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 212, 59, 0.7)';
+        ctx.beginPath();
+        for (let k = 0; k <= 5; k++) { const a = k * Math.PI * 4 / 5; ctx.lineTo(Math.cos(a) * 42, Math.sin(a) * 42); }
+        ctx.stroke();
+        ctx.restore();
+        // foxfire: little blue-purple spirit flames floating around it
+        for (let k = 0; k < 5; k++) {
+          const a = time * 1.3 + k * Math.PI * 2 / 5 + seed, fx = x + Math.cos(a) * 42, fy = y - 16 + Math.sin(a) * 15 + Math.sin(time * 4 + k) * 3;
+          glow(fx, fy, 12, k % 2 ? '116, 192, 252' : '177, 151, 250', 0.8);
+          ctx.fillStyle = k % 2 ? '#d0ebff' : '#e5dbff';
+          ctx.beginPath(); ctx.moveTo(fx - 3, fy + 2); ctx.quadraticCurveTo(fx, fy - 9, fx + 3, fy + 2); ctx.arc(fx, fy + 2, 3, 0, Math.PI); ctx.fill();
         }
-        if (chance(14)) petSpark(x + rnd() * 40, y - 10 + rnd() * 30, { shape: 'bit', text: '■', color: Math.random() < 0.5 ? '#00e5ff' : '#ff00e6', vx: rnd() * 60, vy: -30, life: 0.8, size: 7 });
-        if (chance(2.5)) petSpark(x + rnd() * 30, y - 30, { shape: 'bit', text: ['ERROR', '404', '0xDEAD', 'GLITCH', '!!??'][Math.floor(Math.random() * 5)], color: Math.random() < 0.5 ? '#00e5ff' : '#ff00e6', vy: -28, life: 1.2, size: 9 });
-        const gl = (time + seed) % 2.2;
-        if (gl < 0.3) {
-          // glitch bars across it
-          for (let k = 0; k < 3; k++) {
-            ctx.fillStyle = k % 2 ? 'rgba(255, 0, 230, 0.55)' : 'rgba(0, 229, 255, 0.55)';
-            ctx.fillRect(x - 30 + rnd() * 20, y - 30 + Math.random() * 40, 40 + Math.random() * 30, 2 + Math.random() * 3);
+        if (chance(6)) petSpark(x + rnd() * 60, y - 40, { shape: 'star', color: Math.random() < 0.5 ? '#fff3bf' : '#e5dbff', vy: 18, vx: rnd() * 10, life: 1.2, size: 3 });
+        const flare = (time + seed) % 5;
+        if (flare < dt) {
+          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#b197fc', vy: 0, life: 0.9, size: 14, grow: 150 });
+          for (let k = 0; k < 12; k++) {
+            const a = k * Math.PI / 6;
+            petSpark(x, y - 14, { shape: 'flame', color: k % 2 ? '#74c0fc' : '#b197fc', vx: Math.cos(a) * 120, vy: Math.sin(a) * 80 - 30, life: 0.8, size: 4 });
           }
-        }
-        if (gl < dt) {
-          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#00e5ff', vy: 0, life: 0.6, size: 12, grow: 140 });
-          // a digital zap from its stinger
-          const pts = [];
-          for (let k = 1; k <= 5; k++) pts.push([-pp.facing * k * 14 + rnd() * 10, -k * 6 + rnd() * 10]);
-          petSpark(x + 14 * big * -pp.facing, y - 30, { shape: 'bolt', pts, color: '#ff00e6', vy: 0, life: 0.25 });
         }
         break;
       }
