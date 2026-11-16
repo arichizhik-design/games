@@ -791,5 +791,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 .luckyBlock.beasts { background: radial-gradient(circle at 30% 25%, #ff6b6b, #7b2cbf 45%, #120024) !important; color: #ffd43b;
   border: 2px solid #ff2bd6 !important; animation: beastsPulse 1.6s ease-in-out infinite alternate; }
 @keyframes beastsPulse { from { box-shadow: 0 0 6px #ff2bd6, 0 0 12px #7b2cbf; } to { box-shadow: 0 0 14px #ff6b00, 0 0 26px #ff2bd6; } }
-.badge.chaos { background: linear-gradient(90deg, #ff2b2b, #ff2bd6, #7b2cbf, #2bff88) !important; background-size: 300% 100% !important;
+.badge.glitch { background: linear-gradient(90deg, #00e5ff, #ff00e6, #1a0030, #00e5ff) !important; background-size: 300% 100% !important;
   color: #fff !important; text-shadow: 0 1px 2px #000; animation: glassShimmer 2s linear infinite; box-shadow: 0 0 8px #ff2bd6; }
+.badge.glitch { animation: glassShimmer 2s linear infinite, badgeGlitch 1.6s steps(1) infinite; }
+@keyframes badgeGlitch { 0%, 88%, 100% { transform: none; text-shadow: 0 1px 2px #000; }
+  90% { transform: translateX(-2px); text-shadow: 2px 0 #ff00e6, -2px 0 #00e5ff; } 94% { transform: translateX(2px); text-shadow: -2px 0 #ff00e6, 2px 0 #00e5ff; } }

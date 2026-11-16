@@ -30,8 +30,8 @@
     cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1800, stock: { chance: 0.001, min: 1, max: 1 } },
     // 🔮 Glass: the Glass Peacock pet and Glass Ice Cream (0.1% chance to be in the shop)
     glass:     { name: 'Glass',     color: '#74c0fc', order: 12, growSec: 2100, stock: { chance: 0.001, min: 1, max: 1 } },
-    // 🐲 Chaos: the Chaos Hydra from the Mythic Beasts Block (pets only)
-    chaos:     { name: 'Chaos',     color: '#ff2bd6', order: 13, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
+    // 👾 Glitch: the Glitch Manticore from the Mythic Beasts Block (pets only)
+    glitch:    { name: 'Glitch',    color: '#00e5ff', order: 13, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
   };
 
   // price = what a customer pays per scoop, cost = price of one tub in the shop
@@ -123,12 +123,13 @@
     { id: 'galaxyshark', name: 'Galaxy Shark', emoji: '🦈', rarity: 'secret',    boost: 6,   fx: 'galaxyshark', kind: 'swim', block: 'beasts' },
     { id: 'spirittiger', name: 'Spirit Tiger', emoji: '🐅', rarity: 'secret',    boost: 6.5, fx: 'spirittiger', kind: 'walk', block: 'beasts' },
     { id: 'voidkraken',  name: 'Void Kraken',  emoji: '🐙', rarity: 'celestial', boost: 11,  fx: 'voidkraken',  kind: 'swim', block: 'beasts' },
-    { id: 'chaoshydra',  name: 'Chaos Hydra',  emoji: '🐲', rarity: 'chaos',     boost: 100, fx: 'chaoshydra',  kind: 'walk', block: 'beasts' },
+    // 👾 a manticore (lion head, bat wings, scorpion tail) that glitches like a broken video game
+    { id: 'glitchmanticore', name: 'Glitch Manticore', emoji: '🦁', rarity: 'glitch', boost: 100, fx: 'glitchmanticore', kind: 'walk', block: 'beasts' },
   ];
   // 💰 Sell Shop: what a pet sells for, by rarity. Always less than the lucky block costs on average,
   // so buying blocks just to sell the pets never makes money.
   const PET_SELL = { common: 200, uncommon: 800, rare: 4000, epic: 40000, legendary: 400000, mythic: 3e6, secret: 15e6,
-    celestial: 40e6, divine: 100e6, infinity: 300e6, cyber: 600e6, glass: 700e6, chaos: 1e9 };
+    celestial: 40e6, divine: 100e6, infinity: 300e6, cyber: 600e6, glass: 700e6, glitch: 1e9 };
   // ⬆️ Pet Upgrade Shop: each level makes that kind of pet give 25% more of its own boost (level 0 = how it is now)
   const PET_MAX_LEVEL = 10;
   const petUpgradeCost = (pet, lvl) => Math.round(Math.max(500, PET_SELL[pet.rarity] || 0) * 2 * Math.pow(2.2, lvl));
@@ -190,7 +191,7 @@
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Squid 2% each
   // 🐲 Mythic Beasts Block: its own beasts, always in the Pet Shop (the last and most expensive block)
   LUCKY_BLOCKS.push({ id: 'beasts', name: 'Mythic Beasts Block', cost: 2e9, color: 'beasts', ownPets: true, drop: 'glass',
-    odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, chaos: 0.5 } });
+    odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glitch: 0.5 } });
   // 🔮 Glass Pass: sell scoops during the Glass Event to unlock prizes (the bottom row needs the Premium Glass Pass)
   const GLASS_PASS = {
     free: [

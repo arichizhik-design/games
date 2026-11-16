@@ -106,8 +106,10 @@ A multiplayer browser game where every player runs their own ice cream stand in 
     (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
   - 🐲 **Mythic Beasts Block** ($2B, always there) with its own beasts: 🐻 Void Bear and 🦊 Crystal Fox (Legendary),
     🦁 Solar Lion and 🦏 Metal Rhino (Mythic), 🦈 Galaxy Shark and 🐅 Spirit Tiger (Secret), 🐙 Void Kraken
-    (Celestial, 4%), and the best pet in the game, the three-headed **🐲 Chaos Hydra** (new Chaos rarity,
-    +10,000%, 0.5%): fire, void and toxic heads that take turns breathing, a chaos ring and chaos lightning.
+    (Celestial, 4%), and the best pet in the game, the **👾 Glitch Manticore** (new Glitch rarity, +10,000%, 0.5%):
+    a glitch-painted lion head with bat wings and a scorpion tail. Every couple of seconds it glitches: it splits into
+    cyan and pink copies, jumps around, glitch bars cross it and its stinger zaps. Pixels break off it and ERROR codes
+    float up. (It used to be the Chaos Hydra; anyone who had one got a Glitch Manticore.)
     (The Lava Golem left the game; anyone who had one got a Void Kraken.)
   - The beasts and the 4 cooler pets are painted like their element, not plain emojis: crystal facets (Crystal Fox,
     Frost Dragon, Ice Phoenix), flames (Solar Lion), void cracks (Void Bear), chrome plates (Metal Rhino), a galaxy
