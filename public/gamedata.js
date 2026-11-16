@@ -30,7 +30,7 @@
     cyber:     { name: 'Cyber',     color: '#00c9a7', order: 11, growSec: 1800, stock: { chance: 0.001, min: 1, max: 1 } },
     // 🔮 Glass: the Glass Peacock pet and Glass Ice Cream (0.1% chance to be in the shop)
     glass:     { name: 'Glass',     color: '#74c0fc', order: 12, growSec: 2100, stock: { chance: 0.001, min: 1, max: 1 } },
-    // 🌙 Astral: the Celestial Kitsune from the Mythic Beasts Block (pets only)
+    // 🌙 Astral: the 4 best beasts from the Mythic Beasts Block, 0.5% together (pets only)
     astral:    { name: 'Astral',    color: '#7950f2', order: 13, growSec: 0, stock: { chance: 0, min: 0, max: 0 } },
   };
 
@@ -123,8 +123,11 @@
     { id: 'galaxyshark', name: 'Galaxy Shark', emoji: '🦈', rarity: 'secret',    boost: 6,   fx: 'galaxyshark', kind: 'swim', block: 'beasts' },
     { id: 'spirittiger', name: 'Spirit Tiger', emoji: '🐅', rarity: 'secret',    boost: 6.5, fx: 'spirittiger', kind: 'walk', block: 'beasts' },
     { id: 'voidkraken',  name: 'Void Kraken',  emoji: '🐙', rarity: 'celestial', boost: 11,  fx: 'voidkraken',  kind: 'swim', block: 'beasts' },
-    // 🦊 a magical fox spirit with nine glowing tails, foxfire and a moon
-    { id: 'kitsune', name: 'Celestial Kitsune', emoji: '🦊', rarity: 'astral', boost: 100, fx: 'kitsune', kind: 'walk', block: 'beasts' },
+    // 🌙 the 4 Astral beasts (0.5% together), from good to best
+    { id: 'swampleviathan', name: 'Swamp Leviathan', emoji: '🐊', rarity: 'astral', boost: 70,  fx: 'swampleviathan', kind: 'walk', block: 'beasts' },
+    { id: 'ancientmammoth', name: 'Ancient Mammoth', emoji: '🦣', rarity: 'astral', boost: 85,  fx: 'ancientmammoth', kind: 'walk', block: 'beasts' },
+    { id: 'stormbison',     name: 'Storm Bison',     emoji: '🦬', rarity: 'astral', boost: 100, fx: 'stormbison',     kind: 'walk', block: 'beasts' },
+    { id: 'cosmicstag',     name: 'Cosmic Stag',     emoji: '🦌', rarity: 'astral', boost: 120, fx: 'cosmicstag',     kind: 'walk', block: 'beasts' }, // the best pet of all!
   ];
   // 💰 Sell Shop: what a pet sells for, by rarity. Always less than the lucky block costs on average,
   // so buying blocks just to sell the pets never makes money.
@@ -366,7 +369,10 @@
     galaxyshark: { name: 'Starry Night',   emoji: '🌠' },
     spirittiger: { name: 'Spirit Mist',    emoji: '👻' },
     voidkraken:  { name: 'Abyss Tide',     emoji: '🌊' },
-    kitsune:     { name: 'Moonlit Night',  emoji: '🌙' },
+    swampleviathan: { name: 'Toxic Swamp', emoji: '☠️' },
+    ancientmammoth: { name: 'Ice Age',     emoji: '🧊' },
+    stormbison:     { name: 'Thunderstorm', emoji: '⛈️' },
+    cosmicstag:     { name: 'Moonlit Night', emoji: '🌙' },
   };
   const WEATHER_SEC = 180;           // how long a weather event lasts
   const WEATHER_GAPS_MIN = [20, 30, 40]; // a random weather starts by itself this many minutes after the last one

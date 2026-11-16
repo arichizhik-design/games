@@ -2110,7 +2110,7 @@
     $('adminWeatherChips').appendChild(chip);
   }
   $('adminWeatherOff').addEventListener('click', () => send({ type: 'adminWeather', id: 'off' }));
-  // "/weather spirit", "/weather moonlit night", "/weather kitsune" all work
+  // "/weather spirit", "/weather moonlit night", "/weather cosmic stag" all work
   const findWeather = t => Object.keys(WEATHERS).find(id => squash(id) === squash(t) || squash(WEATHERS[id].name).includes(squash(t)) ||
     squash(petById[id].name).includes(squash(t)));
   // 🎁 Give in Lucky Block: whatever you type comes out of a lucky block
@@ -2703,7 +2703,7 @@
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { voidkraken: 1.4, kitsune: 1.4, galaxyshark: 1.35, solarlion: 1.25, metalrhino: 1.25, dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+  const PET_SIZE = { voidkraken: 1.4, cosmicstag: 1.5, ancientmammoth: 1.6, swampleviathan: 1.5, stormbison: 1.55, galaxyshark: 1.35, solarlion: 1.25, metalrhino: 1.25, dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
   const CYAN = '#2ee8ff';
@@ -2907,7 +2907,26 @@
     galaxyshark: { colors: ['#748ffc', '#5f3dc4', '#1a0b4d'], dark: 0.3, veins: 'stars', rim: '#b197fc' },
     spirittiger: { colors: ['#e3fafc', '#66d9e8', '#1098ad'], veins: 'stripes', rim: '#3bc9db' },
     voidkraken:  { colors: ['#e64980', '#7b2cbf', '#10002b'], dark: 0.35, veins: 'spots', rim: '#ff2bd6' },
-    kitsune:     { colors: ['#ffffff', '#fff3bf', '#d0bfff'], bright: 0.75, veins: 'stars', rim: '#b197fc' },
+    // 🌙 the 4 Astral beasts
+    cosmicstag:     { colors: ['#e5dbff', '#5f3dc4', '#1a0b4d'], dark: 0.15, veins: 'stars', rim: '#b197fc' },
+    ancientmammoth: { colors: ['#e7f5ff', '#4dabf7', '#1c3d5a'], veins: 'crystal', rim: '#74c0fc' },
+    swampleviathan: { colors: ['#d8f5a2', '#2b8a3e', '#0b2e0b'], veins: 'spots', rim: '#69db7c' },
+    stormbison:     { colors: ['#dee2e6', '#5c7cfa', '#1b2238'], veins: 'cracks', veinColor: '#a5d8ff', rim: '#74c0fc' },
+    // ✨ every regular pet gets painted too (the cute common ones keep some of their own colors)
+    puppy:      { colors: ['#fff4e6', '#ffa94d', '#c2410c'], keep: 0.6, veins: 'spots', rim: '#ff8787' },
+    kitty:      { colors: ['#fff0f6', '#f783ac', '#862e9c'], keep: 0.6, veins: 'stripes', rim: '#f783ac' },
+    bunny:      { colors: ['#ffffff', '#ffdeeb', '#e599f7'], keep: 0.6, veins: 'stars', rim: '#faa2c1' },
+    fox:        { colors: ['#fff3bf', '#ff6b00', '#7a1f00'], keep: 0.3, veins: 'flames', rim: '#ff6b00' },
+    panda:      { colors: ['#ffffff', '#b2f2bb', '#2b8a3e'], keep: 0.5, veins: 'stripes', rim: '#51cf66' },
+    penguin:    { colors: ['#ffffff', '#a5d8ff', '#1c3d5a'], keep: 0.3, veins: 'frost', rim: '#74c0fc' },
+    owl:        { colors: ['#e5dbff', '#5c7cfa', '#1a1b4b'], veins: 'stars', rim: '#748ffc' },
+    kraken:     { colors: ['#c5f6fa', '#1098ad', '#0b2e3d'], veins: 'waves', rim: '#3bc9db' },
+    lion:       { colors: ['#e5dbff', '#7048e8', '#1a0b4d'], veins: 'stars', rim: '#9775fa' },
+    rex:        { colors: ['#ffe066', '#ff4500', '#3b0d00'], dark: 0.15, veins: 'flames', rim: '#ff4500' },
+    shark:      { colors: ['#e7f5ff', '#4dabf7', '#0b1d51'], veins: 'cracks', veinColor: '#d0ebff', rim: '#4dabf7' },
+    dove:       { colors: ['#ffffff', '#fff3bf', '#ffd43b'], bright: 0.6, veins: 'stars', rim: '#ffe066' },
+    dragonking: { colors: ['#fff3bf', '#fcc419', '#a35f00'], veins: 'chrome', rim: '#ffd43b' },
+    infinity:   { colors: ['#ffffff', '#ff8cc6', '#7048e8'], veins: 'rainbow', rim: 'rainbow' },
   };
   const beastSprites = {};
   function makeBeast(emoji, look) {
@@ -2961,7 +2980,7 @@
         case 'cracks': // glowing cracks of void energy
           for (let k = 0; k < 7; k++) {
             let x = 20 + rnd() * 120, y = 20 + rnd() * 120;
-            c.strokeStyle = glow ? '#f783ff' : '#da77f2'; c.lineWidth = glow ? 2.5 : 1.8;
+            c.strokeStyle = look.veinColor || (glow ? '#f783ff' : '#da77f2'); c.lineWidth = glow ? 2.5 : 1.8;
             c.beginPath(); c.moveTo(x, y);
             for (let j = 0; j < 4; j++) { x += (rnd() - 0.5) * 30; y += (rnd() - 0.5) * 30; c.lineTo(x, y); }
             c.stroke();
@@ -3045,35 +3064,21 @@
   }
 
   const PET_MODELS = { cyberwhale: drawCyberWhale };
-  for (const p of PETS) if (BEAST_LOOKS[p.fx]) PET_MODELS[p.id] = (time, seed) => drawBeast(p.id, BEAST_LOOKS[p.fx], time, seed);
-  // 🦊 Celestial Kitsune: a crescent moon behind it, nine glowing tails fanning out and waving, and a painted fox face
-  PET_MODELS.kitsune = (time, seed) => {
-    // the moon
-    glow(10, -26, 22, '255, 236, 153', 0.5);
-    ctx.fillStyle = '#fff3bf';
-    ctx.beginPath(); ctx.arc(10, -26, 10, Math.PI * 0.2, Math.PI * 1.8); // a crescent: the outside edge…
-    ctx.arc(15, -28, 8, Math.PI * 1.55, Math.PI * 0.45, true);         // …and the inside edge back
-    ctx.closePath(); ctx.fill();
-    // nine tails: white at the base, glowing purple and gold at the tips
-    const flare = (time + seed) % 5 < 0.6 ? 1 + 0.25 * Math.sin(((time + seed) % 5) / 0.6 * Math.PI) : 1;
-    for (let k = 0; k < 9; k++) {
-      const a = -Math.PI * 0.95 + k * (Math.PI * 0.9 / 8) + Math.sin(time * 2 + k * 0.7 + seed) * 0.08;
-      const len = (24 + (k % 2) * 4) * flare;
-      const bx = 8, by = 2, tx = bx + Math.cos(a) * len, ty = by + Math.sin(a) * len;
-      const cx = bx + Math.cos(a + 0.5) * len * 0.6, cy = by + Math.sin(a + 0.5) * len * 0.6;
-      const g = ctx.createLinearGradient(bx, by, tx, ty);
-      g.addColorStop(0, 'rgba(255, 255, 255, 0.95)'); g.addColorStop(0.55, 'rgba(208, 191, 255, 0.95)');
-      g.addColorStop(1, k % 2 ? 'rgba(255, 212, 59, 0.95)' : 'rgba(151, 117, 250, 0.95)');
-      ctx.save();
-      ctx.shadowColor = k % 2 ? '#ffd43b' : '#9775fa'; ctx.shadowBlur = 8;
-      ctx.strokeStyle = g; ctx.lineCap = 'round'; ctx.lineWidth = 5.5;
-      ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(cx, cy, tx, ty); ctx.stroke();
-      ctx.fillStyle = k % 2 ? '#fff3bf' : '#e5dbff';
-      ctx.beginPath(); ctx.arc(tx, ty, 3.2, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
-    drawBeast('kitsune', BEAST_LOOKS.kitsune, time, seed, -2, 2, 38);
+  for (const p of PETS) {
+    const look = BEAST_LOOKS[p.id] || BEAST_LOOKS[p.fx];
+    if (look) PET_MODELS[p.id] = (time, seed) => drawBeast(p.id, look, time, seed);
+  }
+  // 🦌 Cosmic Stag: its antlers glow with twinkling stars at the tips
+  PET_MODELS.cosmicstag = (time, seed) => {
+    drawBeast('cosmicstag', BEAST_LOOKS.cosmicstag, time, seed);
+    glow(-6, -30, 12, '177, 151, 250', 0.6);
+    [[-10.7, -32], [-5.9, -32], [-2.1, -28.8], [-8, -25.6], [-3.7, -25]].forEach(([x, y], k) => {
+      const tw = 0.6 + 0.4 * Math.sin(time * 4 + k * 1.3 + seed);
+      glow(x, y, 4, '208, 191, 255', 0.8 * tw);
+      star(x, y, 2.2 * tw + 0.6, '#ffffff');
+    });
   };
+
 
 
   for (const p of PETS) if (p.fx === 'cyber') PET_MODELS[p.id] = cyberPetModel(p.id, p.emoji);
@@ -3387,36 +3392,69 @@
         }
         break;
       }
-      case 'kitsune': {
-        // 🦊 Celestial Kitsune, the best beast: foxfire (spirit flames) circling it, a glowing magic circle under it,
-        // falling star sparkles, and every few seconds its tails flare with a burst of foxfire
-        glow(x, y - 12, 60, '151, 117, 250', 0.5);
-        glow(x, y - 12, 30, '255, 243, 191', 0.45);
-        ctx.save(); ctx.translate(pp.x, pp.y + 9); ctx.scale(1, 0.32); ctx.rotate(time * 0.6);
-        ctx.strokeStyle = 'rgba(177, 151, 250, 0.7)'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(0, 0, 42, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255, 212, 59, 0.7)';
-        ctx.beginPath();
-        for (let k = 0; k <= 5; k++) { const a = k * Math.PI * 4 / 5; ctx.lineTo(Math.cos(a) * 42, Math.sin(a) * 42); }
-        ctx.stroke();
+      case 'cosmicstag': {
+        // 🦌 Cosmic Stag, the best pet: a galaxy glow, a constellation circling it, star footprints and a starburst
+        glow(x, y - 12, 62, '120, 80, 255', 0.5);
+        glow(x, y - 12, 30, '220, 210, 255', 0.4);
+        const pts = [];
+        for (let k = 0; k < 6; k++) {
+          const a = time * 0.9 + k * Math.PI / 3 + seed;
+          pts.push([x + Math.cos(a) * 46, y - 14 + Math.sin(a) * 17 + Math.sin(time * 2 + k) * 3]);
+        }
+        ctx.strokeStyle = 'rgba(208, 191, 255, 0.5)'; ctx.lineWidth = 1;
+        ctx.beginPath(); pts.forEach(([px, py], k) => k ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); ctx.stroke();
+        pts.forEach(([px, py], k) => star(px, py, 3.5 + Math.sin(time * 5 + k), k % 2 ? '#ffffff' : '#ffd43b'));
+        if (pp.moving && chance(10)) petSpark(pp.x + rnd() * 10, pp.y + 8, { shape: 'star', color: '#e5dbff', vy: -4, life: 1.4, size: 3.5 });
+        if (chance(6)) petSpark(x + rnd() * 50, y - 20 + rnd() * 30, { shape: 'star', color: Math.random() < 0.5 ? '#fff' : '#b197fc', vy: -8, life: 1, size: 3 });
+        if ((time + seed) % 4 < dt) {
+          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#b197fc', vy: 0, life: 0.9, size: 14, grow: 160 });
+          for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; petSpark(x, y - 30, { shape: 'star', color: k % 2 ? '#fff' : '#ffd43b', vx: Math.cos(a) * 140, vy: Math.sin(a) * 100, life: 0.8, size: 4 }); }
+        }
+        break;
+      }
+      case 'stormbison': {
+        // 🦬 Storm Bison: its own thundercloud above it, lightning striking down at it, wind when it charges
+        glow(x, y - 10, 54, '92, 124, 250', 0.45);
+        const cy = y - 62;
+        ctx.fillStyle = 'rgba(52, 58, 64, 0.85)';
+        for (const [dx, dy, rr] of [[-18, 4, 13], [0, -2, 17], [18, 4, 13], [8, 8, 11], [-8, 8, 11]]) { ctx.beginPath(); ctx.arc(x + dx, cy + dy, rr, 0, Math.PI * 2); ctx.fill(); }
+        const strike = (time + seed) % 2.6;
+        if (strike < 0.25) {
+          zap(x + rnd() * 20, cy + 10, x + rnd() * 10, y - 16, 10, 2.5);
+          glow(x, y - 16, 50, '200, 220, 255', 0.6 * (1 - strike / 0.25));
+          if (strike < dt) petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#a5d8ff', vy: 0, life: 0.7, size: 12, grow: 140 });
+        }
+        if (chance(3)) { const a = Math.random() * Math.PI * 2; zap(x + Math.cos(a) * 16, y - 10 + Math.sin(a) * 10, x + Math.cos(a) * 34, y - 10 + Math.sin(a) * 18, 4, 1); }
+        if (pp.moving && chance(10)) petSpark(pp.x - pp.facing * 20, pp.y - Math.random() * 30, { shape: 'smoke', color: 'rgba(222, 226, 230, 0.5)', vx: -pp.facing * 60, vy: 0, life: 0.6, size: 4 });
+        break;
+      }
+      case 'ancientmammoth': {
+        // 🦣 Ancient Mammoth: an aurora over it, ice crystals circling it, frost under its feet and a freezing stomp
+        for (let b = 0; b < 3; b++) {
+          ctx.strokeStyle = `hsla(${150 + b * 40}, 100%, 70%, 0.45)`; ctx.lineWidth = 6;
+          ctx.beginPath(); for (let k = -40; k <= 40; k += 8) ctx.lineTo(x + k, y - 58 - b * 7 + Math.sin(k / 12 + time * 2 + b) * 5); ctx.stroke();
+        }
+        glow(x, y - 10, 54, '116, 192, 252', 0.5);
+        for (let k = 0; k < 6; k++) { const a = -time * 1.2 + k * Math.PI / 3; glassShard(x + Math.cos(a) * 44, y - 10 + Math.sin(a) * 16, 4.5, a * 2, 195 + (k % 2) * 15); }
+        ctx.save(); ctx.translate(pp.x, pp.y + 9); ctx.scale(1, 0.3);
+        ctx.fillStyle = 'rgba(231, 245, 255, 0.5)'; ctx.beginPath(); ctx.arc(0, 0, 44, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
-        // foxfire: little blue-purple spirit flames floating around it
-        for (let k = 0; k < 5; k++) {
-          const a = time * 1.3 + k * Math.PI * 2 / 5 + seed, fx = x + Math.cos(a) * 42, fy = y - 16 + Math.sin(a) * 15 + Math.sin(time * 4 + k) * 3;
-          glow(fx, fy, 12, k % 2 ? '116, 192, 252' : '177, 151, 250', 0.8);
-          ctx.fillStyle = k % 2 ? '#d0ebff' : '#e5dbff';
-          ctx.beginPath(); ctx.moveTo(fx - 3, fy + 2); ctx.quadraticCurveTo(fx, fy - 9, fx + 3, fy + 2); ctx.arc(fx, fy + 2, 3, 0, Math.PI); ctx.fill();
+        if ((time + seed) % 3.5 < dt) {
+          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#d0ebff', vy: 0, life: 0.9, size: 14, grow: 150 });
+          for (let k = 0; k < 8; k++) petSpark(pp.x, pp.y + 6, { shape: 'flake', color: '#fff', vx: rnd() * 180, vy: -Math.random() * 100, life: 0.9, size: 4 });
         }
-        if (chance(6)) petSpark(x + rnd() * 60, y - 40, { shape: 'star', color: Math.random() < 0.5 ? '#fff3bf' : '#e5dbff', vy: 18, vx: rnd() * 10, life: 1.2, size: 3 });
-        const flare = (time + seed) % 5;
-        if (flare < dt) {
-          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#b197fc', vy: 0, life: 0.9, size: 14, grow: 150 });
-          for (let k = 0; k < 12; k++) {
-            const a = k * Math.PI / 6;
-            petSpark(x, y - 14, { shape: 'flame', color: k % 2 ? '#74c0fc' : '#b197fc', vx: Math.cos(a) * 120, vy: Math.sin(a) * 80 - 30, life: 0.8, size: 4 });
-          }
-        }
+        break;
+      }
+      case 'swampleviathan': {
+        // 🐊 Swamp Leviathan: a bubbling toxic swamp under it, green mist, glowing green eyes and poison drips
+        glow(pp.x, pp.y + 8, 52, '64, 192, 87', 0.55);
+        ctx.save(); ctx.translate(pp.x, pp.y + 9); ctx.scale(1, 0.32);
+        ctx.fillStyle = 'rgba(43, 138, 62, 0.6)'; ctx.beginPath(); ctx.arc(0, 0, 46, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(180, 255, 120, 0.5)'; ctx.beginPath(); ctx.arc(-14, -8, 14, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        if (chance(10)) petSpark(pp.x + rnd() * 70, pp.y + 8, { shape: 'bubble', color: '#b6ff3f', vy: -22, life: 0.9, size: 2 + Math.random() * 4 });
+        if (chance(5)) petSpark(x + rnd() * 60, y - 4, { shape: 'smoke', color: 'rgba(124, 255, 0, 0.22)', vx: rnd() * 20, vy: -10, life: 1.6, size: 9 });
+        if (chance(3)) petSpark(x + rnd() * 30, y - 6, { shape: 'flame', color: '#7cff00', vy: 40, life: 0.6, size: 3 });
         break;
       }
       case 'glass': {
@@ -6011,7 +6049,10 @@
     galaxyshark: { name: '🌠 Starry Night',   tint: '20, 10, 70',    alpha: 0.3 },
     spirittiger: { name: '👻 Spirit Mist',    tint: '120, 230, 255', alpha: 0.14 },
     voidkraken:  { name: '🌊 Abyss Tide',     tint: '20, 0, 50',     alpha: 0.28 },
-    kitsune:     { name: '🌙 Moonlit Night',  tint: '25, 15, 70',    alpha: 0.3 },
+    cosmicstag:     { name: '🌙 Moonlit Night', tint: '25, 15, 70',   alpha: 0.3 },
+    stormbison:     { name: '⛈️ Thunderstorm',  tint: '15, 20, 45',   alpha: 0.38 },
+    ancientmammoth: { name: '🧊 Ice Age',       tint: '200, 235, 255', alpha: 0.22 },
+    swampleviathan: { name: '☠️ Toxic Swamp',   tint: '40, 90, 20',   alpha: 0.26 },
   };
   const weatherParts = [];
   function drawPetWeather(time, dt) {
@@ -6089,7 +6130,31 @@
           ctx.quadraticCurveTo(bx + sw + 8, H - 100, bx + 25, H); ctx.fill();
         }
         break;
-      case 'kitsune': { // a huge glowing moon, paper lanterns floating up and foxfire
+      case 'stormbison': { // dark storm clouds, lightning bolts striking and wind streaks (no rain)
+        ctx.fillStyle = 'rgba(33, 37, 41, 0.55)';
+        for (let k = 0; k < 9; k++) { const cx = ((k * 140 + time * 18) % (W + 200)) - 100; ctx.beginPath(); ctx.arc(cx, 10 + (k % 3) * 14, 60, 0, Math.PI * 2); ctx.fill(); }
+        if (chance(0.8)) add({ kind: 'bolt', x: Math.random() * W, y: H * (0.4 + Math.random() * 0.5), life: 0.35 });
+        if (chance(5)) add({ kind: 'wind', x: -150, y: Math.random() * H, vx: 600 + Math.random() * 300, life: 2 });
+        break;
+      }
+      case 'ancientmammoth': { // frost creeping in, icicles hanging from the top, aurora ribbons and cold mist
+        for (let b = 0; b < 3; b++) {
+          ctx.strokeStyle = `hsla(${150 + b * 40}, 100%, 70%, 0.3)`; ctx.lineWidth = 22;
+          ctx.beginPath(); for (let x = 0; x <= W; x += 30) ctx.lineTo(x, 60 + b * 26 + Math.sin(x / 120 + time * 0.8 + b) * 18); ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(231, 245, 255, 0.85)';
+        for (let x = 10; x < W; x += 34) { const h = 18 + ((x * 7) % 26); ctx.beginPath(); ctx.moveTo(x - 7, 0); ctx.lineTo(x, h); ctx.lineTo(x + 7, 0); ctx.fill(); }
+        if (chance(1)) add({ kind: 'mist', x: -150, y: Math.random() * H, vx: 40 + Math.random() * 30, life: 14, size: 80 + Math.random() * 80 });
+        if (chance(3)) add({ kind: 'twinkle', x: Math.random() * W, y: Math.random() * H, life: 1.5 });
+        break;
+      }
+      case 'swampleviathan': { // green fog rolling, toxic bubbles rising from the bottom and glowing swamp lights
+        if (chance(1.5)) add({ kind: 'fog', x: -200, y: H * (0.3 + Math.random() * 0.7), vx: 30 + Math.random() * 30, life: 16, size: 100 + Math.random() * 90 });
+        if (chance(9)) add({ kind: 'bubble', x: Math.random() * W, y: H + 10, vx: 0, vy: -40 - Math.random() * 40, life: 10, size: 2 + Math.random() * 6, color: 'rgba(182, 255, 63, 0.7)' });
+        if (chance(3)) add({ kind: 'swamplight', x: Math.random() * W, y: H * (0.3 + Math.random() * 0.7), life: 3 });
+        break;
+      }
+      case 'cosmicstag': { // a huge glowing moon, paper lanterns floating up and foxfire
         const mx = W * 0.82, my = H * 0.16;
         glow(mx, my, 150, '255, 243, 191', 0.45);
         ctx.fillStyle = 'rgba(255, 249, 219, 0.9)'; ctx.beginPath(); ctx.arc(mx, my, 42, 0, Math.PI * 2); ctx.fill();
@@ -6144,7 +6209,25 @@
         }
         case 'wisp': glow(p.x + Math.sin(time * 2 + i) * 12, p.y, 12, '120, 240, 255', 0.8);
           ctx.fillStyle = '#e3fafc'; ctx.beginPath(); ctx.arc(p.x + Math.sin(time * 2 + i) * 12, p.y, 2.5, 0, Math.PI * 2); ctx.fill(); break;
-        case 'bubble': ctx.strokeStyle = 'rgba(165, 216, 255, 0.7)'; ctx.lineWidth = 1.2;
+        case 'bolt': { // a lightning strike from the sky with a flash
+          let bx = p.x + (Math.random() - 0.5) * 30, by = -10;
+          ctx.strokeStyle = '#e7f5ff'; ctx.lineWidth = 3; ctx.shadowColor = '#74c0fc'; ctx.shadowBlur = 16;
+          ctx.beginPath(); ctx.moveTo(bx, by);
+          while (by < p.y) { bx += (Math.random() - 0.5) * 50; by += 30 + Math.random() * 30; ctx.lineTo(bx, Math.min(by, p.y)); }
+          ctx.stroke(); ctx.shadowBlur = 0;
+          ctx.fillStyle = `rgba(200, 220, 255, ${0.12 * a})`; ctx.fillRect(0, 0, W, H);
+          break;
+        }
+        case 'wind': ctx.strokeStyle = 'rgba(222, 226, 230, 0.5)'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - 120, p.y + 6); ctx.stroke(); break;
+        case 'fog': {
+          ctx.globalAlpha = a * 0.35;
+          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+          g.addColorStop(0, '#94d82d'); g.addColorStop(1, 'rgba(148, 216, 45, 0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); break;
+        }
+        case 'swamplight': glow(p.x + Math.sin(time * 2 + i) * 10, p.y, 12, '180, 255, 80', 0.8 * Math.sin(p.t / p.life * Math.PI)); break;
+        case 'bubble': ctx.strokeStyle = p.color || 'rgba(165, 216, 255, 0.7)'; ctx.lineWidth = 1.2;
           ctx.beginPath(); ctx.arc(p.x + Math.sin(time * 2 + i) * 5, p.y, p.size, 0, Math.PI * 2); ctx.stroke(); break;
         case 'lantern': { // a glowing paper lantern drifting up
           const x = p.x + Math.sin(time + i) * 10;

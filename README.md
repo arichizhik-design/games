@@ -107,10 +107,14 @@ A multiplayer browser game where every player runs their own ice cream stand in 
     (🐉 Infinity Dragon +3,000%, the best pet: a 1% chance from the Infinity Block).
   - 🐲 **Mythic Beasts Block** ($2B, always there) with its own beasts: 🐻 Void Bear and 🦊 Crystal Fox (Legendary),
     🦁 Solar Lion and 🦏 Metal Rhino (Mythic), 🦈 Galaxy Shark and 🐅 Spirit Tiger (Secret), 🐙 Void Kraken
-    (Celestial, 4%), and the best pet in the game, the **🦊 Celestial Kitsune** (new Astral rarity, +10,000%, 0.5%):
-    a magical fox spirit with nine glowing tails that wave and flare, a crescent moon behind it, foxfire flames circling
-    it, a glowing magic circle under it and falling star sparkles. (Anyone who had the Chaos Hydra or the Glitch
-    Manticore got a Celestial Kitsune.)
+    (Celestial, 4%), and the 4 **Astral** beasts (new Astral rarity, 0.5% together), from good to best:
+    🐊 **Swamp Leviathan** (+7,000%, a bubbling toxic swamp and green mist), 🦣 **Ancient Mammoth** (+8,500%, an aurora,
+    circling ice crystals and a freezing stomp), 🦬 **Storm Bison** (+10,000%, its own thundercloud with lightning
+    striking it) and the best pet in the game, the 🦌 **Cosmic Stag** (+12,000%, star-tipped antlers, a constellation
+    circling it, star footprints and starbursts). (Owners of the old best beasts got a Cosmic Stag.)
+  - Every regular pet is painted too, like the beasts: Fire Fox flames, Ice Penguin frost, Night Owl and Galaxy Lion
+    stars, Kraken waves, Lava Rex lava, Thunder Shark lightning, Angel Dove gold, Dragon King chrome, Infinity Dragon
+    rainbow. The cute Common pets keep some of their own colors.
     (The Lava Golem left the game; anyone who had one got a Void Kraken.)
   - The beasts and the 4 cooler pets are painted like their element, not plain emojis: crystal facets (Crystal Fox,
     Frost Dragon, Ice Phoenix), flames (Solar Lion), void cracks (Void Bear), chrome plates (Metal Rhino), a galaxy
@@ -119,7 +123,8 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   - **⛅ Weather events:** each Mythic Beast has its own weather. Only admins start them (the weather picker in the
     admin panel, or `/weather spirit`, `/weather moonlit` … and `/weather off`), and everyone in the park sees it for
     3 minutes. Several can play at once (tap more than one). A random one also starts by itself every 20 to 40 minutes: Void Bear 🌌 Void Storm, Crystal Fox 💎 Crystal Breeze, Solar Lion ☀️ Heat Wave, Metal Rhino ⚙️ Iron Storm,
-    Galaxy Shark 🌠 Starry Night, Spirit Tiger 👻 Spirit Mist, Void Kraken 🌊 Abyss Tide, Celestial Kitsune 🌙 Moonlit Night.
+    Galaxy Shark 🌠 Starry Night, Spirit Tiger 👻 Spirit Mist, Void Kraken 🌊 Abyss Tide, Swamp Leviathan ☠️ Toxic Swamp, Ancient Mammoth 🧊 Ice Age, Storm Bison ⛈️ Thunderstorm,
+    Cosmic Stag 🌙 Moonlit Night.
   - **⬆️ Pet Upgrade Shop** (the button under My Pets): pay money to power up a kind of pet you own. Each level makes it
     give 25% more of its own boost, up to level 10 (level 0 = how it was). Upgrades count for every copy of that pet.
   - Press **🐾 My Pets** to see every pet you have (each one gets its own card) and pick which ones follow you.
