@@ -125,9 +125,9 @@
     { id: 'voidkraken',  name: 'Void Kraken',  emoji: '🐙', rarity: 'celestial', boost: 11,  fx: 'voidkraken',  kind: 'swim', block: 'beasts' },
     // 🌙 the 4 Astral beasts (0.5% together), from good to best
     { id: 'swampleviathan', name: 'Swamp Leviathan', emoji: '🐊', rarity: 'astral', boost: 70,  fx: 'swampleviathan', kind: 'walk', block: 'beasts' },
-    { id: 'ancientmammoth', name: 'Ancient Mammoth', emoji: '🦣', rarity: 'astral', boost: 85,  fx: 'ancientmammoth', kind: 'walk', block: 'beasts' },
+    { id: 'cosmicstag',     name: 'Cosmic Stag',     emoji: '🦌', rarity: 'astral', boost: 85,  fx: 'cosmicstag',     kind: 'walk', block: 'beasts' },
     { id: 'stormbison',     name: 'Storm Bison',     emoji: '🦬', rarity: 'astral', boost: 100, fx: 'stormbison',     kind: 'walk', block: 'beasts' },
-    { id: 'cosmicstag',     name: 'Cosmic Stag',     emoji: '🦌', rarity: 'astral', boost: 120, fx: 'cosmicstag',     kind: 'walk', block: 'beasts' }, // the best pet of all!
+    { id: 'ancientmammoth', name: 'Ancient Mammoth', emoji: '🦣', rarity: 'astral', boost: 120, fx: 'ancientmammoth', kind: 'walk', block: 'beasts' }, // the best pet of all!
   ];
   // 💰 Sell Shop: what a pet sells for, by rarity. Always less than the lucky block costs on average,
   // so buying blocks just to sell the pets never makes money.

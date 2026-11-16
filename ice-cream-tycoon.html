@@ -960,7 +960,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
           <button id="petShopClose" class="closeBtn">✕</button>
         </div>
         <p class="sub">Open a lucky block to get a random pet! Your pet follows you and makes every scoop worth more.
-          The best pet of all is the 🦌 Cosmic Stag from the Mythic Beasts Block.</p>
+          The best pet of all is the 🦣 Ancient Mammoth from the Mythic Beasts Block.</p>
         <p id="petsFullNote" class="sub hidden"><b>🐾 Your pets are full!</b> Open 🐾 My Pets and tap “Let go” on pets you don't want to make room.</p>
         <div id="blockList"></div>
       </div>
@@ -1306,9 +1306,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     { id: 'voidkraken',  name: 'Void Kraken',  emoji: '🐙', rarity: 'celestial', boost: 11,  fx: 'voidkraken',  kind: 'swim', block: 'beasts' },
     // 🌙 the 4 Astral beasts (0.5% together), from good to best
     { id: 'swampleviathan', name: 'Swamp Leviathan', emoji: '🐊', rarity: 'astral', boost: 70,  fx: 'swampleviathan', kind: 'walk', block: 'beasts' },
-    { id: 'ancientmammoth', name: 'Ancient Mammoth', emoji: '🦣', rarity: 'astral', boost: 85,  fx: 'ancientmammoth', kind: 'walk', block: 'beasts' },
+    { id: 'cosmicstag',     name: 'Cosmic Stag',     emoji: '🦌', rarity: 'astral', boost: 85,  fx: 'cosmicstag',     kind: 'walk', block: 'beasts' },
     { id: 'stormbison',     name: 'Storm Bison',     emoji: '🦬', rarity: 'astral', boost: 100, fx: 'stormbison',     kind: 'walk', block: 'beasts' },
-    { id: 'cosmicstag',     name: 'Cosmic Stag',     emoji: '🦌', rarity: 'astral', boost: 120, fx: 'cosmicstag',     kind: 'walk', block: 'beasts' }, // the best pet of all!
+    { id: 'ancientmammoth', name: 'Ancient Mammoth', emoji: '🦣', rarity: 'astral', boost: 120, fx: 'ancientmammoth', kind: 'walk', block: 'beasts' }, // the best pet of all!
   ];
   // 💰 Sell Shop: what a pet sells for, by rarity. Always less than the lucky block costs on average,
   // so buying blocks just to sell the pets never makes money.
@@ -1723,7 +1723,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // the Glass Dragon became the Glass Wolf; the Shadow Wolf left the game, so its owners get a Rainbow Unicorn, also Epic)
   const RENAMED_PETS = { hydra: 'cyberwhale', glassbutterfly: 'glasscobra', glassfrog: 'glassleopard', glassdeer: 'glassrhino',
     glassflamingo: 'glassbear', glassgiraffe: 'glasscroc', glassswan: 'glasssquid', glasspeacock: 'glasswolf',
-    glassdragon: 'glasswolf', wolf: 'unicorn', lavagolem: 'voidkraken', chaoshydra: 'cosmicstag', glitchmanticore: 'cosmicstag', kitsune: 'cosmicstag' }; // the Lava Golem left; the best beast became the Cosmic Stag
+    glassdragon: 'glasswolf', wolf: 'unicorn', lavagolem: 'voidkraken', chaoshydra: 'ancientmammoth', glitchmanticore: 'ancientmammoth', kitsune: 'ancientmammoth' }; // the Lava Golem left; the best beast is now the Ancient Mammoth
   const renamedPet = id => RENAMED_PETS[id] || id;
   const bundleEvents = b => [...Object.keys(b.items), ...Object.keys(b.pets)].map(eventOf).filter(Boolean);
   function hideLook(avatar, look) {
@@ -6275,7 +6275,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         break;
       }
       case 'cosmicstag': {
-        // 🦌 Cosmic Stag, the best pet: a galaxy glow, a constellation circling it, star footprints and a starburst
+        // 🦌 Cosmic Stag: a galaxy glow, a constellation circling it, star footprints and a starburst
         glow(x, y - 12, 62, '120, 80, 255', 0.5);
         glow(x, y - 12, 30, '220, 210, 255', 0.4);
         const pts = [];
@@ -6311,7 +6311,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         break;
       }
       case 'ancientmammoth': {
-        // 🦣 Ancient Mammoth: an aurora over it, ice crystals circling it, frost under its feet and a freezing stomp
+        // 🦣 Ancient Mammoth, the best pet: an aurora over it, ice crystals circling it, frost under its feet and a freezing stomp
         for (let b = 0; b < 3; b++) {
           ctx.strokeStyle = `hsla(${150 + b * 40}, 100%, 70%, 0.45)`; ctx.lineWidth = 6;
           ctx.beginPath(); for (let k = -40; k <= 40; k += 8) ctx.lineTo(x + k, y - 58 - b * 7 + Math.sin(k / 12 + time * 2 + b) * 5); ctx.stroke();

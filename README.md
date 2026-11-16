@@ -108,10 +108,10 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   - 🐲 **Mythic Beasts Block** ($2B, always there) with its own beasts: 🐻 Void Bear and 🦊 Crystal Fox (Legendary),
     🦁 Solar Lion and 🦏 Metal Rhino (Mythic), 🦈 Galaxy Shark and 🐅 Spirit Tiger (Secret), 🐙 Void Kraken
     (Celestial, 4%), and the 4 **Astral** beasts (new Astral rarity, 0.5% together), from good to best:
-    🐊 **Swamp Leviathan** (+7,000%, a bubbling toxic swamp and green mist), 🦣 **Ancient Mammoth** (+8,500%, an aurora,
-    circling ice crystals and a freezing stomp), 🦬 **Storm Bison** (+10,000%, its own thundercloud with lightning
-    striking it) and the best pet in the game, the 🦌 **Cosmic Stag** (+12,000%, star-tipped antlers, a constellation
-    circling it, star footprints and starbursts). (Owners of the old best beasts got a Cosmic Stag.)
+    🐊 **Swamp Leviathan** (+7,000%, a bubbling toxic swamp and green mist), 🦌 **Cosmic Stag** (+8,500%, star-tipped
+    antlers, a constellation circling it, star footprints and starbursts), 🦬 **Storm Bison** (+10,000%, its own
+    thundercloud with lightning striking it) and the best pet in the game, the 🦣 **Ancient Mammoth** (+12,000%, an
+    aurora, circling ice crystals and a freezing stomp).
   - Every regular pet is painted too, like the beasts: Fire Fox flames, Ice Penguin frost, Night Owl and Galaxy Lion
     stars, Kraken waves, Lava Rex lava, Thunder Shark lightning, Angel Dove gold, Dragon King chrome, Infinity Dragon
     rainbow. The cute Common pets keep some of their own colors.

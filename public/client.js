@@ -3393,7 +3393,7 @@
         break;
       }
       case 'cosmicstag': {
-        // 🦌 Cosmic Stag, the best pet: a galaxy glow, a constellation circling it, star footprints and a starburst
+        // 🦌 Cosmic Stag: a galaxy glow, a constellation circling it, star footprints and a starburst
         glow(x, y - 12, 62, '120, 80, 255', 0.5);
         glow(x, y - 12, 30, '220, 210, 255', 0.4);
         const pts = [];
@@ -3429,7 +3429,7 @@
         break;
       }
       case 'ancientmammoth': {
-        // 🦣 Ancient Mammoth: an aurora over it, ice crystals circling it, frost under its feet and a freezing stomp
+        // 🦣 Ancient Mammoth, the best pet: an aurora over it, ice crystals circling it, frost under its feet and a freezing stomp
         for (let b = 0; b < 3; b++) {
           ctx.strokeStyle = `hsla(${150 + b * 40}, 100%, 70%, 0.45)`; ctx.lineWidth = 6;
           ctx.beginPath(); for (let k = -40; k <= 40; k += 8) ctx.lineTo(x + k, y - 58 - b * 7 + Math.sin(k / 12 + time * 2 + b) * 5); ctx.stroke();
