@@ -1345,7 +1345,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   // ---------- 🔮 Glass Event (online: admins only until it drops) ----------
   // Everything is made of glass: see-through, with rainbow light bending through it and sparkles.
   // GLASS_EVENT dates: none yet = on for testing (only admins can see it online); set them when it drops.
-  const GLASS_EVENT = { start: Date.UTC(2026, 10, 15), end: Date.UTC(2026, 10, 22) }; // Nov 15 to Nov 22, 2026
+  // the big drop: Nov 16 to Nov 23, 2026. The Mythic Beasts Block and the Pet Upgrade Shop come out with it and stay for good.
+  const GLASS_EVENT = { start: Date.UTC(2026, 10, 16, 12), end: Date.UTC(2026, 10, 23, 12) };
   FLAVORS.push({ id: 'glassice', name: 'Glass Ice Cream', rarity: 'glass', price: 30000, cost: 60e6, color: '#e7f5ff', effect: 'glass', event: 'glass' });
   // the Glass Block's own pets: new animals made of glass (no other block gives them)
   PETS.push(
@@ -1361,7 +1362,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   LUCKY_BLOCKS.push({ id: 'glass', name: 'Glass Block', cost: 1.2e9, color: 'glass', event: 'glass', ownPets: true,
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Squid 2% each
   // 🐲 Mythic Beasts Block: its own beasts, always in the Pet Shop (the last and most expensive block)
-  LUCKY_BLOCKS.push({ id: 'beasts', name: 'Mythic Beasts Block', cost: 2e9, color: 'beasts', ownPets: true,
+  LUCKY_BLOCKS.push({ id: 'beasts', name: 'Mythic Beasts Block', cost: 2e9, color: 'beasts', ownPets: true, drop: 'glass',
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, chaos: 0.5 } });
   // 🔮 Glass Pass: sell scoops during the Glass Event to unlock prizes (the bottom row needs the Premium Glass Pass)
   const GLASS_PASS = {
@@ -1891,6 +1892,9 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // 🔮 the Glass Event: before it has dates it's on for testing (only admins can see it online until it drops)
     let glassOverride = null;
     const glassOn = () => glassOverride ?? (GLASS_EVENT.start ? Date.now() >= GLASS_EVENT.start && Date.now() < GLASS_EVENT.end : true);
+    // 🐲 the Mythic Beasts Block and the ⬆️ Pet Upgrade Shop came out with the Glass Event drop and stay after it ends
+    // (admins can see them early while they turn the event on with /glass on)
+    const dropped = s => Date.now() >= GLASS_EVENT.start || (glassOn() && sees(s, 'glass'));
     const eventOn = ev => ev === 'glass' ? glassOn() : cyberOn();
     let glassStormNext = 15 * 60; // Glass Storms: like Cyber Storms, the first one 15 minutes after the server starts
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
@@ -2447,6 +2451,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         if (!b || (b.event && !sees(stand, b.event))) return;
         if (!near(PET_SHOP)) return err('Walk to the Pet Shop to buy lucky blocks.');
         if (b.event && !eventOn(b.event)) return err(`The event is over, so the ${b.name} is gone!`);
+        if (b.drop && !dropped(stand)) return err(`The ${b.name} isn't out yet!`);
         if (stand.money < b.cost) return err('Not enough money!');
         if (stand.pets.length >= MAX_PETS) return err(`You have too many pets (the most is ${MAX_PETS}).`);
         stand.money -= b.cost;
@@ -2577,6 +2582,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       } else if (msg.type === 'upgradePet') {
         // ⬆️ Pet Upgrade Shop: pay to make a kind of pet you own boost your money more
         const pet = petById[msg.pet];
+        if (!dropped(stand)) return err("The Pet Upgrade Shop isn't open yet!");
         if (!pet || !stand.pets.includes(pet.id)) return err('You need that pet first!');
         const lvl = stand.petLevels[pet.id] || 0;
         if (lvl >= PET_MAX_LEVEL) return err(`${pet.name} is already at the top level!`);
@@ -2820,7 +2826,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
   <script>window.SOLO = true;</script>
   <script>
 (() => {
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
+  const { GLASS_EVENT, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
     CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, PET_SELL, sellPrice, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
@@ -4067,6 +4073,8 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 
   // ⚡ the launch moment: once per visit, when the event is on (or the moment it starts)
   let launchShown = false, glassLaunchShown = false;
+  // 🐲 the Mythic Beasts Block and the Pet Upgrade Shop come out with the Glass Event drop and stay after
+  const droppedNow = () => Date.now() >= GLASS_EVENT.start || glassIsOn();
   function showCyberLaunch(ev = 'cyber') {
     if (ev === 'glass') glassLaunchShown = true; else launchShown = true;
     const el = $('cyberLaunch');
@@ -4075,7 +4083,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const title = el.querySelector('.clTitle');
     title.textContent = title.dataset.text = glass ? '🔮 THE GLASS EVENT IS HERE! 🔮' : '⚡ CYBER EVENT IS HERE! ⚡';
     el.querySelector('.clSub').textContent = glass
-      ? `Glass Block · Glass Wolf · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
+      ? `NEW: 🐲 Mythic Beasts Block · ⬆️ Pet Upgrade Shop · Glass Block · Glass Wolf · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
       : `Cyber Block · Cyber Whale · Robo Ice Cream · Cyber Storms · Robo customers pay x2 · ${evEnds('cyber')}`;
     el.classList.remove('hidden');
     clearTimeout(showCyberLaunch.t);
@@ -4095,6 +4103,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     const today = Math.floor(Date.now() / 86400e3), meNow = me();
     $('dailyGiftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
     $('glassPassBtn').classList.toggle('hidden', !glassIsOn());
+    $('petUpBtn').classList.toggle('hidden', !droppedNow());
     $('glassGiftBtn').classList.toggle('hidden', !glassIsOn() || !meNow || meNow.glassGiftDay === today);
     if (openWindow === 'pass') { if (evOn(passEv)) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
@@ -4141,6 +4150,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
       btn.disabled = s.money < b.cost || full;
       btn.textContent = full ? 'Pets full' : fmt(b.cost);
       btn.title = full ? `You have ${MAX_PETS} pets, the most you can have. Let some go in 🐾 My Pets to make room.` : '';
+      if (b.drop) b.row.classList.toggle('hidden', !droppedNow());
       // event blocks are only in the shop while their event is on
       if (b.event) {
         b.row.classList.toggle('hidden', !evOn(b.event));

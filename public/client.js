@@ -1,5 +1,5 @@
 (() => {
-  const { RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
+  const { GLASS_EVENT, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, spaceCost, MUTATIONS,
     MUTATION_CHANCE, HOTBAR_SIZE, STORAGE_SIZE, AVATAR, SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, spacesPerBuy,
     CYBER, CYBER_ADMINS_ONLY, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_PASS, SHARD_SCOOPS, SHARD_WEEKLY, MAX_STACK, PET_SELL, sellPrice, GAME_PASSES, ICE_CREAM_PRICES, shopCost } = window.GameData;
   const { SHOP, AVATAR_SHOP, PET_SHOP, SELL_SHOP, REACH, MAX_WORN, chestPos, tubPos } = window.Engine;
@@ -1246,6 +1246,8 @@
 
   // ⚡ the launch moment: once per visit, when the event is on (or the moment it starts)
   let launchShown = false, glassLaunchShown = false;
+  // 🐲 the Mythic Beasts Block and the Pet Upgrade Shop come out with the Glass Event drop and stay after
+  const droppedNow = () => Date.now() >= GLASS_EVENT.start || glassIsOn();
   function showCyberLaunch(ev = 'cyber') {
     if (ev === 'glass') glassLaunchShown = true; else launchShown = true;
     const el = $('cyberLaunch');
@@ -1254,7 +1256,7 @@
     const title = el.querySelector('.clTitle');
     title.textContent = title.dataset.text = glass ? '🔮 THE GLASS EVENT IS HERE! 🔮' : '⚡ CYBER EVENT IS HERE! ⚡';
     el.querySelector('.clSub').textContent = glass
-      ? `Glass Block · Glass Wolf · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
+      ? `NEW: 🐲 Mythic Beasts Block · ⬆️ Pet Upgrade Shop · Glass Block · Glass Wolf · Glass Ice Cream · Glass Storms · glass customers pay x2 · Glass Pass · ${evEnds('glass')}`
       : `Cyber Block · Cyber Whale · Robo Ice Cream · Cyber Storms · Robo customers pay x2 · ${evEnds('cyber')}`;
     el.classList.remove('hidden');
     clearTimeout(showCyberLaunch.t);
@@ -1274,6 +1276,7 @@
     const today = Math.floor(Date.now() / 86400e3), meNow = me();
     $('dailyGiftBtn').classList.toggle('hidden', !cyberIsOn() || !meNow || meNow.giftDay === today);
     $('glassPassBtn').classList.toggle('hidden', !glassIsOn());
+    $('petUpBtn').classList.toggle('hidden', !droppedNow());
     $('glassGiftBtn').classList.toggle('hidden', !glassIsOn() || !meNow || meNow.glassGiftDay === today);
     if (openWindow === 'pass') { if (evOn(passEv)) updatePass(); else closeWindows(); }
     if (openWindow === 'store') updateStore();
@@ -1320,6 +1323,7 @@
       btn.disabled = s.money < b.cost || full;
       btn.textContent = full ? 'Pets full' : fmt(b.cost);
       btn.title = full ? `You have ${MAX_PETS} pets, the most you can have. Let some go in 🐾 My Pets to make room.` : '';
+      if (b.drop) b.row.classList.toggle('hidden', !droppedNow());
       // event blocks are only in the shop while their event is on
       if (b.event) {
         b.row.classList.toggle('hidden', !evOn(b.event));

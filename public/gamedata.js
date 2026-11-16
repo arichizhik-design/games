@@ -172,7 +172,8 @@
   // ---------- 🔮 Glass Event (online: admins only until it drops) ----------
   // Everything is made of glass: see-through, with rainbow light bending through it and sparkles.
   // GLASS_EVENT dates: none yet = on for testing (only admins can see it online); set them when it drops.
-  const GLASS_EVENT = { start: Date.UTC(2026, 10, 15), end: Date.UTC(2026, 10, 22) }; // Nov 15 to Nov 22, 2026
+  // the big drop: Nov 16 to Nov 23, 2026. The Mythic Beasts Block and the Pet Upgrade Shop come out with it and stay for good.
+  const GLASS_EVENT = { start: Date.UTC(2026, 10, 16, 12), end: Date.UTC(2026, 10, 23, 12) };
   FLAVORS.push({ id: 'glassice', name: 'Glass Ice Cream', rarity: 'glass', price: 30000, cost: 60e6, color: '#e7f5ff', effect: 'glass', event: 'glass' });
   // the Glass Block's own pets: new animals made of glass (no other block gives them)
   PETS.push(
@@ -188,7 +189,7 @@
   LUCKY_BLOCKS.push({ id: 'glass', name: 'Glass Block', cost: 1.2e9, color: 'glass', event: 'glass', ownPets: true,
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, glass: 0.5 } }); // Elephant and Squid 2% each
   // 🐲 Mythic Beasts Block: its own beasts, always in the Pet Shop (the last and most expensive block)
-  LUCKY_BLOCKS.push({ id: 'beasts', name: 'Mythic Beasts Block', cost: 2e9, color: 'beasts', ownPets: true,
+  LUCKY_BLOCKS.push({ id: 'beasts', name: 'Mythic Beasts Block', cost: 2e9, color: 'beasts', ownPets: true, drop: 'glass',
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, chaos: 0.5 } });
   // 🔮 Glass Pass: sell scoops during the Glass Event to unlock prizes (the bottom row needs the Premium Glass Pass)
   const GLASS_PASS = {

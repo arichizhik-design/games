@@ -331,6 +331,9 @@
     // 🔮 the Glass Event: before it has dates it's on for testing (only admins can see it online until it drops)
     let glassOverride = null;
     const glassOn = () => glassOverride ?? (GLASS_EVENT.start ? Date.now() >= GLASS_EVENT.start && Date.now() < GLASS_EVENT.end : true);
+    // 🐲 the Mythic Beasts Block and the ⬆️ Pet Upgrade Shop came out with the Glass Event drop and stay after it ends
+    // (admins can see them early while they turn the event on with /glass on)
+    const dropped = s => Date.now() >= GLASS_EVENT.start || (glassOn() && sees(s, 'glass'));
     const eventOn = ev => ev === 'glass' ? glassOn() : cyberOn();
     let glassStormNext = 15 * 60; // Glass Storms: like Cyber Storms, the first one 15 minutes after the server starts
     const trades = new Map();     // trade offers waiting for an answer: id -> { id, from, to, give, get, left }
@@ -887,6 +890,7 @@
         if (!b || (b.event && !sees(stand, b.event))) return;
         if (!near(PET_SHOP)) return err('Walk to the Pet Shop to buy lucky blocks.');
         if (b.event && !eventOn(b.event)) return err(`The event is over, so the ${b.name} is gone!`);
+        if (b.drop && !dropped(stand)) return err(`The ${b.name} isn't out yet!`);
         if (stand.money < b.cost) return err('Not enough money!');
         if (stand.pets.length >= MAX_PETS) return err(`You have too many pets (the most is ${MAX_PETS}).`);
         stand.money -= b.cost;
@@ -1017,6 +1021,7 @@
       } else if (msg.type === 'upgradePet') {
         // ⬆️ Pet Upgrade Shop: pay to make a kind of pet you own boost your money more
         const pet = petById[msg.pet];
+        if (!dropped(stand)) return err("The Pet Upgrade Shop isn't open yet!");
         if (!pet || !stand.pets.includes(pet.id)) return err('You need that pet first!');
         const lvl = stand.petLevels[pet.id] || 0;
         if (lvl >= PET_MAX_LEVEL) return err(`${pet.name} is already at the top level!`);

@@ -172,10 +172,11 @@ Robo customers that pay x2, and a 🎁 Daily Gift (a free Gold Block, the Cyber 
   tubs get smaller so they all fit.
 - Admins can test the event with `/cyber off`, `/cyber on` and `/cyber auto` (back to the calendar).
 
-## 🔮 Glass Event (live for everyone: Nov 15 to Nov 22, 2026)
+## 🔮 Glass Event (live for everyone: Nov 16 to Nov 23, 2026)
 
 Everything is made of glass: see-through, with rainbow light bending through it and sparkles. It dropped for everyone on
-November 15, 2026 and lasts a week (`GLASS_EVENT` in `public/gamedata.js`). To hide it from regular players again, set
+November 16, 2026 and lasts a week (`GLASS_EVENT` in `public/gamedata.js`). The 🐲 Mythic Beasts Block and the
+⬆️ Pet Upgrade Shop came out with the drop and stay after the event ends. To hide it from regular players again, set
 `GLASS=admins` on the server. Admins can turn it on or off with `/glass on`, `/glass off` or `/glass auto`.
 
 - **Glass Block** in the Pet Shop ($1.2B) with its own glass pets: 🐍 Glass Cobra and 🐆 Glass Leopard (Legendary),
