@@ -10,6 +10,8 @@
   const petById = Object.fromEntries(PETS.map(p => [p.id, p]));
   // admin toppings are so big they show as x1,000 instead of +99900%
   const pct = n => n >= 99 ? `x${Math.round(n + 1).toLocaleString('en-US')}` : `+${Math.round(n * 100)}%`;
+  // pets always show as +N%, so a bigger boost always looks bigger (the Kitsune's +10,000% beats +1,100%)
+  const petPct = n => `+${Math.round(n * 100).toLocaleString('en-US')}%`;
 
   const canvas = document.getElementById('canvas');
   let ctx = canvas.getContext('2d');
@@ -398,7 +400,7 @@
       }
       case 'petUpgraded': {
         const p = petById[msg.pet];
-        toast(`⬆️ ${p.name} is now level ${msg.level}! It gives ${pct(petBoostAt(p, msg.level))} money.`);
+        toast(`⬆️ ${p.name} is now level ${msg.level}! It gives ${petPct(petBoostAt(p, msg.level))} money.`);
         confetti(player.x, player.y - 30, 16);
         break;
       }
@@ -1349,7 +1351,7 @@
   function revealPet(msg) {
     const pet = petById[msg.pet];
     const show = msg.show || { icon: petIcon(pet), name: pet.name, rarity: RARITIES[pet.rarity], rarityId: pet.rarity,
-      line: `${pct(pet.boost)} money from every scoop` + (msg.equipped ? ' · it\'s following you now!' : '') };
+      line: `${petPct(pet.boost)} money from every scoop` + (msg.equipped ? ' · it\'s following you now!' : '') };
     const r = show.rarity;
     const block = LUCKY_BLOCKS.find(b => b.id === msg.block);
     const el = $('revealBlock');
@@ -1531,7 +1533,7 @@
     petsKey = key;
     const boost = worn.reduce((sum, id) => sum + petPower(s, id), 0);
     $('petsSub').textContent = `You have ${s.pets.length}/${MAX_PETS} pets. Wearing ${worn.length}/${MAX_WORN}` +
-      (worn.length ? `: they give you ${pct(boost)} money from every scoop!` : '. Tap Wear on a pet, or press Equip Best.') +
+      (worn.length ? `: they give you ${petPct(boost)} money from every scoop!` : '. Tap Wear on a pet, or press Equip Best.') +
       (s.pets.length ? '' : ' Get pets from lucky blocks at the 🐾 Pet Shop.');
     $('equipBestBtn').disabled = !s.pets.length;
     const list = $('petsList');
@@ -1548,7 +1550,7 @@
       card.className = 'petCard' + (on ? ' equipped' : '');
       card.innerHTML = `<div class="petEmoji">${petIcon(p)}</div><div class="name">${p.name}</div>
         <span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
-        <div class="boost">${pct(petPower(s, id))} money${s.petLevels?.[id] ? ` · ⬆️ Lv ${s.petLevels[id]}` : ''}</div>
+        <div class="boost">${petPct(petPower(s, id))} money${s.petLevels?.[id] ? ` · ⬆️ Lv ${s.petLevels[id]}` : ''}</div>
         <button type="button">${on ? 'Take off' : 'Wear'}</button>
         <button type="button" class="letGo">Let go</button>`;
       card.querySelector('.letGo').addEventListener('click', () => {
@@ -1591,7 +1593,7 @@
       row.innerHTML = `<div class="petEmoji">${petIcon(p)}</div>
         <div class="info"><div class="name">${p.name} <span class="lvl">Lv ${lvl}</span></div>
           <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
-            <span class="boost">${pct(petBoostAt(p, lvl))}${max ? ' (max!)' : ` → ${pct(petBoostAt(p, lvl + 1))}`} money</span></div>
+            <span class="boost">${petPct(petBoostAt(p, lvl))}${max ? ' (max!)' : ` → ${petPct(petBoostAt(p, lvl + 1))}`} money</span></div>
           <div class="stars">${'★'.repeat(lvl)}${'☆'.repeat(PET_MAX_LEVEL - lvl)}</div></div>
         <button type="button">${max ? 'MAX' : '⬆️ ' + fmt(cost)}</button>`;
       const btn = row.querySelector('button');
@@ -1622,7 +1624,7 @@
       row.innerHTML = `<div class="petEmoji">${petIcon(p)}</div>
         <div class="info"><div class="name">${p.name}</div>
           <div class="meta"><span class="badge ${p.rarity}" style="background-color:${r.color}">${r.name}</span>
-            <span class="boost">${pct(p.boost)} money</span></div></div>`;
+            <span class="boost">${petPct(p.boost)} money</span></div></div>`;
       row.addEventListener('click', () => {
         adminPetPick = p.id;
         list.querySelectorAll('.petRow').forEach(x => x.classList.remove('picked'));
@@ -5919,6 +5921,155 @@
     ctx.globalAlpha = 1;
   }
 
+  // ⛅ pet weather: wearing a Mythic Beast brings its own weather to your screen (your best one if you wear a few)
+  const PET_WEATHER = {
+    voidbear:    { name: '🌌 Void Storm',    tint: '30, 0, 60',    alpha: 0.22 },
+    crystalfox:  { name: '💎 Crystal Breeze', tint: '200, 240, 255', alpha: 0.14 },
+    solarlion:   { name: '☀️ Heat Wave',      tint: '255, 170, 40',  alpha: 0.13 },
+    metalrhino:  { name: '⚙️ Iron Storm',     tint: '90, 100, 115',  alpha: 0.16 },
+    galaxyshark: { name: '🌠 Starry Night',   tint: '20, 10, 70',    alpha: 0.3 },
+    spirittiger: { name: '👻 Spirit Mist',    tint: '120, 230, 255', alpha: 0.14 },
+    voidkraken:  { name: '🌊 Abyss Tide',     tint: '20, 0, 50',     alpha: 0.28 },
+    kitsune:     { name: '🌙 Moonlit Night',  tint: '25, 15, 70',    alpha: 0.3 },
+  };
+  const weatherParts = [];
+  let weatherOn = null;
+  function drawPetWeather(time, dt) {
+    const s = me();
+    const worn = (s && s.worn || []).filter(id => PET_WEATHER[id]).sort((a, b) => petById[b].boost - petById[a].boost);
+    const id = worn[0], w = PET_WEATHER[id];
+    if (id !== weatherOn) { weatherOn = id; weatherParts.length = 0; }
+    if (!w) return;
+    const W = view.w, H = view.h, chance = k => Math.random() < dt * k, add = p => { if (weatherParts.length < 160) weatherParts.push({ t: 0, ...p }); };
+    ctx.save();
+    // the sky color, stronger at the edges
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.75);
+    v.addColorStop(0, `rgba(${w.tint}, ${w.alpha * 0.5})`); v.addColorStop(1, `rgba(${w.tint}, ${w.alpha * 1.6})`);
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+    switch (id) {
+      case 'voidbear': // void motes floating up, and purple cracks flashing at the edges
+        if (chance(10)) add({ kind: 'mote', x: Math.random() * W, y: H + 10, vx: (Math.random() - 0.5) * 20, vy: -30 - Math.random() * 40, life: 6, color: Math.random() < 0.5 ? '#da77f2' : '#000' });
+        if (chance(0.5)) add({ kind: 'crack', x: Math.random() < 0.5 ? Math.random() * 120 : W - Math.random() * 120, y: Math.random() * H, life: 0.5, seed: Math.random() * 9 });
+        break;
+      case 'crystalfox': // crystal shards drifting sideways and glinting
+        if (chance(10)) add({ kind: 'shard', x: Math.random() * W, y: Math.random() * H, vx: 50 + Math.random() * 60, vy: (Math.random() - 0.5) * 15, life: 20, hue: 185 + Math.random() * 25 });
+        break;
+      case 'solarlion': { // sun rays from the corner and heat shimmer
+        ctx.save(); ctx.translate(W, 0);
+        for (let k = 0; k < 7; k++) {
+          const a = Math.PI * 0.55 + k * 0.12 + Math.sin(time * 0.5 + k) * 0.02;
+          const g = ctx.createLinearGradient(0, 0, Math.cos(a) * H * 1.2, Math.sin(a) * H * 1.2);
+          g.addColorStop(0, 'rgba(255, 230, 120, 0.28)'); g.addColorStop(1, 'rgba(255, 230, 120, 0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(a - 0.04) * H * 1.2, Math.sin(a - 0.04) * H * 1.2); ctx.lineTo(Math.cos(a + 0.04) * H * 1.2, Math.sin(a + 0.04) * H * 1.2); ctx.fill();
+        }
+        ctx.restore();
+        glow(W, 0, 160, '255, 220, 100', 0.5);
+        if (chance(4)) add({ kind: 'heat', x: Math.random() * W, y: H * (0.4 + Math.random() * 0.6), life: 2.5 });
+        break;
+      }
+      case 'metalrhino': // metal sparks flying across, and spinning gears in the corners
+        if (chance(12)) add({ kind: 'spark', x: -10, y: Math.random() * H, vx: 250 + Math.random() * 200, vy: (Math.random() - 0.5) * 60, life: 4 });
+        for (const [gx, gy, r0, dir] of [[0, H, 70, 1], [W, H, 50, -1]]) {
+          ctx.save(); ctx.translate(gx, gy); ctx.rotate(time * 0.6 * dir); ctx.fillStyle = 'rgba(134, 142, 150, 0.45)';
+          ctx.beginPath();
+          for (let k = 0; k < 24; k++) { const a = k * Math.PI / 12, rr = k % 2 ? r0 : r0 * 1.18; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+          ctx.fill(); ctx.restore();
+        }
+        break;
+      case 'galaxyshark': // twinkling stars all over and shooting stars
+        if (chance(14)) add({ kind: 'twinkle', x: Math.random() * W, y: Math.random() * H, life: 2 });
+        if (chance(0.6)) add({ kind: 'shoot', x: Math.random() * W * 0.7, y: Math.random() * H * 0.4, life: 0.9 });
+        break;
+      case 'spirittiger': // ghostly mist rolling and spirit wisps rising
+        if (chance(1.2)) add({ kind: 'mist', x: -150, y: Math.random() * H, vx: 40 + Math.random() * 30, life: 14, size: 80 + Math.random() * 80 });
+        if (chance(7)) add({ kind: 'wisp', x: Math.random() * W, y: H + 10, vx: 0, vy: -40 - Math.random() * 30, life: 8 });
+        break;
+      case 'voidkraken': // rising bubbles and big tentacle shadows waving from the bottom
+        if (chance(10)) add({ kind: 'bubble', x: Math.random() * W, y: H + 10, vx: 0, vy: -50 - Math.random() * 50, life: 10, size: 2 + Math.random() * 6 });
+        ctx.fillStyle = 'rgba(40, 0, 70, 0.4)';
+        for (let k = 0; k < 4; k++) {
+          const bx = W * (0.1 + k * 0.27), sw = Math.sin(time * 1.2 + k * 1.7) * 40;
+          ctx.beginPath(); ctx.moveTo(bx - 25, H);
+          ctx.quadraticCurveTo(bx + sw, H - 110, bx + sw * 1.6, H - 170 - k * 10);
+          ctx.quadraticCurveTo(bx + sw + 8, H - 100, bx + 25, H); ctx.fill();
+        }
+        break;
+      case 'kitsune': { // a huge glowing moon, paper lanterns floating up and foxfire
+        const mx = W * 0.82, my = H * 0.16;
+        glow(mx, my, 150, '255, 243, 191', 0.45);
+        ctx.fillStyle = 'rgba(255, 249, 219, 0.9)'; ctx.beginPath(); ctx.arc(mx, my, 42, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(230, 220, 180, 0.6)';
+        for (const [dx, dy, rr] of [[-12, -8, 8], [10, 12, 6], [14, -14, 4]]) { ctx.beginPath(); ctx.arc(mx + dx, my + dy, rr, 0, Math.PI * 2); ctx.fill(); }
+        if (chance(1.5)) add({ kind: 'lantern', x: Math.random() * W, y: H + 20, vx: (Math.random() - 0.5) * 10, vy: -30 - Math.random() * 20, life: 25 });
+        if (chance(4)) add({ kind: 'foxfire', x: Math.random() * W, y: Math.random() * H, life: 2.5 });
+        break;
+      }
+    }
+    for (let i = weatherParts.length - 1; i >= 0; i--) {
+      const p = weatherParts[i];
+      p.t += dt;
+      if (p.vx) p.x += p.vx * dt;
+      if (p.vy) p.y += p.vy * dt;
+      if (p.t >= p.life || p.x > W + 200 || p.y < -40) { weatherParts.splice(i, 1); continue; }
+      const a = Math.min(1, p.t * 2, (p.life - p.t) * 2);
+      ctx.globalAlpha = a;
+      switch (p.kind) {
+        case 'mote': ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x + Math.sin(time + i) * 6, p.y, 2.5, 0, Math.PI * 2); ctx.fill();
+          if (p.color !== '#000') glow(p.x, p.y, 8, '218, 119, 242', 0.5); break;
+        case 'crack': {
+          ctx.strokeStyle = '#e599f7'; ctx.lineWidth = 2; ctx.shadowColor = '#be4bdb'; ctx.shadowBlur = 10;
+          let x = p.x, y = p.y; ctx.beginPath(); ctx.moveTo(x, y);
+          for (let k = 0; k < 5; k++) { x += Math.sin(p.seed + k * 2) * 25; y += 18; ctx.lineTo(x, y); }
+          ctx.stroke(); ctx.shadowBlur = 0; break;
+        }
+        case 'shard': glassShard(p.x, p.y + Math.sin(time * 2 + i) * 8, 6, time * 2 + i, p.hue, 0.9);
+          if (Math.sin(time * 5 + i) > 0.9) star(p.x, p.y, 6, '#ffffff'); break;
+        case 'heat': {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'; ctx.lineWidth = 2; ctx.beginPath();
+          for (let k = 0; k <= 8; k++) ctx.lineTo(p.x + k * 8, p.y - p.t * 20 + Math.sin(time * 8 + k) * 3);
+          ctx.stroke(); break;
+        }
+        case 'spark': ctx.strokeStyle = Math.random() < 0.5 ? '#ffd43b' : '#ffffff'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.04, p.y - p.vy * 0.04); ctx.stroke(); break;
+        case 'twinkle': star(p.x, p.y, 2 + 3 * Math.sin(p.t / p.life * Math.PI), Math.random() < 0.1 ? '#ffd43b' : '#ffffff'); break;
+        case 'shoot': {
+          const x = p.x + p.t * 600, y = p.y + p.t * 260;
+          const g = ctx.createLinearGradient(x, y, x - 110, y - 48);
+          g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(1, 'rgba(177, 151, 250, 0)');
+          ctx.strokeStyle = g; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 110, y - 48); ctx.stroke();
+          star(x, y, 4, '#fff'); break;
+        }
+        case 'mist': {
+          ctx.globalAlpha = a * 0.3;
+          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+          g.addColorStop(0, '#e3fafc'); g.addColorStop(1, 'rgba(227, 250, 252, 0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); break;
+        }
+        case 'wisp': glow(p.x + Math.sin(time * 2 + i) * 12, p.y, 12, '120, 240, 255', 0.8);
+          ctx.fillStyle = '#e3fafc'; ctx.beginPath(); ctx.arc(p.x + Math.sin(time * 2 + i) * 12, p.y, 2.5, 0, Math.PI * 2); ctx.fill(); break;
+        case 'bubble': ctx.strokeStyle = 'rgba(165, 216, 255, 0.7)'; ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.arc(p.x + Math.sin(time * 2 + i) * 5, p.y, p.size, 0, Math.PI * 2); ctx.stroke(); break;
+        case 'lantern': { // a glowing paper lantern drifting up
+          const x = p.x + Math.sin(time + i) * 10;
+          glow(x, p.y, 26, '255, 160, 60', 0.6);
+          ctx.fillStyle = '#ff8c42'; ctx.beginPath(); ctx.ellipse(x, p.y, 8, 11, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffd8a8'; ctx.beginPath(); ctx.ellipse(x, p.y, 4, 8, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#5c2a00'; ctx.fillRect(x - 5, p.y - 12, 10, 2); ctx.fillRect(x - 5, p.y + 10, 10, 2);
+          break;
+        }
+        case 'foxfire': glow(p.x, p.y, 14, Math.random() < 0.5 ? '116, 192, 252' : '177, 151, 250', 0.7 * Math.sin(p.t / p.life * Math.PI)); break;
+      }
+    }
+    ctx.globalAlpha = 1;
+    // the weather's name under the top of the screen
+    ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'center';
+    const label = `${w.name} · from your ${petById[id].name}`, lw = ctx.measureText(label).width + 20, ly = activeMuts().length ? 48 : 10;
+    ctx.fillStyle = 'rgba(30, 15, 40, 0.6)'; roundRect(W / 2 - lw / 2, ly, lw, 22, 10); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(label, W / 2, ly + 15);
+    ctx.restore();
+  }
+
   // the mutation banner stays at the top of the screen (screen coordinates)
   function drawEventBanner(time) {
     const muts = activeMuts();
@@ -6114,6 +6265,7 @@
     ctx.globalAlpha = 1;
 
     ctx.restore();
+    drawPetWeather(time, dt);
     drawEventBanner(time);
     drawAvatarPreview(time);
   }

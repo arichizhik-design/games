@@ -115,6 +115,9 @@ A multiplayer browser game where every player runs their own ice cream stand in 
     Frost Dragon, Ice Phoenix), flames (Solar Lion), void cracks (Void Bear), chrome plates (Metal Rhino), a galaxy
     inside (Galaxy Shark), glowing spirit stripes (Spirit Tiger), glowing ocean waves (Leviathan Whale), glowing
     spots (Void Kraken) and rainbow streaks (Rainbow Unicorn). Their glowing veins pulse and they have a glowing outline.
+  - **⛅ Pet weather:** wearing a Mythic Beast brings its own weather to your screen (your best one if you wear a few):
+    Void Bear 🌌 Void Storm, Crystal Fox 💎 Crystal Breeze, Solar Lion ☀️ Heat Wave, Metal Rhino ⚙️ Iron Storm,
+    Galaxy Shark 🌠 Starry Night, Spirit Tiger 👻 Spirit Mist, Void Kraken 🌊 Abyss Tide, Celestial Kitsune 🌙 Moonlit Night.
   - **⬆️ Pet Upgrade Shop** (the button under My Pets): pay money to power up a kind of pet you own. Each level makes it
     give 25% more of its own boost, up to level 10 (level 0 = how it was). Upgrades count for every copy of that pet.
   - Press **🐾 My Pets** to see every pet you have (each one gets its own card) and pick which ones follow you.
