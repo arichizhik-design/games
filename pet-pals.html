@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Pet Pals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fdf3e7; --card:#ffffff; --ink:#3b3247; --soft:#8a7f96; --line:#efe3d3;
+  --accent:#ff7aa2; --accent2:#7c6cff; --good:#3fbf7f; --warn:#ffb238; --bad:#ff5d5d;
+  --wall1:#ffe9d6; --wall2:#ffd9c2; --floor:#e8b98a; --floor2:#dca577;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Fredoka,"Nunito","Segoe UI Rounded",system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;border:0}
+button:disabled{opacity:.45;cursor:not-allowed}
+#app{max-width:520px;margin:0 auto;padding:12px 16px 40px;user-select:none}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+h1{font-size:26px;margin:0;font-weight:700;letter-spacing:.5px}
+h1 span{color:var(--accent)}
+.coins{background:#fff;border:2px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:600;font-size:18px;display:flex;gap:6px;align-items:center}
+.coins small{color:var(--soft);font-weight:500;font-size:12px}
+
+/* room */
+#room{position:relative;height:300px;border-radius:24px;overflow:hidden;
+  background:linear-gradient(var(--wall1),var(--wall2) 64%,var(--floor) 64%,var(--floor2));
+  border:3px solid #f3d7bf;transition:filter .6s}
+#room.night{filter:brightness(.55) saturate(.8)}
+.window{position:absolute;left:22px;top:22px;width:92px;height:80px;border-radius:12px;border:6px solid #fff;
+  background:linear-gradient(#9fd8ff,#d9f1ff);overflow:hidden}
+.window::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 46%,#fff 46%,#fff 54%,transparent 54%),linear-gradient(transparent 46%,#fff 46%,#fff 54%,transparent 54%)}
+.window .sun{position:absolute;right:10px;top:8px;width:20px;height:20px;border-radius:50%;background:#ffd84d;box-shadow:0 0 12px #ffe680}
+#room.night .window{background:linear-gradient(#1d2357,#3a3f8f)}
+#room.night .window .sun{background:#fff6c9;box-shadow:0 0 10px #fff;right:14px;width:14px;height:14px}
+.shelf{position:absolute;right:24px;top:52px;width:90px;height:8px;background:#c98d5f;border-radius:4px}
+.shelf span{position:absolute;bottom:8px;font-size:22px}
+.rug{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:250px;height:52px;border-radius:50%;
+  background:repeating-radial-gradient(#ff9fbf 0 8px,#ffc2d6 8px 16px);opacity:.75}
+#petWrap{position:absolute;left:50%;bottom:30px;width:210px;height:210px;transform:translateX(-50%);cursor:pointer}
+#pet{width:100%;height:100%;transform-origin:50% 90%;animation:breathe 2.6s ease-in-out infinite}
+#pet svg{width:100%;height:100%;display:block;overflow:visible}
+#pet.jump{animation:jump .55s ease}
+#pet.wiggle{animation:wiggle .5s ease 2}
+#pet.chomp{animation:chomp .25s ease 3}
+.sleeping #pet{animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.03,.97)}}
+@keyframes jump{0%{transform:translateY(0) scale(1.1,.9)}40%{transform:translateY(-46px) scale(.95,1.06)}75%{transform:translateY(0) scale(1.08,.92)}100%{transform:none}}
+@keyframes wiggle{25%{transform:rotate(-7deg)}75%{transform:rotate(7deg)}}
+@keyframes chomp{50%{transform:scale(1.06,.92)}}
+.shadow{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);width:130px;height:20px;border-radius:50%;background:rgba(80,40,20,.18)}
+#bubble{position:absolute;left:calc(50% + 62px);bottom:220px;background:#fff;border-radius:16px;padding:4px 10px;font-size:22px;
+  box-shadow:0 3px 0 rgba(0,0,0,.08);display:none;animation:pop .3s ease}
+#bubble::after{content:"";position:absolute;left:10px;bottom:-7px;border:7px solid transparent;border-top-color:#fff;border-bottom:0}
+@keyframes pop{from{transform:scale(.4);opacity:0}}
+#fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.float{position:absolute;font-size:26px;animation:floatUp 1.2s ease-out forwards}
+@keyframes floatUp{to{transform:translateY(-90px) scale(1.2);opacity:0}}
+.drop{position:absolute;font-size:34px;animation:dropIn .6s ease-in forwards}
+@keyframes dropIn{from{transform:translateY(-140px)}to{transform:translateY(0);opacity:.2}}
+.bubbleFx{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.9);background:rgba(190,230,255,.45);animation:floatUp 1.4s ease-out forwards}
+.zzz{position:absolute;left:calc(50% + 40px);bottom:190px;font-weight:700;color:#fff;font-size:22px;animation:zz 2.4s linear infinite;text-shadow:0 2px 4px rgba(0,0,0,.3)}
+.zzz:nth-child(2){animation-delay:.8s}.zzz:nth-child(3){animation-delay:1.6s}
+@keyframes zz{0%{opacity:0;transform:translate(0,0) scale(.6)}30%{opacity:1}100%{opacity:0;transform:translate(30px,-60px) scale(1.2)}}
+#empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:8px;font-size:18px}
+#empty svg{width:90px;animation:wiggle 1.2s ease infinite}
+
+/* minigame */
+#game{position:absolute;inset:0;display:none;background:rgba(255,255,255,.15)}
+#game .ball{position:absolute;width:54px;height:54px;font-size:44px;line-height:54px;text-align:center;cursor:pointer;transition:left .35s ease,top .35s ease}
+#game .hud{position:absolute;left:12px;top:10px;right:12px;display:flex;justify-content:space-between;font-weight:700;font-size:18px;
+  background:rgba(255,255,255,.85);border-radius:12px;padding:4px 12px}
+
+/* info */
+.info{display:flex;align-items:center;gap:10px;margin:12px 2px 8px}
+.info .nm{font-size:22px;font-weight:600}
+.tag{font-size:12px;font-weight:600;color:#fff;border-radius:999px;padding:2px 9px}
+.iconbtn{background:none;font-size:16px;padding:2px 4px;opacity:.7}
+.lvl{margin-left:auto;text-align:right;font-size:14px;color:var(--soft);min-width:110px}
+.xpbar{height:7px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:3px}
+.xpbar i{display:block;height:100%;background:var(--accent2);border-radius:9px;transition:width .4s}
+#stats{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-bottom:12px}
+.stat{display:flex;align-items:center;gap:8px;font-size:14px}
+.stat b{width:22px;text-align:center;font-size:18px}
+.bar{flex:1;height:14px;background:#fff;border:2px solid var(--line);border-radius:9px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px;transition:width .5s,background .5s}
+
+/* tabs */
+nav{display:flex;gap:6px;background:#fff;border:2px solid var(--line);border-radius:16px;padding:4px;margin-bottom:12px}
+nav button{flex:1;background:none;border-radius:12px;padding:9px 0;font-weight:600;font-size:16px;color:var(--soft);position:relative}
+nav button.on{background:var(--accent);color:#fff}
+nav .dot{position:absolute;top:4px;right:10px;width:10px;height:10px;border-radius:50%;background:var(--bad);display:none}
+.panel{display:none}.panel.on{display:block}
+.card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:12px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:16px;color:var(--soft);font-weight:600}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.act{background:#fff6ee;border:2px solid var(--line);border-radius:16px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:600;font-size:14px}
+.act span{font-size:28px}
+.act:not(:disabled):active{transform:scale(.95)}
+.foods{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.food{background:#fff6ee;border:2px solid var(--line);border-radius:14px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;font-size:12px;line-height:1.25}
+.food span{font-size:26px}
+.food.gold{background:#fff4c7;border-color:#f5d76e}
+.price{font-weight:600}
+
+/* eggs */
+.incubator{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{background:#fff6ee;border:2px dashed #ecd5bd;border-radius:16px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;text-align:center;font-size:13px;color:var(--soft)}
+.slot.full{border-style:solid;color:var(--ink)}
+.slot svg{width:58px;height:70px;cursor:pointer}
+.slot svg.shake{animation:wiggle .35s ease}
+.slot.ready svg{animation:wiggle .6s ease infinite}
+.slot .t{font-weight:600;margin:4px 0}
+.slot button{background:var(--good);color:#fff;border-radius:10px;padding:5px 12px;font-weight:600;font-size:14px}
+.shop{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.egg{background:#fff6ee;border:2px solid var(--line);border-radius:16px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.egg svg{width:50px;height:60px}
+.egg .nm{font-weight:600}
+.odds{font-size:11px;color:var(--soft);line-height:1.4}
+.buy{background:var(--accent2);color:#fff;border-radius:10px;padding:6px 14px;font-weight:600;margin-top:2px}
+.hint{font-size:13px;color:var(--soft);margin:6px 2px 0}
+
+/* collection */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pc{background:#fff6ee;border:2px solid var(--line);border-radius:16px;padding:6px 4px 8px;text-align:center;font-size:13px;position:relative}
+.pc svg{width:80px;height:80px}
+.pc.locked svg{filter:brightness(0) opacity(.15)}
+.pc.locked{color:var(--soft)}
+.pc.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.pc .r{font-size:11px;font-weight:600}
+.pc .here{position:absolute;top:4px;left:6px;font-size:11px;background:var(--accent);color:#fff;border-radius:8px;padding:0 6px}
+.pc:not(.locked){cursor:pointer}
+
+/* modal & toast */
+#modal{position:fixed;inset:0;background:rgba(40,25,50,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+#modal.on{display:flex}
+.mbox{background:#fff;border-radius:24px;padding:20px;width:100%;max-width:360px;text-align:center;animation:pop .3s ease}
+.mbox h2{margin:4px 0 4px;font-size:24px}
+.mbox .reveal{width:180px;height:180px;margin:0 auto;position:relative}
+.mbox .reveal svg{width:100%;height:100%;position:relative}
+.glow{position:absolute;inset:10px;border-radius:50%;filter:blur(18px);opacity:.6;animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mbox input{font:inherit;font-size:18px;width:100%;border:2px solid var(--line);border-radius:12px;padding:8px 12px;text-align:center;margin:10px 0;color:var(--ink)}
+.mbox .go{background:var(--accent);color:#fff;border-radius:14px;padding:10px 22px;font-weight:600;font-size:18px;width:100%}
+.mbox p{margin:6px 0;color:var(--soft)}
+#toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:20;pointer-events:none;width:max-content;max-width:calc(100% - 32px)}
+.tst{background:var(--ink);color:#fff;border-radius:14px;padding:8px 16px;font-size:15px;animation:pop .25s ease;text-align:center}
+.crackAnim{animation:wiggle .25s ease infinite}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Pet <span>Pals</span></h1>
+    <div class="coins">🪙 <span id="coins">0</span> <small id="rate"></small></div>
+  </header>
+
+  <section id="room">
+    <div class="window"><div class="sun"></div></div>
+    <div class="shelf"><span style="left:4px">🪴</span><span style="left:34px">🧸</span><span style="left:62px">📚</span></div>
+    <div class="rug"></div>
+    <div class="shadow" id="shadow"></div>
+    <div id="petWrap"><div id="pet"></div></div>
+    <div id="zz"></div>
+    <div id="bubble"></div>
+    <div id="empty" style="display:none"></div>
+    <div id="fx"></div>
+    <div id="game"><div class="hud"><span>🎾 <b id="gScore">0</b></span><span>⏱️ <b id="gTime">10</b>s</span></div><div class="ball" id="ball">🎾</div></div>
+  </section>
+
+  <div id="petInfo">
+    <div class="info">
+      <span class="nm" id="pName"></span>
+      <button class="iconbtn" id="rename" title="Rename">✏️</button>
+      <span class="tag" id="pRar"></span>
+      <div class="lvl"><span id="pLvl"></span><div class="xpbar"><i id="pXp"></i></div></div>
+    </div>
+    <div id="stats"></div>
+  </div>
+
+  <nav>
+    <button data-tab="care" class="on">🏠 Care</button>
+    <button data-tab="eggs">🥚 Eggs<i class="dot" id="eggDot"></i></button>
+    <button data-tab="pets">📖 Pets <small id="petCount"></small></button>
+  </nav>
+
+  <div class="panel on" id="panel-care">
+    <div class="card">
+      <h3>Look after your pet</h3>
+      <div class="actions">
+        <button class="act" id="aPlay"><span>🎾</span>Play</button>
+        <button class="act" id="aClean"><span>🛁</span>Bath</button>
+        <button class="act" id="aSleep"><span>🌙</span>Sleep</button>
+        <button class="act" id="aPet"><span>💗</span>Cuddle</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Snacks</h3>
+      <div class="foods" id="foods"></div>
+    </div>
+    <p class="hint">Happy pets earn more coins. Every pet you own adds to your coins, and the one you're looking after gets XP and grows from baby to kid to grown-up.</p>
+  </div>
+
+  <div class="panel" id="panel-eggs">
+    <div class="card">
+      <h3>Incubator · tap an egg to keep it warm (hatches faster)</h3>
+      <div class="incubator" id="incubator"></div>
+    </div>
+    <div class="card">
+      <h3>Egg Shop</h3>
+      <div class="shop" id="shop"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-pets">
+    <div class="card">
+      <h3>Your collection · tap a pet to look after it</h3>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+</div>
+<div id="modal"></div>
+<div id="toast"></div>
+
+<script>
+/* ---------- data ---------- */
+const RAR = {
+  common:    {name:'Common',    color:'#9aa5b1', inc:2,  dup:40},
+  uncommon:  {name:'Uncommon',  color:'#3fbf7f', inc:4,  dup:80},
+  rare:      {name:'Rare',      color:'#2f80ed', inc:8,  dup:150},
+  epic:      {name:'Epic',      color:'#9b51e0', inc:16, dup:300},
+  legendary: {name:'Legendary', color:'#f2994a', inc:35, dup:600},
+  mythic:    {name:'Mythic',    color:'#ff4f7b', inc:80, dup:1200},
+};
+const SPECIES = [
+  {id:'mochi',   name:'Mochi Cat',      r:'common',   body:'#f6d6c4', belly:'#fff3ea', ears:'cat',    tail:'cat'},
+  {id:'biscuit', name:'Biscuit Pup',    r:'common',   body:'#d9a066', belly:'#f7e0c0', ears:'floppy', tail:'short', pattern:'patch'},
+  {id:'puff',    name:'Puffball Bunny', r:'common',   body:'#ffffff', belly:'#ffe4ef', ears:'bunny',  tail:'fluffy'},
+  {id:'bean',    name:'Bean Hamster',   r:'common',   body:'#f0b36b', belly:'#fff1d6', ears:'round',  tail:'none'},
+  {id:'pip',     name:'Pip Chick',      r:'common',   body:'#ffe066', belly:'#fff6c2', ears:'tuft',   tail:'none', beak:true, wings:'tiny'},
+  {id:'minty',   name:'Minty Fox',      r:'uncommon', body:'#7fd8be', belly:'#e9fff7', ears:'fox',    tail:'fluffy'},
+  {id:'berry',   name:'Berry Bear',     r:'uncommon', body:'#c86b98', belly:'#f8d3e6', ears:'round',  tail:'none', pattern:'spots'},
+  {id:'splash',  name:'Splash Seal',    r:'uncommon', body:'#8fb8de', belly:'#e8f3ff', ears:'none',   tail:'fin', whiskers:true},
+  {id:'lumi',    name:'Lumi Moth',      r:'uncommon', body:'#f3e9a8', belly:'#fffbe0', ears:'antenna',tail:'none', wings:'moth'},
+  {id:'cocoa',   name:'Cocoa Panda',    r:'rare',     body:'#ffffff', belly:'#f1f1f1', ears:'round',  earColor:'#3a3a3a', tail:'none', pattern:'panda'},
+  {id:'frost',   name:'Frost Kit',      r:'rare',     body:'#bfe9ff', belly:'#ffffff', ears:'cat',    tail:'cat', pattern:'sparkle'},
+  {id:'volt',    name:'Volt Pup',       r:'rare',     body:'#ffd23f', belly:'#fff4c4', ears:'fox',    tail:'bolt', pattern:'stripes'},
+  {id:'starhorn',name:'Starhorn Pony',  r:'epic',     body:'#fbe3ff', belly:'#ffffff', ears:'cat',    tail:'fluffy', tailColor:'#b9a2ff', horn:true, pattern:'sparkle'},
+  {id:'ember',   name:'Ember Drake',    r:'epic',     body:'#ff7a59', belly:'#ffd0a8', ears:'horns',  tail:'spike', wings:'dragon', flame:true},
+  {id:'nova',    name:'Nova Cat',       r:'legendary',body:'#2b2d6e', belly:'#4b4fa8', ears:'cat',    tail:'cat', pattern:'stars'},
+  {id:'aurum',   name:'Aurum Griffin',  r:'legendary',body:'#f5c542', belly:'#fff0b8', ears:'tuft',   tail:'fluffy', wings:'feather', beak:true, crown:true},
+  {id:'prism',   name:'Prism Spirit',   r:'mythic',   grad:['#ff8a8a','#ffd36b','#8affc1','#7ab8ff','#d18aff'], belly:'#ffffff', ears:'bunny', tail:'fluffy', horn:true, wings:'feather', pattern:'sparkle'},
+];
+const SP = Object.fromEntries(SPECIES.map(s => [s.id, s]));
+const EGGS = [
+  {id:'basic',  name:'Basic Egg',  price:50,   time:20,  color:'#f3ead8', spot:'#d8c8a6', odds:{common:75, uncommon:22, rare:3}},
+  {id:'shiny',  name:'Shiny Egg',  price:300,  time:60,  color:'#bde0fe', spot:'#6fa8ee', odds:{common:35, uncommon:45, rare:17, epic:3}},
+  {id:'royal',  name:'Royal Egg',  price:1500, time:180, color:'#e0c3fc', spot:'#a876f2', odds:{uncommon:30, rare:45, epic:20, legendary:5}},
+  {id:'cosmic', name:'Cosmic Egg', price:8000, time:300, color:'#2b2d6e', spot:'#ffd36b', odds:{rare:35, epic:40, legendary:20, mythic:5}},
+];
+const EG = Object.fromEntries(EGGS.map(e => [e.id, e]));
+const FOODS = [
+  {id:'kibble', name:'Kibble',  icon:'🥣', price:5,   food:25,  joy:0,  xp:3},
+  {id:'cookie', name:'Cookie',  icon:'🍪', price:12,  food:15,  joy:12, xp:5},
+  {id:'sushi',  name:'Sushi',   icon:'🍣', price:30,  food:50,  joy:5,  xp:8},
+  {id:'cake',   name:'Cake',    icon:'🍰', price:60,  food:40,  joy:30, xp:15},
+  {id:'apple',  name:'Gold Apple', icon:'🍎', price:250, food:100, joy:50, xp:120, gold:true},
+];
+const STATS = [
+  {k:'food',   icon:'🍖', name:'Food',   decay:25, need:'🍖'},
+  {k:'joy',    icon:'😊', name:'Fun',    decay:30, need:'🎾'},
+  {k:'clean',  icon:'🫧', name:'Clean',  decay:40, need:'🛁'},
+  {k:'energy', icon:'⚡', name:'Energy', decay:45, need:'💤'},
+];
+const MAX_LVL = 30, SLOTS = 3, SAVE_KEY = 'petpals-save-v1';
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const now = () => Date.now();
+const clamp = (v, a=0, b=100) => Math.max(a, Math.min(b, v));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmt(n){ n = Math.floor(n); if (n < 10000) return n.toLocaleString('en-US');
+  const u = [[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'K']]; for (const [v,s] of u) if (n >= v) return (n/v).toFixed(n/v < 100 ? 1 : 0).replace(/\.0$/,'') + s; }
+function fmtTime(s){ s = Math.max(0, Math.ceil(s)); const m = Math.floor(s/60); return m ? `${m}:${String(s%60).padStart(2,'0')}` : `${s}s`; }
+function shade(hex, amt){
+  const n = parseInt(hex.slice(1), 16); const ch = [n>>16, n>>8&255, n&255].map(v =>
+    Math.max(0, Math.min(255, Math.round(amt < 0 ? v*(1+amt) : v + (255-v)*amt))));
+  return '#' + ch.map(v => v.toString(16).padStart(2,'0')).join('');
+}
+const need = lvl => 40 + lvl * 30;
+const stageOf = lvl => lvl >= 12 ? 'adult' : lvl >= 5 ? 'kid' : 'baby';
+const STAGE_NAME = {baby:'Baby', kid:'Kid', adult:'Grown-up'};
+
+/* ---------- drawing ---------- */
+let svgId = 0;
+const mirror = s => s + `<g transform="matrix(-1 0 0 1 200 0)">${s}</g>`;
+function petSVG(sp, o = {}){
+  const uid = 'pg' + (++svgId);
+  const body = sp.grad ? `url(#${uid})` : sp.body;
+  const dark = sp.grad ? '#b48ee0' : shade(sp.body, sp.body === '#ffffff' ? -0.12 : -0.22);
+  const earC = sp.earColor || body;
+  const tailC = sp.tailColor || body;
+  const line = 'stroke="rgba(60,30,40,.18)" stroke-width="2"';
+  let defs = '';
+  if (sp.grad) defs = `<defs><linearGradient id="${uid}" x1="0" y1="0" x2="1" y2="1">${
+    sp.grad.map((c,i) => `<stop offset="${i/(sp.grad.length-1)}" stop-color="${c}"/>`).join('')}</linearGradient></defs>`;
+  let back = '', ears = '', deco = '', face = '';
+
+  // wings (behind)
+  if (sp.wings === 'tiny') back += mirror(`<ellipse cx="46" cy="128" rx="14" ry="22" transform="rotate(30 46 128)" fill="${shade(sp.body,-0.12)}" ${line}/>`);
+  if (sp.wings === 'moth') back += mirror(`<ellipse cx="42" cy="92" rx="36" ry="26" transform="rotate(-25 42 92)" fill="#ffc6ec" ${line}/><ellipse cx="50" cy="140" rx="24" ry="16" transform="rotate(20 50 140)" fill="#c8b6ff" ${line}/><circle cx="38" cy="88" r="8" fill="#fff" opacity=".7"/>`);
+  if (sp.wings === 'dragon') back += mirror(`<path d="M72 100 L18 58 L28 92 L6 100 L30 112 L14 128 L60 128 Z" fill="${shade(sp.body,-0.3)}" ${line}/>`);
+  if (sp.wings === 'feather') back += mirror(`<g fill="#ffffff" ${line}><ellipse cx="40" cy="96" rx="32" ry="14" transform="rotate(-30 40 96)"/><ellipse cx="38" cy="112" rx="30" ry="12" transform="rotate(-12 38 112)"/><ellipse cx="44" cy="126" rx="24" ry="10" transform="rotate(8 44 126)"/></g>`);
+
+  // tail (behind)
+  if (sp.tail === 'cat')    back += `<path d="M148 152 Q192 144 180 96" fill="none" stroke="${tailC}" stroke-width="13" stroke-linecap="round"/><path d="M148 152 Q192 144 180 96" fill="none" stroke="rgba(60,30,40,.12)" stroke-width="15" stroke-linecap="round" style="mix-blend-mode:multiply" opacity=".4"/>`;
+  if (sp.tail === 'fluffy') back += `<circle cx="160" cy="150" r="19" fill="${tailC}" ${line}/>`;
+  if (sp.tail === 'short')  back += `<ellipse cx="158" cy="146" rx="13" ry="7" transform="rotate(-35 158 146)" fill="${dark}"/>`;
+  if (sp.tail === 'fin')    back += `<path d="M146 160 L186 146 L182 178 Z" fill="${dark}" ${line}/>`;
+  if (sp.tail === 'bolt')   back += `<polyline points="148,152 172,142 160,128 186,110" fill="none" stroke="#e0a800" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if (sp.tail === 'spike')  back += `<path d="M146 152 Q186 160 186 122" fill="none" stroke="${body}" stroke-width="13" stroke-linecap="round"/><path d="M178 124 L186 102 L196 124 Z" fill="${dark}"/>`;
+
+  // ears
+  if (sp.ears === 'cat')    ears = mirror(`<path d="M52 96 L58 44 L92 78 Z" fill="${earC}" ${line} stroke-linejoin="round"/><path d="M60 86 L63 58 L82 77 Z" fill="#ffb3c6"/>`);
+  if (sp.ears === 'fox')    ears = mirror(`<path d="M48 98 L50 30 L94 76 Z" fill="${earC}" ${line} stroke-linejoin="round"/><path d="M57 86 L58 48 L82 75 Z" fill="${shade(sp.body,0.6)}"/>`);
+  if (sp.ears === 'bunny')  ears = mirror(`<ellipse cx="76" cy="52" rx="13" ry="38" transform="rotate(-12 76 52)" fill="${earC}" ${line}/><ellipse cx="76" cy="56" rx="6" ry="27" transform="rotate(-12 76 56)" fill="#ffb3c6"/>`);
+  if (sp.ears === 'floppy') ears = mirror(`<ellipse cx="50" cy="104" rx="15" ry="31" transform="rotate(22 50 104)" fill="${dark}" ${line}/>`);
+  if (sp.ears === 'round')  ears = mirror(`<circle cx="58" cy="82" r="18" fill="${earC}" ${line}/>` + (sp.earColor ? '' : `<circle cx="58" cy="82" r="9" fill="#ffb3c6"/>`));
+  if (sp.ears === 'tuft')   ears = `<path d="M100 80 Q90 54 98 50 Q100 64 104 52 Q114 58 104 80 Z" fill="${dark}"/>`;
+  if (sp.ears === 'horns')  ears = mirror(`<path d="M68 84 Q54 50 74 40 Q70 60 84 76 Z" fill="#fff2d0" ${line}/>`);
+  if (sp.ears === 'antenna')ears = mirror(`<path d="M86 80 Q76 54 66 40" fill="none" stroke="#6b5a3a" stroke-width="3" stroke-linecap="round"/><circle cx="65" cy="38" r="7" fill="#ffc6ec" ${line}/>`);
+
+  // body
+  const bodyS = `<ellipse cx="100" cy="125" rx="60" ry="52" fill="${body}" ${line}/>
+    <ellipse cx="100" cy="142" rx="35" ry="28" fill="${sp.belly}"/>
+    <ellipse cx="74" cy="173" rx="15" ry="8" fill="${dark}"/><ellipse cx="126" cy="173" rx="15" ry="8" fill="${dark}"/>`;
+
+  // patterns
+  if (sp.pattern === 'spots')   deco += `<g fill="${dark}" opacity=".55"><circle cx="66" cy="102" r="8"/><circle cx="138" cy="110" r="6"/><circle cx="58" cy="138" r="5"/><circle cx="142" cy="146" r="7"/></g>`;
+  if (sp.pattern === 'patch')   deco += `<ellipse cx="122" cy="110" rx="17" ry="15" fill="${dark}" opacity=".6"/>`;
+  if (sp.pattern === 'stripes') deco += `<g fill="none" stroke="#e0a800" stroke-width="5" stroke-linecap="round"><path d="M86 76 Q90 86 86 94"/><path d="M100 74 L100 92"/><path d="M114 76 Q110 86 114 94"/></g>`;
+  if (sp.pattern === 'panda')   deco += `<ellipse cx="80" cy="113" rx="14" ry="12" transform="rotate(-20 80 113)" fill="#3a3a3a"/><ellipse cx="120" cy="113" rx="14" ry="12" transform="rotate(20 120 113)" fill="#3a3a3a"/>`;
+  if (sp.pattern === 'sparkle') deco += `<g fill="#fff">${[[64,96,6],[140,100,5],[132,158,4],[60,150,4]].map(([x,y,r]) =>
+      `<path d="M${x} ${y-r*2} L${x+r*.5} ${y-r*.5} L${x+r*2} ${y} L${x+r*.5} ${y+r*.5} L${x} ${y+r*2} L${x-r*.5} ${y+r*.5} L${x-r*2} ${y} L${x-r*.5} ${y-r*.5} Z"/>`).join('')}</g>`;
+  if (sp.pattern === 'stars')   deco += `<g fill="#fff">${[[60,100,2.5],[72,86,1.6],[140,96,2],[148,128,2.6],[56,136,1.8],[132,82,1.4],[118,160,2],[84,160,1.5]].map(([x,y,r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('')}</g>`;
+  if (sp.horn)  deco += `<path d="M92 80 L100 34 L108 80 Z" fill="#ffd84d" ${line} stroke-linejoin="round"/><path d="M95 66 L105 62 M96 54 L104 50" stroke="#e8b400" stroke-width="2.5"/>`;
+  if (sp.flame) deco += `<path d="M100 78 Q84 60 98 40 Q100 56 107 48 Q120 64 100 78 Z" fill="#ffb347"/><path d="M100 76 Q93 66 100 56 Q104 66 100 76 Z" fill="#fff07a"/>`;
+  if (sp.crown) deco += `<path d="M78 82 L80 56 L92 70 L100 50 L108 70 L120 56 L122 82 Z" fill="#ffd84d" ${line} stroke-linejoin="round"/><circle cx="100" cy="72" r="4" fill="#ff5d8f"/>`;
+
+  // face
+  const ink = sp.pattern === 'panda' ? '#111' : '#2b2433';
+  const mood = o.mood ?? 80;
+  if (o.sleeping) {
+    face += mirror(`<path d="M72 113 Q81 120 90 113" fill="none" stroke="${sp.pattern==='panda'?'#fff':ink}" stroke-width="4" stroke-linecap="round"/>`);
+  } else if (o.happy || mood >= 75) {
+    face += mirror(`<path d="M72 116 Q81 104 90 116" fill="none" stroke="${sp.pattern==='panda'?'#fff':ink}" stroke-width="4.5" stroke-linecap="round"/>`);
+  } else {
+    face += mirror(`<ellipse cx="81" cy="113" rx="7.5" ry="9.5" fill="${ink}"/><circle cx="84" cy="109" r="3" fill="#fff"/><circle cx="79" cy="117" r="1.4" fill="#fff"/>`);
+    if (mood < 35) face += mirror(`<path d="M70 99 L88 103" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`) +
+      `<path d="M76 126 Q72 133 76 136 Q80 133 76 126 Z" fill="#7cc6ff"/>`;
+  }
+  face += mirror(`<ellipse cx="66" cy="130" rx="9" ry="5.5" fill="#ff8fa3" opacity=".55"/>`);
+  if (sp.beak) face += `<path d="M92 122 L108 122 L100 133 Z" fill="#ff9f1c" stroke="#e07f00" stroke-width="1.5" stroke-linejoin="round"/>`;
+  else if (o.sleeping) face += `<ellipse cx="100" cy="128" rx="3.5" ry="2.5" fill="${ink}"/>`;
+  else if (mood < 35) face += `<path d="M92 131 Q100 123 108 131" fill="none" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`;
+  else face += `<path d="M91 124 Q95.5 131 100 125 Q104.5 131 109 124" fill="none" stroke="${ink}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>` +
+               (o.happy || mood >= 75 ? `<path d="M96 128 Q100 136 104 128 Z" fill="#ff6f91"/>` : '');
+  if (sp.whiskers) face += mirror(`<path d="M78 128 L56 124 M78 132 L56 134" stroke="${ink}" stroke-width="2" stroke-linecap="round" opacity=".6"/>`);
+
+  let dirt = '';
+  if (o.dirty) dirt = `<g fill="#8b5a2b" opacity=".42"><circle cx="70" cy="148" r="9"/><circle cx="78" cy="156" r="5"/><circle cx="134" cy="100" r="7"/><circle cx="124" cy="158" r="8"/></g>
+    <g fill="none" stroke="#8b7a4a" stroke-width="2.5" stroke-linecap="round" opacity=".6"><path d="M40 70 q6 -8 0 -16 q-6 -8 0 -16"/><path d="M160 64 q6 -8 0 -16 q-6 -8 0 -16"/></g>`;
+
+  const sc = {baby:.62, kid:.82, adult:1}[o.stage || 'adult'];
+  return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">${defs}
+    <g transform="translate(100 182) scale(${sc}) translate(-100 -182)">${back}${ears}${bodyS}${deco}${face}${dirt}</g></svg>`;
+}
+function eggSVG(e, crack = 0){
+  const g = 'eg' + (++svgId);
+  return `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="${g}"><path d="M50 8 C80 8 92 56 92 74 C92 98 72 112 50 112 C28 112 8 98 8 74 C8 56 20 8 50 8 Z"/></clipPath></defs>
+    <path d="M50 8 C80 8 92 56 92 74 C92 98 72 112 50 112 C28 112 8 98 8 74 C8 56 20 8 50 8 Z" fill="${e.color}" stroke="rgba(60,30,40,.2)" stroke-width="2.5"/>
+    <g clip-path="url(#${g})" fill="${e.spot}">${e.id === 'cosmic'
+      ? '<circle cx="30" cy="40" r="3"/><circle cx="66" cy="56" r="2"/><circle cx="40" cy="86" r="2.5"/><circle cx="72" cy="90" r="3"/><path d="M50 60 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1z"/>'
+      : e.id === 'royal' ? '<path d="M0 70 L20 58 L35 70 L50 58 L65 70 L80 58 L100 70 L100 82 L0 82 Z"/><circle cx="50" cy="38" r="7"/>'
+      : e.id === 'shiny' ? '<path d="M0 50 Q25 40 50 50 T100 50 L100 60 Q75 70 50 60 T0 60 Z"/><path d="M0 86 Q25 76 50 86 T100 86 L100 94 Q75 104 50 94 T0 94 Z"/>'
+      : '<circle cx="34" cy="44" r="7"/><circle cx="64" cy="70" r="9"/><circle cx="36" cy="92" r="6"/><circle cx="70" cy="34" r="4"/>'}</g>
+    <ellipse cx="34" cy="36" rx="7" ry="13" transform="rotate(25 34 36)" fill="#fff" opacity=".45"/>
+    ${crack > .6 ? `<polyline points="18,62 30,54 38,64 50,52 60,64 70,54 82,62" fill="none" stroke="#5a4636" stroke-width="3" stroke-linejoin="round"/>` : crack > .3 ? `<polyline points="40,40 48,50 42,58 52,66" fill="none" stroke="#5a4636" stroke-width="2.5" stroke-linejoin="round"/>` : ''}
+  </svg>`;
+}
+
+/* ---------- state ---------- */
+function freshState(){
+  return {coins:40, pets:[], active:null, eggs:[{type:'basic', start:now(), dur:8000}], nextId:1, last:now(), firstEgg:true};
+}
+let S;
+try { S = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch(e) { S = null; }
+if (!S || !Array.isArray(S.pets)) S = freshState();
+function save(){ S.last = now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch(e) {} }
+
+const active = () => S.pets.find(p => p.id === S.active);
+const moodOf = p => p ? (p.food + p.joy + p.clean + p.energy) / 4 : 0;
+function incomePerSec(){
+  const base = S.pets.reduce((a,p) => a + RAR[SP[p.sp].r].inc * (1 + .25*(p.lvl-1)), 0) / 10;
+  return base * (0.25 + 0.75 * moodOf(active()) / 100);
+}
+
+/* ---------- offline catch-up ---------- */
+(function catchUp(){
+  const el = Math.min((now() - (S.last || now())) / 1000, 8*3600);
+  if (el < 5) return;
+  const earned = incomePerSec() * Math.min(el, 7200) * 0.5;
+  const p = active();
+  if (p) for (const st of STATS) {
+    let rate = el / st.decay;
+    if (p.sleeping) { if (st.k === 'energy') { p.energy = clamp(p.energy + el/2); continue; } if (st.k === 'joy') continue; rate /= 2; }
+    p[st.k] = Math.max(Math.min(p[st.k], 20), p[st.k] - rate);
+  }
+  if (p && p.sleeping && p.energy >= 100) p.sleeping = false;
+  S.coins += earned;
+  if (earned >= 1) setTimeout(() => toast(`Welcome back! Your pets earned 🪙 ${fmt(earned)} while you were away.`), 400);
+})();
+
+/* ---------- ui helpers ---------- */
+function toast(msg){
+  const d = document.createElement('div'); d.className = 'tst'; d.textContent = msg;
+  $('#toast').appendChild(d); setTimeout(() => d.remove(), 2600);
+}
+function fx(txt, x, y, cls = 'float'){
+  const d = document.createElement('div'); d.className = cls; d.textContent = txt;
+  d.style.left = x + 'px'; d.style.top = y + 'px'; $('#fx').appendChild(d); setTimeout(() => d.remove(), 1500);
+}
+function petCenter(){ const r = $('#room'); return {x: r.clientWidth/2, y: r.clientHeight - 130}; }
+function anim(cls){ const el = $('#pet'); el.classList.remove('jump','wiggle','chomp'); void el.offsetWidth; el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 900); }
+let flashHappy = 0;
+function cheer(){ flashHappy = now() + 1500; renderPet(true); }
+
+function addXP(p, n){
+  if (p.lvl >= MAX_LVL) return;
+  const before = stageOf(p.lvl);
+  p.xp += n;
+  while (p.lvl < MAX_LVL && p.xp >= need(p.lvl)) { p.xp -= need(p.lvl); p.lvl++;
+    toast(`⭐ ${p.name} reached level ${p.lvl}!`); }
+  if (p.lvl >= MAX_LVL) p.xp = 0;
+  const after = stageOf(p.lvl);
+  if (after !== before) setTimeout(() => toast(`🎉 ${p.name} grew into a ${STAGE_NAME[after]}!`), 500);
+}
+
+/* ---------- render ---------- */
+let petKey = '';
+function renderPet(force){
+  const p = active();
+  $('#empty').style.display = p ? 'none' : 'flex';
+  $('#petWrap').style.display = $('#shadow').style.display = p ? '' : 'none';
+  $('#petInfo').style.visibility = p ? '' : 'hidden';
+  if (!p) {
+    $('#room').classList.remove('night','sleeping'); $('#zz').innerHTML = ''; $('#bubble').style.display = 'none';
+    if (!$('#empty').innerHTML) $('#empty').innerHTML = `${eggSVG(EG.basic)}<div><b>Your first egg is in the incubator!</b><br>Open the 🥚 Eggs tab to hatch it.</div>`;
+    return;
+  }
+  $('#empty').innerHTML = '';
+  const mood = moodOf(p), happy = now() < flashHappy;
+  const mstate = p.sleeping ? 's' : happy ? 'h' : mood >= 75 ? 'h' : mood >= 35 ? 'o' : 'x';
+  const key = [p.id, p.sp, stageOf(p.lvl), mstate, p.clean < 40].join('|');
+  if (force || key !== petKey) {
+    petKey = key;
+    $('#pet').innerHTML = petSVG(SP[p.sp], {mood, happy, sleeping:p.sleeping, dirty:p.clean < 40, stage:stageOf(p.lvl)});
+  }
+  $('#room').classList.toggle('night', p.sleeping);
+  $('#room').classList.toggle('sleeping', p.sleeping);
+  const zz = p.sleeping ? '<span class="zzz">z</span><span class="zzz">Z</span><span class="zzz">z</span>' : '';
+  if ($('#zz').innerHTML !== zz) $('#zz').innerHTML = zz;
+  const low = STATS.filter(s => p[s.k] < 35 && !(p.sleeping && s.k === 'energy')).sort((a,b) => p[a.k] - p[b.k])[0];
+  const b = $('#bubble');
+  if (low && !gameOn) { if (b.textContent !== low.need) b.textContent = low.need; b.style.display = 'block'; } else b.style.display = 'none';
+}
+function renderInfo(){
+  const p = active(); if (!p) return;
+  const sp = SP[p.sp], r = RAR[sp.r];
+  $('#pName').textContent = p.name;
+  $('#pRar').textContent = `${r.name} ${sp.name}`; $('#pRar').style.background = r.color;
+  $('#pLvl').textContent = `${STAGE_NAME[stageOf(p.lvl)]} · Lv ${p.lvl}${p.lvl >= MAX_LVL ? ' (max)' : ''}`;
+  $('#pXp').style.width = (p.lvl >= MAX_LVL ? 100 : p.xp / need(p.lvl) * 100) + '%';
+  const st = $('#stats');
+  if (!st.children.length) st.innerHTML = STATS.map(s => `<div class="stat" title="${s.name}"><b>${s.icon}</b><div class="bar"><i id="bar-${s.k}"></i></div></div>`).join('');
+  for (const s of STATS) { const v = p[s.k], el = $('#bar-' + s.k);
+    el.style.width = v + '%'; el.style.background = v > 60 ? 'var(--good)' : v > 30 ? 'var(--warn)' : 'var(--bad)'; }
+}
+function renderTop(){
+  $('#coins').textContent = fmt(S.coins);
+  const r = incomePerSec() * 60;
+  $('#rate').textContent = S.pets.length ? `+${fmt(r)}/min` : '';
+  $('#petCount').textContent = `${new Set(S.pets.map(p => p.sp)).size}/${SPECIES.length}`;
+}
+function renderCare(){
+  const p = active(), busy = !p || gameOn;
+  $('#aPlay').disabled = busy || p.sleeping;
+  $('#aClean').disabled = busy || p.sleeping;
+  $('#aPet').disabled = busy || p.sleeping;
+  $('#aSleep').disabled = busy;
+  $('#aSleep').innerHTML = p && p.sleeping ? '<span>☀️</span>Wake up' : '<span>🌙</span>Sleep';
+  document.querySelectorAll('.food').forEach(b => { const f = FOODS[b.dataset.i]; b.disabled = busy || p.sleeping || S.coins < f.price; });
+}
+let eggKey = '';
+function renderEggs(){
+  const key = S.eggs.map(e => e.type + (eggReady(e) ? 'R' : '') + Math.floor(eggProg(e)*3)).join(',');
+  const inc = $('#incubator');
+  if (key !== eggKey) {
+    eggKey = key;
+    let h = '';
+    for (let i = 0; i < SLOTS; i++) {
+      const e = S.eggs[i];
+      if (!e) { h += `<div class="slot">Empty spot<br>Buy an egg below</div>`; continue; }
+      const ready = eggReady(e);
+      h += `<div class="slot full ${ready ? 'ready' : ''}" data-i="${i}">${eggSVG(EG[e.type], eggProg(e))}
+        <div>${EG[e.type].name}</div>${ready ? `<button data-hatch="${i}">Hatch!</button>` : `<div class="t" id="et${i}"></div>`}</div>`;
+    }
+    inc.innerHTML = h;
+  }
+  S.eggs.forEach((e,i) => { const t = $('#et'+i); if (t) t.textContent = '⏳ ' + fmtTime((e.dur - (now() - e.start)) / 1000); });
+  $('#eggDot').style.display = S.eggs.some(eggReady) ? 'block' : 'none';
+  document.querySelectorAll('.buy').forEach(b => { const e = EG[b.dataset.egg]; b.disabled = S.coins < e.price || S.eggs.length >= SLOTS; });
+}
+function renderShop(){
+  $('#shop').innerHTML = EGGS.map(e => `<div class="egg">${eggSVG(e)}<div class="nm">${e.name}</div>
+    <div class="odds">${Object.entries(e.odds).map(([r,v]) => `<span style="color:${RAR[r].color};font-weight:600">${RAR[r].name}</span> ${v}%`).join(' · ')}<br>Hatches in ${fmtTime(e.time)}</div>
+    <button class="buy" data-egg="${e.id}">🪙 ${fmt(e.price)}</button></div>`).join('');
+}
+function renderGrid(){
+  $('#grid').innerHTML = SPECIES.map(sp => {
+    const p = S.pets.find(x => x.sp === sp.id), r = RAR[sp.r];
+    if (!p) return `<div class="pc locked">${petSVG(sp)}<div>???</div><div class="r" style="color:${r.color}">${r.name}</div></div>`;
+    return `<div class="pc ${p.id === S.active ? 'active' : ''}" data-pet="${p.id}">${p.id === S.active ? '<span class="here">Home</span>' : ''}
+      ${petSVG(sp, {stage:stageOf(p.lvl), mood:90})}<div><b>${esc(p.name)}</b></div><div class="r" style="color:${r.color}">${r.name} · Lv ${p.lvl}</div></div>`;
+  }).join('');
+}
+function renderFoods(){
+  $('#foods').innerHTML = FOODS.map((f,i) => `<button class="food ${f.gold ? 'gold' : ''}" data-i="${i}" title="+${f.food} food${f.joy ? `, +${f.joy} fun` : ''}"><span>${f.icon}</span>${f.name}<span class="price" style="font-size:12px">🪙 ${f.price}</span></button>`).join('');
+}
+function renderAll(){ renderPet(); renderInfo(); renderTop(); renderCare(); renderEggs(); }
+
+/* ---------- eggs ---------- */
+const eggProg = e => clamp((now() - e.start) / e.dur, 0, 1);
+const eggReady = e => now() - e.start >= e.dur;
+function buyEgg(id){
+  const e = EG[id];
+  if (S.coins < e.price || S.eggs.length >= SLOTS) return;
+  S.coins -= e.price; S.eggs.push({type:id, start:now(), dur:e.time*1000});
+  toast(`🥚 ${e.name} is in the incubator!`); save(); renderAll();
+}
+function rollSpecies(egg){
+  let roll = Math.random() * 100, rar;
+  for (const [r,v] of Object.entries(egg.odds)) { rar = r; if ((roll -= v) < 0) break; }
+  return pick(SPECIES.filter(s => s.r === rar));
+}
+function hatch(i){
+  const e = S.eggs[i]; if (!e || !eggReady(e)) return;
+  S.eggs.splice(i, 1);
+  const sp = rollSpecies(EG[e.type]), r = RAR[sp.r];
+  const owned = S.pets.find(p => p.sp === sp.id);
+  const m = $('#modal');
+  m.innerHTML = `<div class="mbox"><div class="reveal"><div class="crackAnim">${eggSVG(EG[e.type], 1)}</div></div><p>Something is wiggling…</p></div>`;
+  m.classList.add('on');
+  setTimeout(() => {
+    const glow = `<div class="glow" style="background:conic-gradient(${r.color},#fff,${r.color})"></div>`;
+    if (owned) {
+      const coins = Math.round(r.dup / 2);
+      addXP(owned, r.dup); S.coins += coins; save();
+      m.innerHTML = `<div class="mbox"><div class="reveal">${glow}${petSVG(sp, {happy:true, stage:stageOf(owned.lvl)})}</div>
+        <div class="tag" style="background:${r.color};display:inline-block">${r.name}</div><h2>Another ${sp.name}!</h2>
+        <p>You already have ${esc(owned.name)}. They became friends: <b>+${r.dup} XP</b> for ${esc(owned.name)} and <b>🪙 ${coins}</b> for you.</p>
+        <button class="go" id="mOk">Yay!</button></div>`;
+      $('#mOk').onclick = () => { m.classList.remove('on'); renderGrid(); renderAll(); };
+    } else {
+      m.innerHTML = `<div class="mbox"><div class="reveal">${glow}${petSVG(sp, {happy:true, stage:'baby'})}</div>
+        <div class="tag" style="background:${r.color};display:inline-block">${r.name}</div><h2>It's a ${sp.name}!</h2>
+        <p>What will you call your new pet?</p><input id="mName" maxlength="16" value="${esc(sp.name.split(' ')[0])}">
+        <button class="go" id="mOk">Welcome home!</button></div>`;
+      const done = () => {
+        const name = ($('#mName').value.trim() || sp.name.split(' ')[0]).slice(0,16);
+        const p = {id:S.nextId++, sp:sp.id, name, lvl:1, xp:0, food:80, joy:90, clean:90, energy:85, sleeping:false};
+        S.pets.push(p);
+        if (!S.active) { S.active = p.id; showTab('care'); }
+        m.classList.remove('on'); save(); renderGrid(); renderAll(); renderPet(true);
+        toast(`💕 ${name} joined your family!`);
+        if (S.firstEgg) { S.firstEgg = false; setTimeout(() => toast('Tip: feed, play and bathe your pet to earn XP and coins.'), 1800); }
+      };
+      $('#mOk').onclick = done; $('#mName').onkeydown = ev => { if (ev.key === 'Enter') done(); };
+      setTimeout(() => $('#mName') && $('#mName').select(), 50);
+    }
+  }, 1300);
+}
+
+/* ---------- care actions ---------- */
+function feed(f){
+  const p = active(); if (!p || p.sleeping || gameOn) return;
+  if (p.food >= 97 && !f.gold) { toast(`${p.name} is full! 😋`); anim('wiggle'); return; }
+  if (S.coins < f.price) return;
+  S.coins -= f.price;
+  p.food = clamp(p.food + f.food); p.joy = clamp(p.joy + f.joy);
+  if (f.gold) { p.clean = clamp(p.clean + 30); p.energy = clamp(p.energy + 30); }
+  addXP(p, f.xp);
+  const c = petCenter(); fx(f.icon, c.x - 17, c.y - 40, 'drop');
+  setTimeout(() => { anim('chomp'); fx(f.gold ? '✨' : '😋', c.x + 30, c.y - 70); cheer(); }, 550);
+  save(); renderAll();
+}
+let lastPet = 0;
+function cuddle(){
+  const p = active(); if (!p || gameOn) return;
+  if (p.sleeping) { toast(`Shh… ${p.name} is sleeping 💤`); return; }
+  if (now() - lastPet < 700) return; lastPet = now();
+  p.joy = clamp(p.joy + 4); addXP(p, 1);
+  const c = petCenter(); fx(pick(['💗','💖','💕','✨']), c.x - 20 + Math.random()*40, c.y - 60);
+  anim('jump'); cheer(); renderAll();
+}
+function bath(){
+  const p = active(); if (!p || p.sleeping || gameOn) return;
+  if (p.clean >= 95) { toast(`${p.name} is already squeaky clean ✨`); return; }
+  const c = petCenter();
+  for (let i = 0; i < 14; i++) setTimeout(() => {
+    const d = document.createElement('div'); const s = 10 + Math.random()*22; d.className = 'bubbleFx';
+    Object.assign(d.style, {width:s+'px', height:s+'px', left:(c.x - 70 + Math.random()*140)+'px', top:(c.y - 40 + Math.random()*90)+'px'});
+    $('#fx').appendChild(d); setTimeout(() => d.remove(), 1500);
+  }, i * 70);
+  anim('wiggle');
+  p.clean = 100; p.joy = clamp(p.joy - 3); addXP(p, 8);
+  setTimeout(() => { fx('✨', c.x + 40, c.y - 70); cheer(); }, 900);
+  save(); renderAll();
+}
+function toggleSleep(){
+  const p = active(); if (!p || gameOn) return;
+  p.sleeping = !p.sleeping;
+  toast(p.sleeping ? `Good night, ${p.name} 🌙` : `Good morning, ${p.name}! ☀️`);
+  if (!p.sleeping) anim('jump');
+  save(); renderAll(); renderPet(true);
+}
+
+/* ---------- play mini-game ---------- */
+let gameOn = false;
+function play(){
+  const p = active(); if (!p || p.sleeping || gameOn) return;
+  if (p.energy < 15) { toast(`${p.name} is too tired to play. Try a nap 💤`); anim('wiggle'); return; }
+  gameOn = true; let score = 0, t = 10;
+  const g = $('#game'), ball = $('#ball'), room = $('#room');
+  g.style.display = 'block'; $('#gScore').textContent = 0; $('#gTime').textContent = t;
+  const move = () => { ball.style.left = (10 + Math.random() * (room.clientWidth - 74)) + 'px';
+                       ball.style.top = (50 + Math.random() * (room.clientHeight - 120)) + 'px'; };
+  move();
+  const mover = setInterval(move, 1100);
+  ball.onpointerdown = ev => { ev.preventDefault(); score++; $('#gScore').textContent = score;
+    fx('⭐', parseFloat(ball.style.left) + 10, parseFloat(ball.style.top)); anim('jump'); move(); };
+  const timer = setInterval(() => {
+    $('#gTime').textContent = --t;
+    if (t <= 0) {
+      clearInterval(timer); clearInterval(mover); g.style.display = 'none'; ball.onpointerdown = null; gameOn = false;
+      const coins = 5 + score * 4;
+      S.coins += coins; p.joy = clamp(p.joy + 30); p.energy = clamp(p.energy - 15); addXP(p, 15 + score);
+      toast(`🎾 You caught ${score} balls! +🪙 ${coins}`); cheer(); save(); renderAll();
+    }
+  }, 1000);
+  renderAll();
+}
+
+/* ---------- tabs & events ---------- */
+function showTab(t){
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'panel-' + t));
+  if (t === 'pets') renderGrid();
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+$('#aPlay').onclick = play; $('#aClean').onclick = bath; $('#aSleep').onclick = toggleSleep; $('#aPet').onclick = cuddle;
+$('#petWrap').onclick = cuddle;
+$('#foods').onclick = ev => { const b = ev.target.closest('.food'); if (b && !b.disabled) feed(FOODS[b.dataset.i]); };
+$('#shop').onclick = ev => { const b = ev.target.closest('.buy'); if (b && !b.disabled) buyEgg(b.dataset.egg); };
+$('#incubator').onclick = ev => {
+  const h = ev.target.closest('[data-hatch]'); if (h) { hatch(+h.dataset.hatch); return; }
+  const slot = ev.target.closest('.slot.full'); if (!slot) return;
+  const e = S.eggs[+slot.dataset.i]; if (!e || eggReady(e)) return;
+  e.start -= 1000; const svg = slot.querySelector('svg'); svg.classList.remove('shake'); void svg.offsetWidth; svg.classList.add('shake');
+  renderEggs();
+};
+$('#grid').onclick = ev => {
+  const c = ev.target.closest('[data-pet]'); if (!c || gameOn) return;
+  const id = +c.dataset.pet; if (id === S.active) { showTab('care'); return; }
+  S.active = id; const p = active(); toast(`🏠 ${p.name} is home now!`);
+  save(); renderGrid(); renderAll(); renderPet(true); showTab('care');
+};
+$('#rename').onclick = () => {
+  const p = active(); if (!p) return;
+  const m = $('#modal');
+  m.innerHTML = `<div class="mbox"><h2>Rename ${esc(p.name)}</h2><input id="mName" maxlength="16" value="${esc(p.name)}"><button class="go" id="mOk">Save</button></div>`;
+  m.classList.add('on');
+  const done = () => { p.name = ($('#mName').value.trim() || p.name).slice(0,16); m.classList.remove('on'); save(); renderAll(); };
+  $('#mOk').onclick = done; $('#mName').onkeydown = ev => { if (ev.key === 'Enter') done(); };
+  setTimeout(() => $('#mName').select(), 50);
+};
+$('#modal').onclick = ev => { if (ev.target.id === 'modal' && !$('#mName') && $('#mOk')) $('#mOk').click(); };
+
+/* ---------- game loop ---------- */
+let lastTick = now();
+setInterval(() => {
+  const t = now(), dt = Math.min((t - lastTick) / 1000, 5); lastTick = t;
+  const p = active();
+  if (p) {
+    for (const st of STATS) {
+      if (p.sleeping) {
+        if (st.k === 'energy') { p.energy = clamp(p.energy + dt / 2); continue; }
+        if (st.k === 'joy') continue;
+        p[st.k] = clamp(p[st.k] - dt / st.decay / 2);
+      } else if (!(gameOn && st.k === 'joy')) p[st.k] = clamp(p[st.k] - dt / st.decay);
+    }
+    if (p.sleeping && p.energy >= 100) { p.sleeping = false; toast(`${p.name} woke up full of energy! ☀️`); renderPet(true); }
+  }
+  S.coins += incomePerSec() * dt;
+  renderAll();
+}, 1000);
+setInterval(save, 5000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+window.addEventListener('pagehide', save);
+
+/* ---------- start ---------- */
+renderFoods(); renderShop(); renderGrid(); renderAll(); renderPet(true);
+if (!S.pets.length) showTab('eggs');
+</script>
+</body>
+</html>
