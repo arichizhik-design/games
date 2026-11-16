@@ -69,6 +69,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   | ☄️ Meteor Shower | x40 |
   | ♾️ **Impossible** | **x100** |
   | 🌑 **Dark Matter** (super rare) | **x150** |
+  | 💠 **Prismatic** (admins only) | **x1000** |
 
   Rarer mutations (bigger money) come up less often. Only Gold (coins), Galaxy (stars) and Meteor Shower (meteors)
   drop things from the sky; the rest happen on the ground and in the air: Sakura petals blow in the wind, Diamond
@@ -76,7 +77,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
   Frostbite has ice spikes and frosty mist, Inferno has fire pillars and lava cracks, Radioactive has toxic puddles
   and radiation rings, Tornado sends tornadoes across the park, Vampire brings night, a blood moon and bats,
   Aura Farming gives every player a huge aura with "+AURA" popping up, Impossible glitches with rainbow portals,
-  and Dark Matter fills the park with tiny black holes and dark lightning.
+  and Dark Matter fills the park with tiny black holes and dark lightning. 💠 **Prismatic** (x1000, the best by far) never starts by itself; only admins can turn it on: giant floating crystal prisms shoot rainbow beams, a rainbow aurora ripples across the sky and rainbow sparkles burst everywhere.
 - **Flavor effects:** fancy flavors look special: Phoenix Fire burns with a red glow and flames,
   Infinity Swirl spins with every color and has stars flying in an infinity loop around it,
   Bubblegum blows a bubble that pops, Mango Tango shines like the sun, Lava Swirl drips lava, Frozen Aurora
@@ -117,7 +118,7 @@ A multiplayer browser game where every player runs their own ice cream stand in 
     spots (Void Kraken) and rainbow streaks (Rainbow Unicorn). Their glowing veins pulse and they have a glowing outline.
   - **⛅ Weather events:** each Mythic Beast has its own weather. Only admins start them (the weather picker in the
     admin panel, or `/weather spirit`, `/weather moonlit` … and `/weather off`), and everyone in the park sees it for
-    3 minutes: Void Bear 🌌 Void Storm, Crystal Fox 💎 Crystal Breeze, Solar Lion ☀️ Heat Wave, Metal Rhino ⚙️ Iron Storm,
+    3 minutes. A random one also starts by itself every 20 to 40 minutes: Void Bear 🌌 Void Storm, Crystal Fox 💎 Crystal Breeze, Solar Lion ☀️ Heat Wave, Metal Rhino ⚙️ Iron Storm,
     Galaxy Shark 🌠 Starry Night, Spirit Tiger 👻 Spirit Mist, Void Kraken 🌊 Abyss Tide, Celestial Kitsune 🌙 Moonlit Night.
   - **⬆️ Pet Upgrade Shop** (the button under My Pets): pay money to power up a kind of pet you own. Each level makes it
     give 25% more of its own boost, up to level 10 (level 0 = how it was). Upgrades count for every copy of that pet.

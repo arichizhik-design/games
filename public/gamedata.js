@@ -353,6 +353,9 @@
   // 🔮 Glass: a sparkling see-through mutation (x75). It starts in Glass Storms during the Glass Event, or when an admin turns it on.
   MUTATIONS.push({ id: 'glass', name: 'Glass', emoji: '🔮', mult: 75, weight: 0, adminOnly: true, event: 'glass',
     colors: ['#e7f5ff', '#a5d8ff', '#f3d9fa', '#c3fae8'] });
+  // 💠 Prismatic: the best mutation by far (x1000). It never starts by itself; only admins can turn it on.
+  MUTATIONS.push({ id: 'prismatic', name: 'Prismatic', emoji: '💠', mult: 1000, weight: 0, adminOnly: true,
+    colors: ['#ff8fab', '#ffd166', '#b9fbc0', '#8ecae6', '#cdb4db', '#ffffff'] });
   MUTATIONS.sort((a, b) => a.mult - b.mult); // lowest to highest money, for the Mutations list
   // ⛅ weather events: one for each Mythic Beast. Only admins start them (/weather spirit); everyone in the park sees it.
   const WEATHERS = {
@@ -365,7 +368,8 @@
     voidkraken:  { name: 'Abyss Tide',     emoji: '🌊' },
     kitsune:     { name: 'Moonlit Night',  emoji: '🌙' },
   };
-  const WEATHER_SEC = 180; // how long a weather event lasts
+  const WEATHER_SEC = 180;           // how long a weather event lasts
+  const WEATHER_GAPS_MIN = [20, 30, 40]; // a random weather starts by itself this many minutes after the last one
   const MUTATION_GAPS_MIN = [30, 45, 50]; // minutes between mutation events
   const MUTATION_LENGTH_MIN = 5;          // how long each event lasts
   const MUTATION_CHANCE = 0.35;           // chance a scoop mutates while an event is on
@@ -388,7 +392,7 @@
   // 🔮 the Glass look: see-through glass with rainbow light, a crystal crown and a prism mask
   for (const part of Object.keys(AVATAR)) AVATAR[part].push('glass');
 
-  const GameData = { WEATHERS, WEATHER_SEC, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
+  const GameData = { WEATHERS, WEATHER_SEC, WEATHER_GAPS_MIN, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, AVATAR,
     SCOOP_SLOWEST, SCOOP_FASTEST, scoopSpeedup, scoopSeconds, START_MONEY, shopCost,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice,
     START_SPACES, SPACES_PER_BUY, MAX_SPACES, spaceCost, spacesPerBuy,

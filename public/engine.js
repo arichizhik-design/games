@@ -4,7 +4,7 @@
 (function (root) {
   const GameData = typeof module !== 'undefined' && module.exports
     ? require('./gamedata.js') : root.GameData;
-  const { WEATHERS, WEATHER_SEC, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
+  const { WEATHERS, WEATHER_SEC, WEATHER_GAPS_MIN, RARITIES, FLAVORS, TOPPINGS, PETS, MAX_PETS, PET_MAX_LEVEL, petUpgradeCost, petBoostAt, LUCKY_BLOCKS, UPGRADES, upgradeCost, scoopSeconds, START_MONEY, shopCost, START_SPACES, SPACES_PER_BUY, spaceCost, spacesPerBuy, AVATAR,
     CYBER, CYBER_ADMINS_ONLY, CYBER_EVENT, CYBER_PASS, GLASS_ADMINS_ONLY, GLASS_EVENT, GLASS_PASS, ICE_CREAM_PRICES, GAME_PASSES, SHARD_SCOOPS, SHARD_WEEKLY,
     MUTATIONS, MUTATION_GAPS_MIN, MUTATION_LENGTH_MIN, MUTATION_CHANCE,
     RESTOCK_SEC, HOTBAR_SIZE, STORAGE_SIZE, MAX_STACK, PET_SELL, sellPrice } = GameData;
@@ -344,7 +344,8 @@
     const event = { active: [], next: pick(MUTATION_GAPS_MIN) * 60 };
     // the shop's stock is the same for everyone; each player can buy up to that many of each
     const shop = { stock: rollStock(), left: RESTOCK_SEC };
-    let weather = { id: null, left: 0 }; // ⛅ the weather event going on now (admins start them)
+    let weather = { id: null, left: 0 }; // ⛅ the weather event going on now (admins start them, or it starts by itself)
+    let weatherNext = pick(WEATHER_GAPS_MIN) * 60;
 
     function toSave(s) {
       return { name: s.name, money: s.money, totalEarned: s.totalEarned, sold: s.sold,
@@ -582,6 +583,12 @@
     function tick(dt) {
       updateTimers(dt);
       if (weather.id && (weather.left -= dt) <= 0) weather = { id: null, left: 0 };
+      // ⛅ now and then a random weather starts by itself
+      if (!weather.id && (weatherNext -= dt) <= 0) {
+        weather = { id: pick(Object.keys(WEATHERS)), left: WEATHER_SEC };
+        weatherNext = pick(WEATHER_GAPS_MIN) * 60;
+        broadcast({ type: 'weatherStart', id: weather.id });
+      }
       backupTimer -= dt;
       if (backupTimer <= 0) { // refresh everyone's backup every few seconds
         backupTimer = 5;
@@ -1193,6 +1200,7 @@
         if (msg.id === 'off') { weather = { id: null, left: 0 }; return conn.send({ type: 'admin', text: '⛅ The weather is back to normal.' }); }
         if (!WEATHERS[msg.id]) return err('No weather with that name.');
         weather = { id: msg.id, left: WEATHER_SEC };
+        weatherNext = pick(WEATHER_GAPS_MIN) * 60;
         broadcast({ type: 'weatherStart', id: msg.id, by: stand.name });
       } else if (stand.admin && msg.type === 'adminEndMutation') {
         endMutations();

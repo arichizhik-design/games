@@ -793,3 +793,6 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
 @keyframes beastsPulse { from { box-shadow: 0 0 6px #ff2bd6, 0 0 12px #7b2cbf; } to { box-shadow: 0 0 14px #ff6b00, 0 0 26px #ff2bd6; } }
 .badge.astral { background: linear-gradient(90deg, #4c1d95, #7950f2, #ffe066, #7950f2, #4c1d95) !important; background-size: 300% 100% !important;
   color: #fff !important; text-shadow: 0 1px 2px #000; animation: glassShimmer 2s linear infinite; box-shadow: 0 0 8px #ff2bd6; }
+#adminPanel .mutChip.weatherChip { background: #e7f5ff; color: #1864ab; border-color: #74c0fc; }
+#adminPanel .mutChip.weatherChip:active { background: #74c0fc; color: #fff; }
+#adminWeatherChips { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }

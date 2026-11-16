@@ -425,7 +425,7 @@
         break;
       case 'weatherStart': {
         const w = WEATHERS[msg.id];
-        toast(`${w.emoji} ${w.name}! ${msg.by} started a weather event.`);
+        toast(msg.by ? `${w.emoji} ${w.name}! ${msg.by} started a weather event.` : `${w.emoji} ${w.name}! A weather event is passing over the park.`);
         break;
       }
       case 'state':
@@ -680,7 +680,7 @@
     const ev = evs[0];
     box.classList.toggle('active', !!ev);
     // light-colored mutations get dark text so it stays readable
-    const light = evs.length === 1 && ['diamond', 'gold', 'sakura', 'cyber', 'glass', 'cereal', 'frostbite', 'aura', 'tornado'].includes(ev.id);
+    const light = evs.length === 1 && ['diamond', 'gold', 'sakura', 'cyber', 'glass', 'cereal', 'frostbite', 'aura', 'tornado', 'prismatic'].includes(ev.id);
     box.style.color = light ? '#5a4300' : '';
     box.style.textShadow = light ? '0 1px 2px rgba(255,255,255,0.8)' : '';
     if (evs.length > 1) {
@@ -2089,11 +2089,13 @@
   $('adminEndBtn').addEventListener('click', () => send({ type: 'adminEndMutation' }));
   // ⛅ weather events
   for (const [id, w] of Object.entries(WEATHERS)) {
-    const opt = document.createElement('option');
-    opt.value = id; opt.textContent = `${w.emoji} ${w.name}`;
-    $('adminWeather').appendChild(opt);
+    const chip = document.createElement('button');
+    chip.type = 'button'; chip.className = 'mutChip weatherChip';
+    chip.textContent = `${w.emoji} ${w.name}`;
+    chip.title = `The ${petById[id].name}'s weather`;
+    chip.addEventListener('click', () => send({ type: 'adminWeather', id }));
+    $('adminWeatherChips').appendChild(chip);
   }
-  $('adminWeatherBtn').addEventListener('click', () => send({ type: 'adminWeather', id: $('adminWeather').value }));
   $('adminWeatherOff').addEventListener('click', () => send({ type: 'adminWeather', id: 'off' }));
   // "/weather spirit", "/weather moonlit night", "/weather kitsune" all work
   const findWeather = t => Object.keys(WEATHERS).find(id => squash(id) === squash(t) || squash(WEATHERS[id].name).includes(squash(t)) ||
@@ -5286,6 +5288,7 @@
   // the color of a mutated scoop (Impossible cycles through every color)
   function mutScoopColor(m, time) {
     if (m.id === 'impossible') return `hsl(${(time * 240) % 360}, 100%, 60%)`;
+    if (m.id === 'prismatic') return `hsl(${(time * 160) % 360}, 100%, 78%)`;
     return mutColor(m, time);
   }
 
@@ -5305,11 +5308,11 @@
       drawMutationExtras(m, time, dt, share); // no rain: only Gold, Galaxy and Meteor Shower have things falling
     } else if (m) {
       const tint = ({ impossible: 0.1, sakura: 0.08, galaxy: 0.32, meteor: 0.12, cyber: 0.3, glass: 0.12, cereal: 0.1, frostbite: 0.18,
-        inferno: 0.12, radioactive: 0.12, tornado: 0.14, vampire: 0.45, aura: 0.07, darkmatter: 0.5 }[m.id] ?? 0.13) * Math.max(share, 0.5);
+        inferno: 0.12, radioactive: 0.12, tornado: 0.14, vampire: 0.45, aura: 0.07, darkmatter: 0.5, prismatic: 0.16 }[m.id] ?? 0.13) * Math.max(share, 0.5);
       const TINT = { cyber: '#04121c', cereal: '#fff3c4', vampire: '#1a0005', darkmatter: '#07000f', tornado: '#495057' };
       if (tint) {
         ctx.globalAlpha = tint;
-        ctx.fillStyle = m.id === 'impossible' ? `hsl(${(time * 120) % 360}, 100%, 50%)` : TINT[m.id] || m.colors[0];
+        ctx.fillStyle = m.id === 'impossible' || m.id === 'prismatic' ? `hsl(${(time * (m.id === 'prismatic' ? 40 : 120)) % 360}, 100%, ${m.id === 'prismatic' ? 80 : 50}%)` : TINT[m.id] || m.colors[0];
         ctx.fillRect(0, 0, world.width, world.height);
         ctx.globalAlpha = 1;
       }
@@ -5592,6 +5595,25 @@
         }
         break;
       }
+      case 'prismatic': {
+        // 💠 the best mutation: giant floating prism crystals shooting rainbow beams, a rainbow aurora across the sky,
+        // and rainbow sparkle bursts all over
+        for (let b = 0; b < 3; b++) { // aurora ribbons
+          ctx.globalAlpha = 0.38 * k;
+          ctx.strokeStyle = `hsl(${(time * 50 + b * 120) % 360}, 100%, 75%)`; ctx.lineWidth = 30;
+          ctx.beginPath();
+          for (let x = 0; x <= world.width; x += 40) ctx.lineTo(x, 70 + b * 34 + Math.sin(x / 160 + time + b) * 26);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        if (chance(2) && mutFx.filter(f => f.kind === 'prism').length < 9) addMutFx({ kind: 'prism', ...randSpot(), life: 5, size: 18 + Math.random() * 14 });
+        if (chance(5)) {
+          const p = randSpot();
+          petSpark(p.x, p.y, { shape: 'ring', color: `hsl(${Math.random() * 360}, 100%, 80%)`, vy: 0, life: 0.8, size: 8, grow: 140 });
+          for (let i = 0; i < 12; i++) petSpark(p.x, p.y, { shape: 'star', color: `hsl(${i * 30}, 100%, 75%)`, vx: Math.cos(i * 0.52) * 150, vy: Math.sin(i * 0.52) * 150, life: 0.8, size: 4 });
+        }
+        break;
+      }
       case 'impossible': {
         // ♾️ swirling portals open and close, and floating infinity signs
         if (chance(0.8)) addMutFx({ kind: 'portal', ...randSpot(), life: 4 });
@@ -5845,6 +5867,27 @@
             const an = Math.random() * Math.PI * 2, d = 90;
             petSpark(f.x + Math.cos(an) * d, f.y + Math.sin(an) * d * 0.5, { color: Math.random() < 0.5 ? '#c77dff' : '#ff2bd6', vx: -Math.cos(an) * d * 1.4, vy: -Math.sin(an) * d * 0.7, life: 0.7, size: 2 });
           }
+          break;
+        }
+        case 'prism': { // a giant crystal prism floating and spinning, shooting rainbow beams out of it
+          const open = Math.min(1, f.t * 1.5, a * 3), S = f.size * open, by = f.y - 50 + Math.sin(time * 2 + f.x) * 8;
+          ctx.globalAlpha = 0.5 * open;
+          for (let j = 0; j < 7; j++) {
+            const an = time * 0.8 + j * Math.PI * 2 / 7;
+            ctx.strokeStyle = `hsl(${j * 51}, 100%, 70%)`; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(f.x, by); ctx.lineTo(f.x + Math.cos(an) * S * 6, by + Math.sin(an) * S * 3); ctx.stroke();
+          }
+          glow(f.x, by, S * 3, hueRgb((time * 80) % 360), 0.5 * open);
+          ctx.globalAlpha = 0.9 * open;
+          ctx.save(); ctx.translate(f.x, by); ctx.rotate(Math.sin(time * 1.5 + f.x) * 0.3);
+          const g = ctx.createLinearGradient(-S, -S, S, S);
+          [0, 60, 130, 200, 280].forEach((h, i, arr) => g.addColorStop(i / (arr.length - 1), `hsla(${(h + time * 60) % 360}, 100%, 85%, 0.9)`));
+          ctx.fillStyle = g; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(0, -S * 1.4); ctx.lineTo(S * 0.8, 0); ctx.lineTo(0, S * 1.4); ctx.lineTo(-S * 0.8, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-S * 0.8, 0); ctx.lineTo(S * 0.8, 0); ctx.moveTo(0, -S * 1.4); ctx.lineTo(0, S * 1.4); ctx.stroke();
+          ctx.restore();
+          ctx.globalAlpha = 0.25 * open; ctx.fillStyle = '#000';
+          ctx.beginPath(); ctx.ellipse(f.x, f.y + 4, S * 0.8, S * 0.25, 0, 0, Math.PI * 2); ctx.fill();
           break;
         }
         case 'portal': { // a swirling rainbow portal
