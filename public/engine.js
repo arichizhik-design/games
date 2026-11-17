@@ -131,7 +131,7 @@
   // the Glass Dragon became the Glass Wolf; the Shadow Wolf left the game, so its owners get a Rainbow Unicorn, also Epic)
   const RENAMED_PETS = { hydra: 'cyberwhale', glassbutterfly: 'glasscobra', glassfrog: 'glassleopard', glassdeer: 'glassrhino',
     glassflamingo: 'glassbear', glassgiraffe: 'glasscroc', glassswan: 'glasssquid', glasspeacock: 'glasswolf',
-    glassdragon: 'glasswolf', wolf: 'unicorn', lavagolem: 'voidkraken', chaoshydra: 'ancientmammoth', glitchmanticore: 'ancientmammoth', kitsune: 'ancientmammoth' }; // the Lava Golem left; the best beast is now the Ancient Mammoth
+    glassdragon: 'glasswolf', wolf: 'unicorn', lavagolem: 'voidkraken', chaoshydra: 'ancientmammoth', glitchmanticore: 'ancientmammoth', kitsune: 'ancientmammoth', candytiger: 'candysnake' }; // the Lava Golem left; the best beast is now the Ancient Mammoth
   const renamedPet = id => RENAMED_PETS[id] || id;
   const bundleEvents = b => [...Object.keys(b.items), ...Object.keys(b.pets)].map(eventOf).filter(Boolean);
   function hideLook(avatar, look) {

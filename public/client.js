@@ -2721,7 +2721,7 @@
 
   // pets move like real animals: walkers trot and sit, bunnies hop, penguins waddle,
   // birds and dragons flap in the air, and sea creatures swim through it
-  const PET_SIZE = { candytiger: 1.4, reindeer: 1.3, voidkraken: 1.4, cosmicstag: 1.5, ancientmammoth: 1.6, swampleviathan: 1.5, stormbison: 1.55, galaxyshark: 1.35, solarlion: 1.25, metalrhino: 1.25, dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
+  const PET_SIZE = { candysnake: 1.35, reindeer: 1.3, voidkraken: 1.4, cosmicstag: 1.5, ancientmammoth: 1.6, swampleviathan: 1.5, stormbison: 1.55, galaxyshark: 1.35, solarlion: 1.25, metalrhino: 1.25, dragon: 1.45, cyberwhale: 1.8, glasswolf: 1.7, glasselephant: 1.35, glassrhino: 1.25, glasscroc: 1.3, rex: 1.5, shark: 1.4, dove: 1.3, dragonking: 1.6, infinity: 1.75 };
 
   // ⚡ the Cyber look: glowing cyan cracks between dark armor plates, a glowing ring core, and crackling lightning
   const CYAN = '#2ee8ff';
@@ -2939,7 +2939,6 @@
     polarbear:    { colors: ['#ffffff', '#f1f3f5', '#a5d8ff'], bright: 0.5, veins: 'lights', rim: '#ffd43b' },
     frostyowl:    { colors: ['#ffffff', '#d0ebff', '#4dabf7'], bright: 0.4, veins: 'frost', rim: '#a5d8ff' },
     reindeer:     { colors: ['#ffe8cc', '#a0522d', '#4a2410'], veins: 'lights', rim: '#ffd43b' },
-    candytiger:   { colors: ['#ffffff', '#fff5f5', '#ffc9c9'], bright: 0.6, keep: 0.25, veins: 'candy', rim: '#ff4d4d' },
     // ✨ every regular pet gets painted too (the cute common ones keep some of their own colors)
     puppy:      { colors: ['#fff4e6', '#ffa94d', '#c2410c'], keep: 0.6, veins: 'spots', rim: '#ff8787' },
     kitty:      { colors: ['#fff0f6', '#f783ac', '#862e9c'], keep: 0.6, veins: 'stripes', rim: '#f783ac' },
@@ -3069,16 +3068,6 @@
             }
           }
           break;
-        case 'candy': // 🍭 bold red candy cane stripes, with a minty shine
-          c.save(); c.translate(80, 80); c.rotate(-0.6);
-          for (let x = -120; x <= 120; x += 26) {
-            c.fillStyle = glow ? 'rgba(255, 90, 90, 0.9)' : 'rgba(232, 32, 42, 0.85)';
-            c.fillRect(x, -120, 7, 240);
-            if (!glow) { c.fillStyle = 'rgba(64, 192, 87, 0.35)'; c.fillRect(x + 12, -120, 3, 240); }
-          }
-          c.restore();
-          if (!glow) { c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.moveTo(40, 20); c.lineTo(58, 20); c.lineTo(22, 150); c.lineTo(4, 150); c.fill(); }
-          break;
         case 'icing': // 🍪 white gingerbread icing swirls and candy buttons
           c.strokeStyle = '#ffffff'; c.lineWidth = glow ? 2 : 3;
           for (let k = 0; k < 6; k++) { const y0 = 30 + k * 20; c.beginPath(); for (let x = 20; x <= 140; x += 8) c.lineTo(x, y0 + (x % 16 ? 4 : -4)); c.stroke(); }
@@ -3122,6 +3111,58 @@
     const look = BEAST_LOOKS[p.id] || BEAST_LOOKS[p.fx];
     if (look) PET_MODELS[p.id] = (time, seed) => drawBeast(p.id, look, time, seed);
   }
+  // 🍭 a little candy cane (white with red stripes), for the Candy Cane Snake's effects
+  function drawCandyCane(x, y, size, rot) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.lineCap = 'round';
+    const path = () => { ctx.beginPath(); ctx.moveTo(0, size); ctx.lineTo(0, -size * 0.3); ctx.arc(-size * 0.35, -size * 0.3, size * 0.35, 0, Math.PI, true); };
+    ctx.lineWidth = size * 0.36 + 1.6; ctx.strokeStyle = 'rgba(140, 20, 30, 0.7)'; path(); ctx.stroke(); // an outline
+    ctx.lineWidth = size * 0.36; ctx.strokeStyle = '#ffffff'; path(); ctx.stroke();
+    ctx.strokeStyle = '#e8202a'; ctx.setLineDash([size * 0.28, size * 0.28]); path(); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+  }
+  // 🍭 Candy Cane Snake: a long slithering body striped red and white all the way, the front curled up into a
+  // candy cane's hook with the head on top, a forked tongue flicking out and a shiny candy shine
+  PET_MODELS.candysnake = (time, seed, flying, moving) => {
+    const N = 26, pts = [];
+    for (let i = 0; i <= N; i++) {
+      const f = i / N; // 0 = head, 1 = tail
+      let px, py;
+      if (f < 0.3) { // the hook: the front of the body rises up and curls over, like the top of a candy cane
+        const k = f / 0.3, a = Math.PI * (1 - k) * 0.95;
+        px = -14 - Math.cos(a) * 8; py = 2 - 12 * (1 - k) - Math.sin(a) * 9;
+      } else { // the rest slithers along the ground in waves
+        const k = (f - 0.3) / 0.7;
+        px = -14 + k * 44; py = 4 + Math.sin(k * Math.PI * 2.4 - time * (moving ? 10 : 4) + seed) * (2 + k * 4);
+      }
+      pts.push([px, py, f]);
+    }
+    const width = f => 7.5 - f * 4.5;
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // a dark red outline under the whole body
+    ctx.strokeStyle = 'rgba(140, 20, 30, 0.75)';
+    for (let i = N; i > 0; i--) { ctx.lineWidth = width(pts[i][2]) + 1.8; ctx.beginPath(); ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[i - 1][0], pts[i - 1][1]); ctx.stroke(); }
+    // red and white candy cane stripes from the tail to the head
+    for (let i = N; i > 0; i--) {
+      ctx.strokeStyle = Math.floor(i / 2) % 2 ? '#e8202a' : '#ffffff';
+      ctx.lineWidth = width(pts[i][2]); ctx.beginPath(); ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[i - 1][0], pts[i - 1][1]); ctx.stroke();
+    }
+    // a candy shine along its back
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); pts.slice(2, N - 3).forEach(([px, py, f], i) => i ? ctx.lineTo(px, py - width(f) * 0.3) : ctx.moveTo(px, py - width(f) * 0.3)); ctx.stroke();
+    // the head, on top of the hook
+    const [hx, hy] = pts[0];
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = 'rgba(140, 20, 30, 0.75)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(hx - 2, hy, 6.5, 5, -0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e8202a'; ctx.beginPath(); ctx.ellipse(hx, hy - 1.5, 4.5, 1.5, -0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(hx - 4, hy - 1.5, 1.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(hx - 4.4, hy - 2, 0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255, 120, 140, 0.6)'; ctx.beginPath(); ctx.arc(hx - 5, hy + 1.6, 1.2, 0, Math.PI * 2); ctx.fill();
+    if ((time + seed) % 1.4 < 0.35) { // the tongue flicks out
+      ctx.strokeStyle = '#e8202a'; ctx.lineWidth = 0.9;
+      ctx.beginPath(); ctx.moveTo(hx - 8, hy + 1); ctx.lineTo(hx - 13, hy + 1.5); ctx.lineTo(hx - 15, hy); ctx.moveTo(hx - 13, hy + 1.5); ctx.lineTo(hx - 15, hy + 3); ctx.stroke();
+    }
+    ctx.restore();
+  };
   // 🦌 Santa's Reindeer: a glowing red nose and a little red sleigh full of presents behind it
   PET_MODELS.reindeer = (time, seed) => {
     // the sleigh (behind it, so drawn first)
@@ -3485,23 +3526,33 @@
         if (lvl >= 3 && (time + seed) % 4 < dt) for (let k = 0; k < 4; k++) petSpark(x, y - 14, { shape: 'bit', text: '🎁', color: '#fff', vx: rnd() * 120, vy: -60 - Math.random() * 60, life: 1, size: 9 });
         break;
       }
-      case 'candytiger': {
-        // 🐅 Candy Cane Tiger, the best Christmas pet: peppermint candies spinning around it, a candy cane trail where it
-        // walks, sugar sparkles, and every few seconds it roars out a burst of little candy canes
-        glow(x, y - 10, 60, '255, 77, 77', 0.4);
-        glow(x, y - 10, 30, '255, 255, 255', 0.45);
-        for (let k = 0; k < 4; k++) {
-          const a = time * 1.6 + k * Math.PI / 2 + seed, cx = x + Math.cos(a) * 40, cy = y - 14 + Math.sin(a) * 15;
-          ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#e8202a';
-          for (let j = 0; j < 4; j++) { const s0 = time * 4 + j * Math.PI / 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, 6, s0, s0 + Math.PI / 4); ctx.fill(); }
-          ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.stroke();
+      case 'candysnake': {
+        // 🍭 Candy Cane Snake, the best Christmas pet: a striped candy ring on the ground, mini candy canes and peppermint
+        // swirls spinning around it, a sugar trail, and every few seconds a big candy burst
+        glow(x, y - 8, 60, '255, 77, 77', 0.35);
+        glow(x, y - 8, 30, '255, 255, 255', 0.4);
+        ctx.save(); ctx.translate(pp.x, pp.y + 9); ctx.scale(1, 0.32);
+        ctx.lineWidth = 7;
+        ctx.strokeStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, 44, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = '#e8202a'; ctx.setLineDash([12, 12]); ctx.lineDashOffset = -time * 40;
+        ctx.beginPath(); ctx.arc(0, 0, 44, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+        ctx.restore();
+        for (let k = 0; k < 3; k++) { // mini candy canes
+          const a = time * 1.3 + k * 2.09 + seed;
+          drawCandyCane(x + Math.cos(a) * 44, y - 14 + Math.sin(a) * 16, 11, a * 1.5);
         }
-        if (chance(10)) petSpark(x + rnd() * 40, y - 20 + rnd() * 30, { shape: 'star', color: Math.random() < 0.5 ? '#ffffff' : '#ff8787', vy: -10, life: 0.9, size: 3 });
-        if (pp.moving && chance(8)) petSpark(pp.x - pp.facing * 14, pp.y + 6, { shape: 'bit', text: '🍬', color: '#fff', vx: 0, vy: -4, life: 1.2, size: 8 });
+        for (let k = 0; k < 2; k++) { // peppermint swirls
+          const a = -time * 1.7 + k * Math.PI + seed, px = x + Math.cos(a) * 30, py = y - 30 + Math.sin(a) * 9;
+          ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(px, py, 5.5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#e8202a';
+          for (let j = 0; j < 4; j++) { const s0 = time * 5 + j * Math.PI / 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.arc(px, py, 5.5, s0, s0 + Math.PI / 4); ctx.fill(); }
+        }
+        if (chance(10)) petSpark(x + rnd() * 50, y - 20 + rnd() * 30, { shape: 'star', color: Math.random() < 0.5 ? '#ffffff' : '#ff8787', vy: -10, life: 0.9, size: 3 });
+        if (pp.moving && chance(10)) petSpark(pp.x - pp.facing * 26 + rnd() * 8, pp.y + 6, { shape: 'star', color: '#fff', vy: -3, life: 1, size: 2.5 });
         if ((time + seed) % 4 < dt) {
-          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#ff4d4d', vy: 0, life: 0.8, size: 14, grow: 150 });
-          for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; petSpark(x, y - 16, { shape: 'bit', text: '🍭', color: '#fff', vx: Math.cos(a) * 150, vy: Math.sin(a) * 100 - 40, life: 1, size: 11 }); }
+          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#e8202a', vy: 0, life: 0.8, size: 14, grow: 160 });
+          petSpark(pp.x, pp.y + 9, { shape: 'ring', color: '#ffffff', vy: 0, life: 0.8, size: 8, grow: 120 });
+          for (let k = 0; k < 10; k++) { const a = k * Math.PI / 5; petSpark(x, y - 18, { shape: 'bit', text: k % 2 ? '🍬' : '🍭', color: '#fff', vx: Math.cos(a) * 150, vy: Math.sin(a) * 100 - 40, life: 1, size: 11 }); }
         }
         break;
       }
@@ -3851,10 +3902,10 @@
       ctx.beginPath(); ctx.ellipse(x, y - 30 * big - 4, 11, 4, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.shadowBlur = 0;
     }
-    if (pet.fx === 'xmas' || pet.fx === 'reindeer' || pet.fx === 'candytiger') {
-      // 🎅 a little Santa hat
-      const tiger = pet.fx === 'candytiger';
-      const hx = tiger ? x + pp.facing * 13 * big : x - pp.facing * 6 * big, hy = y - (tiger ? 19 : 28) * big; // the tiger's head is out in front
+    if (pet.fx === 'xmas' || pet.fx === 'reindeer' || pet.fx === 'candysnake') {
+      // 🎅 a little Santa hat (the snake's head is up on top of its candy cane hook, out in front)
+      const snake = pet.fx === 'candysnake';
+      const hx = snake ? x + pp.facing * 21 * big : x - pp.facing * 6 * big, hy = y - (snake ? 21 : 28) * big;
       ctx.fillStyle = '#e03131';
       ctx.beginPath(); ctx.moveTo(hx - 8, hy + 3); ctx.quadraticCurveTo(hx - 2, hy - 14, hx + pp.facing * -9, hy - 9); ctx.lineTo(hx + 8, hy + 3); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#fff';

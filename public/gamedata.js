@@ -214,8 +214,8 @@
     { id: 'frostyowl',    name: 'Frosty Owl',       emoji: '🦉', rarity: 'celestial', boost: 9.6,  fx: 'xmas', kind: 'fly',  event: 'christmas', block: 'christmas' },
     // the best Christmas pet: Santa's Reindeer with a glowing red nose, pulling a little sleigh full of presents
     { id: 'reindeer',     name: "Santa's Reindeer", emoji: '🦌', rarity: 'christmas', boost: 65,  fx: 'reindeer', kind: 'walk', event: 'christmas', block: 'christmas' },
-    // the very best Christmas pet: a tiger whose stripes are red and white like a candy cane
-    { id: 'candytiger',   name: 'Candy Cane Tiger', emoji: '🐅', rarity: 'christmas', boost: 75,  fx: 'candytiger', kind: 'walk', event: 'christmas', block: 'christmas' },
+    // the very best Christmas pet: a long snake striped red and white like a candy cane, curled up into a cane's hook
+    { id: 'candysnake',   name: 'Candy Cane Snake', emoji: '🐍', rarity: 'christmas', boost: 75,  fx: 'candysnake', kind: 'walk', event: 'christmas', block: 'christmas' },
   );
   LUCKY_BLOCKS.push({ id: 'christmas', name: 'Christmas Block', cost: 1.5e9, color: 'christmas', event: 'christmas', ownPets: true,
     odds: { legendary: 72.5, mythic: 15, secret: 8, celestial: 4, christmas: 0.5 } }); // Polar Bear and Frosty Owl 2% each
