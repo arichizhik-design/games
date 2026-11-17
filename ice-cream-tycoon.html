@@ -6065,46 +6065,67 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     ctx.strokeStyle = '#e8202a'; ctx.setLineDash([size * 0.28, size * 0.28]); path(); ctx.stroke(); ctx.setLineDash([]);
     ctx.restore();
   }
-  // 🍭 Candy Cane Snake: a long slithering body striped red and white all the way, the front curled up into a
-  // candy cane's hook with the head on top, a forked tongue flicking out and a shiny candy shine
+  // 🍭 Candy Cane Snake: one smooth body that tapers to a pointy tail, striped red and white like a candy cane, slithering
+  // in an S with its head lifted a little; a real snake head (wider than the neck, a pointed snout, an eye, a forked tongue)
   PET_MODELS.candysnake = (time, seed, flying, moving) => {
-    const N = 26, pts = [];
+    const N = 44, mid = [];
     for (let i = 0; i <= N; i++) {
-      const f = i / N; // 0 = head, 1 = tail
-      let px, py;
-      if (f < 0.3) { // the hook: the front of the body rises up and curls over, like the top of a candy cane
-        const k = f / 0.3, a = Math.PI * (1 - k) * 0.95;
-        px = -14 - Math.cos(a) * 8; py = 2 - 12 * (1 - k) - Math.sin(a) * 9;
-      } else { // the rest slithers along the ground in waves
-        const k = (f - 0.3) / 0.7;
-        px = -14 + k * 44; py = 4 + Math.sin(k * Math.PI * 2.4 - time * (moving ? 10 : 4) + seed) * (2 + k * 4);
-      }
-      pts.push([px, py, f]);
+      const f = i / N; // 0 = neck (behind the head), 1 = tail tip
+      const wave = Math.sin(f * Math.PI * 2.2 - time * (moving ? 9 : 3.5) + seed) * (2.5 + f * 3.5) * Math.min(1, f / 0.15);
+      const lift = f < 0.25 ? -Math.pow(1 - f / 0.25, 2) * 6 : 0; // the head end lifts up a little
+      mid.push([-14 + f * 46, 5 + wave + lift, f]);
     }
-    const width = f => 7.5 - f * 4.5;
-    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    // a dark red outline under the whole body
-    ctx.strokeStyle = 'rgba(140, 20, 30, 0.75)';
-    for (let i = N; i > 0; i--) { ctx.lineWidth = width(pts[i][2]) + 1.8; ctx.beginPath(); ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[i - 1][0], pts[i - 1][1]); ctx.stroke(); }
-    // red and white candy cane stripes from the tail to the head
-    for (let i = N; i > 0; i--) {
-      ctx.strokeStyle = Math.floor(i / 2) % 2 ? '#e8202a' : '#ffffff';
-      ctx.lineWidth = width(pts[i][2]); ctx.beginPath(); ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[i - 1][0], pts[i - 1][1]); ctx.stroke();
+    const width = f => f < 0.06 ? 7.6 : 0.8 + 9 * Math.pow(1 - f, 0.7);
+    // the two edges of the body
+    const L = [], R = [];
+    mid.forEach(([px, py, f], i) => {
+      const a = mid[Math.max(0, i - 1)], b = mid[Math.min(N, i + 1)];
+      let tx = b[0] - a[0], ty = b[1] - a[1]; const len = Math.hypot(tx, ty) || 1; tx /= len; ty /= len;
+      const w = width(f) / 2;
+      L.push([px + ty * w, py - tx * w]); R.push([px - ty * w, py + tx * w]);
+    });
+    ctx.save();
+    // candy stripes: bands across the body, joined so it's one smooth shape
+    for (let i = 0; i < N; i++) {
+      const col = Math.floor(i / 3) % 2 ? '#e8202a' : '#ffffff';
+      ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(...L[i]); ctx.lineTo(...L[i + 1]); ctx.lineTo(...R[i + 1]); ctx.lineTo(...R[i]); ctx.closePath(); ctx.fill(); ctx.stroke();
     }
-    // a candy shine along its back
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'; ctx.lineWidth = 1.2;
-    ctx.beginPath(); pts.slice(2, N - 3).forEach(([px, py, f], i) => i ? ctx.lineTo(px, py - width(f) * 0.3) : ctx.moveTo(px, py - width(f) * 0.3)); ctx.stroke();
-    // the head, on top of the hook
-    const [hx, hy] = pts[0];
-    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = 'rgba(140, 20, 30, 0.75)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(hx - 2, hy, 6.5, 5, -0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#e8202a'; ctx.beginPath(); ctx.ellipse(hx, hy - 1.5, 4.5, 1.5, -0.2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(hx - 4, hy - 1.5, 1.3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(hx - 4.4, hy - 2, 0.45, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255, 120, 140, 0.6)'; ctx.beginPath(); ctx.arc(hx - 5, hy + 1.6, 1.2, 0, Math.PI * 2); ctx.fill();
-    if ((time + seed) % 1.4 < 0.35) { // the tongue flicks out
-      ctx.strokeStyle = '#e8202a'; ctx.lineWidth = 0.9;
-      ctx.beginPath(); ctx.moveTo(hx - 8, hy + 1); ctx.lineTo(hx - 13, hy + 1.5); ctx.lineTo(hx - 15, hy); ctx.moveTo(hx - 13, hy + 1.5); ctx.lineTo(hx - 15, hy + 3); ctx.stroke();
+    // a soft shadow along the belly and a candy shine along the back
+    ctx.strokeStyle = 'rgba(120, 10, 20, 0.25)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); R.slice(1, N - 2).forEach((p, i) => i ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; ctx.lineWidth = 1.1; ctx.lineCap = 'round';
+    ctx.beginPath(); mid.slice(1, N - 6).forEach(([px, py], i) => { const q = [(px + L[i + 1][0]) / 2, (py + L[i + 1][1]) / 2]; i ? ctx.lineTo(...q) : ctx.moveTo(...q); }); ctx.stroke();
+    // the outline
+    ctx.strokeStyle = 'rgba(130, 15, 25, 0.8)'; ctx.lineWidth = 0.8; ctx.lineJoin = 'round';
+    ctx.beginPath(); L.forEach((p, i) => i ? ctx.lineTo(...p) : ctx.moveTo(...p)); for (let i = N; i >= 0; i--) ctx.lineTo(...R[i]); ctx.stroke();
+    // the head: wider than the neck, with a rounded pointed snout
+    const [nx, ny] = mid[0], [ax, ay] = mid[2];
+    let dx = nx - ax, dy = ny - ay; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl; // pointing forward
+    const ux = -dy, uy = dx; // sideways (up is the negative side)
+    const HS = 1.35; // head size
+    const P = (fw, side) => [nx + dx * fw * HS + ux * side * HS, ny + dy * fw * HS + uy * side * HS];
+    const head = new Path2D();
+    head.moveTo(...P(0, -2.9));
+    head.bezierCurveTo(...P(1.5, -5.6), ...P(7, -5.2), ...P(11, -1.2));
+    head.quadraticCurveTo(...P(12, 0.4), ...P(10.5, 1.6));
+    head.bezierCurveTo(...P(7, 4.6), ...P(1.5, 5), ...P(0, 2.9));
+    head.closePath();
+    ctx.fillStyle = '#ffffff'; ctx.fill(head);
+    ctx.save(); ctx.clip(head); // a red candy stripe across the back of its head
+    ctx.fillStyle = '#e8202a'; ctx.beginPath(); ctx.moveTo(...P(2, -7)); ctx.lineTo(...P(4.5, -7)); ctx.lineTo(...P(3.5, 7)); ctx.lineTo(...P(1, 7)); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(130, 15, 25, 0.8)'; ctx.lineWidth = 0.8; ctx.stroke(head);
+    // its eye (on top, near the front), a nostril and rosy cheek
+    const [ex, ey] = P(7.4, -2.2);
+    ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.ellipse(ex, ey, 1.4, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(ex - 0.4, ey - 0.6, 0.5, 0, Math.PI * 2); ctx.fill();
+    const [kx, ky] = P(10, -0.6); ctx.fillStyle = 'rgba(120, 10, 20, 0.7)'; ctx.beginPath(); ctx.arc(kx, ky, 0.4, 0, Math.PI * 2); ctx.fill();
+    const [cx2, cy2] = P(6, 2); ctx.fillStyle = 'rgba(255, 120, 140, 0.55)'; ctx.beginPath(); ctx.arc(cx2, cy2, 1.2, 0, Math.PI * 2); ctx.fill();
+    if ((time + seed) % 1.4 < 0.35) { // the forked tongue flicks out
+      const [t0x, t0y] = P(11.5, 0.8), [t1x, t1y] = P(16, 1), [fax, fay] = P(18, -0.6), [fbx, fby] = P(18, 2.6);
+      ctx.strokeStyle = '#e8202a'; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(t0x, t0y); ctx.lineTo(t1x, t1y); ctx.lineTo(fax, fay); ctx.moveTo(t1x, t1y); ctx.lineTo(fbx, fby); ctx.stroke();
     }
     ctx.restore();
   };
@@ -6477,10 +6498,10 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         glow(x, y - 8, 60, '255, 77, 77', 0.35);
         glow(x, y - 8, 30, '255, 255, 255', 0.4);
         ctx.save(); ctx.translate(pp.x, pp.y + 9); ctx.scale(1, 0.32);
-        ctx.lineWidth = 7;
-        ctx.strokeStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, 44, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = '#e8202a'; ctx.setLineDash([12, 12]); ctx.lineDashOffset = -time * 40;
-        ctx.beginPath(); ctx.arc(0, 0, 44, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = 'rgba(255, 212, 59, 0.55)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, 48, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        for (let k = 0; k < 10; k++) { const a = time * 0.8 + k * Math.PI / 5; ctx.beginPath(); ctx.arc(Math.cos(a) * 48, Math.sin(a) * 48, 2.5, 0, Math.PI * 2); ctx.fill(); }
         ctx.restore();
         for (let k = 0; k < 3; k++) { // mini candy canes
           const a = time * 1.3 + k * 2.09 + seed;
@@ -6850,7 +6871,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (pet.fx === 'xmas' || pet.fx === 'reindeer' || pet.fx === 'candysnake') {
       // 🎅 a little Santa hat (the snake's head is up on top of its candy cane hook, out in front)
       const snake = pet.fx === 'candysnake';
-      const hx = snake ? x + pp.facing * 21 * big : x - pp.facing * 6 * big, hy = y - (snake ? 21 : 28) * big;
+      const hx = snake ? x + pp.facing * 26 * big : x - pp.facing * 6 * big, hy = y - (snake ? 11 : 28) * big;
       ctx.fillStyle = '#e03131';
       ctx.beginPath(); ctx.moveTo(hx - 8, hy + 3); ctx.quadraticCurveTo(hx - 2, hy - 14, hx + pp.facing * -9, hy - 9); ctx.lineTo(hx + 8, hy + 3); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#fff';
