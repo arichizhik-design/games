@@ -6102,7 +6102,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     // the head: wider than the neck, with a rounded pointed snout
     const [nx, ny] = mid[0], [ax, ay] = mid[2];
     let dx = nx - ax, dy = ny - ay; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl; // pointing forward
-    const ux = -dy, uy = dx; // sideways (up is the negative side)
+    const ux = dy, uy = -dx; // sideways (the negative side is up, so the eye and red cap are on top)
     const HS = 1.2; // head size
     const P = (fw, side) => [nx + dx * fw * HS + ux * side * HS, ny + dy * fw * HS + uy * side * HS];
     // a real snake head: wide jaws at the back (much wider than the neck) narrowing to a rounded snout
@@ -6886,7 +6886,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
     if (pet.fx === 'xmas' || pet.fx === 'reindeer' || pet.fx === 'candysnake') {
       // 🎅 a little Santa hat (the snake's head is up on top of its candy cane hook, out in front)
       const snake = pet.fx === 'candysnake';
-      const hx = snake ? x + pp.facing * 24 * big : x - pp.facing * 6 * big, hy = y - (snake ? 12 : 28) * big;
+      const hx = snake ? x + pp.facing * 15 * big : x - pp.facing * 6 * big, hy = y - (snake ? 15.5 : 28) * big; // the snake's is on the back of its head
       ctx.fillStyle = '#e03131';
       ctx.beginPath(); ctx.moveTo(hx - 8, hy + 3); ctx.quadraticCurveTo(hx - 2, hy - 14, hx + pp.facing * -9, hy - 9); ctx.lineTo(hx + 8, hy + 3); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#fff';
