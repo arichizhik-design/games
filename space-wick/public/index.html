@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#05060f">
+  <title>Space Wick</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="cv"></canvas>
+
+  <!-- start screen -->
+  <div id="start" class="overlay">
+    <div class="panel start-panel">
+      <h1>SPACE <span>WICK</span></h1>
+      <p class="tag">Fly. Shoot. Get rich. Buy better planes.</p>
+      <input id="name" maxlength="16" placeholder="Your pilot name" autocomplete="off" spellcheck="false">
+      <button id="play" class="big">🚀 PLAY</button>
+      <p id="startErr" class="err"></p>
+      <div class="howto">
+        <b>How to play</b>
+        <span>📱 Left thumb: drag to fly. Tap anywhere else to shoot.</span>
+        <span>💻 WASD or arrow keys to fly. Click to shoot.</span>
+        <span>🌀 Fly into the <b>ENTER WICK</b> portal to go to the battlefield.</span>
+        <span>🎯 In the Wick, dummies give $10 and shooting down pilots gives $50.</span>
+      </div>
+      <p id="mode" class="mode"></p>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" hidden>
+    <div class="hud-left">
+      <div id="money">$0</div>
+      <div class="hpbar"><div id="hpfill"></div><span id="hptext">200 / 200</span></div>
+      <div id="kills">🎯 0 kills</div>
+    </div>
+    <div id="zone">LOBBY</div>
+    <div id="feed"></div>
+    <button id="sound" title="Sound">🔊</button>
+  </div>
+  <button id="look" hidden>👀 LOOK</button>
+  <div id="toasts"></div>
+  <div id="banner"></div>
+
+  <!-- shop -->
+  <div id="shop" class="overlay" hidden>
+    <div class="panel shop-panel">
+      <div class="shop-head">
+        <h2 id="shopTitle">PLANE SHOP</h2>
+        <div id="shopMoney">$0</div>
+        <button id="shopClose" aria-label="Close">✕</button>
+      </div>
+      <div id="shopBody"></div>
+    </div>
+  </div>
+
+  <!-- death -->
+  <div id="dead" class="overlay dim" hidden>
+    <div class="dead-box">
+      <div class="boom">💥</div>
+      <h2>SHOT DOWN!</h2>
+      <p id="deadBy"></p>
+      <p class="small">Back to the lobby in <span id="deadT">3</span>…</p>
+    </div>
+  </div>
+
+  <div id="lost" class="overlay dim" hidden>
+    <div class="panel"><h2>Connection lost</h2><p>The game server stopped answering.</p><button class="big" onclick="location.reload()">Reconnect</button></div>
+  </div>
+
+  <script src="engine.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>

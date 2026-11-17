@@ -1,0 +1,1336 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#05060f">
+  <title>Space Wick</title>
+  <style>
+:root {
+  --bg: #05060f;
+  --panel: rgba(14, 20, 46, 0.94);
+  --line: #2b3a7a;
+  --text: #eef2ff;
+  --dim: #9aa6d6;
+  --accent: #6ff3ff;
+  --hot: #ff4fd8;
+  --good: #57f287;
+  --bad: #ff5c5c;
+  --gold: #ffd84d;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+
+.overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+.overlay.dim { background: rgba(3, 4, 12, 0.6); }
+.panel { background: var(--panel); border: 2px solid var(--line); border-radius: 18px; padding: 22px;
+  box-shadow: 0 0 40px rgba(111, 243, 255, 0.15); max-width: 100%; }
+
+/* start */
+#start { background: radial-gradient(ellipse at center, rgba(40, 20, 90, 0.55), rgba(3, 4, 12, 0.85)); }
+.start-panel { width: 420px; text-align: center; }
+h1 { margin: 0 0 4px; font-size: 44px; letter-spacing: 4px; font-weight: 900; color: var(--accent);
+  text-shadow: 0 0 18px rgba(111, 243, 255, 0.7); }
+h1 span { color: var(--hot); text-shadow: 0 0 18px rgba(255, 79, 216, 0.7); }
+.tag { margin: 0 0 18px; color: var(--dim); }
+#name { width: 100%; padding: 14px; font-size: 18px; border-radius: 12px; border: 2px solid var(--line);
+  background: #0a1030; color: var(--text); text-align: center; outline: none; user-select: text; -webkit-user-select: text; }
+#name:focus { border-color: var(--accent); }
+.big { width: 100%; margin-top: 12px; padding: 14px; font-size: 20px; font-weight: 800; letter-spacing: 1px; border-radius: 12px;
+  background: linear-gradient(90deg, #00c2ff, #b14bff); box-shadow: 0 4px 0 #3b1c7a; }
+.big:active { transform: translateY(2px); box-shadow: 0 2px 0 #3b1c7a; }
+.err { color: var(--bad); min-height: 1.2em; margin: 10px 0 0; }
+.howto { display: flex; flex-direction: column; gap: 6px; text-align: left; font-size: 14px; color: var(--dim);
+  background: rgba(0, 0, 0, 0.25); border-radius: 12px; padding: 12px; margin-top: 6px; }
+.howto b { color: var(--text); }
+.mode { font-size: 12px; color: var(--dim); margin: 12px 0 0; }
+
+/* HUD */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+.hud-left { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 12px; display: flex; flex-direction: column; gap: 6px; }
+#money { font-size: 26px; font-weight: 900; color: var(--gold); text-shadow: 0 2px 0 #000, 0 0 10px rgba(255, 216, 77, 0.5); }
+.hpbar { position: relative; width: 190px; height: 20px; border-radius: 10px; background: rgba(0, 0, 0, 0.6); border: 2px solid #222a55; overflow: hidden; }
+#hpfill { height: 100%; width: 100%; background: linear-gradient(90deg, #22c55e, #86efac); transition: width 0.15s; }
+#hptext { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; text-shadow: 0 1px 2px #000; }
+#kills { font-size: 13px; color: var(--dim); text-shadow: 0 1px 2px #000; }
+#zone { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-weight: 900; letter-spacing: 3px;
+  font-size: 15px; padding: 6px 14px; border-radius: 999px; background: rgba(0, 0, 0, 0.45); border: 1px solid var(--line); white-space: nowrap; }
+#zone.wick { color: #ff8a8a; border-color: #7a2b2b; }
+#feed { position: absolute; top: max(54px, calc(env(safe-area-inset-top) + 44px)); right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: 13px; }
+#feed div { background: rgba(0, 0, 0, 0.5); padding: 3px 9px; border-radius: 8px; animation: fadeout 6s forwards; }
+#feed .me { color: var(--gold); }
+#sound { position: absolute; top: max(10px, env(safe-area-inset-top)); right: 12px; pointer-events: auto; background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--line); border-radius: 10px; width: 38px; height: 38px; font-size: 18px; }
+@media (max-width: 520px) {
+  #zone { top: auto; bottom: max(14px, env(safe-area-inset-bottom)); right: 12px; left: auto; transform: none; font-size: 12px; }
+  #money { font-size: 22px; }
+  .hpbar { width: 150px; }
+}
+
+#look { position: fixed; z-index: 6; left: 50%; bottom: max(110px, calc(env(safe-area-inset-bottom) + 90px)); transform: translateX(-50%);
+  font-size: 22px; font-weight: 900; padding: 14px 30px; border-radius: 16px; background: linear-gradient(90deg, #ffb347, #ff4fd8);
+  box-shadow: 0 5px 0 #6b1d5c, 0 0 24px rgba(255, 79, 216, 0.6); animation: pulse 1s infinite alternate; }
+#look small { display: block; font-size: 12px; font-weight: 700; opacity: 0.9; }
+@keyframes pulse { to { transform: translateX(-50%) scale(1.06); } }
+
+#toasts { position: fixed; z-index: 7; left: 50%; top: 30%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+.toast { font-weight: 900; font-size: 20px; padding: 6px 14px; border-radius: 10px; background: rgba(0, 0, 0, 0.55); animation: rise 1.6s forwards; white-space: nowrap; }
+.toast.money { color: var(--gold); font-size: 26px; }
+@keyframes rise { 0% { opacity: 0; transform: translateY(10px) scale(0.8); } 15% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px); } }
+@keyframes fadeout { 80% { opacity: 1; } 100% { opacity: 0; } }
+#banner { position: fixed; z-index: 7; left: 0; right: 0; top: 40%; text-align: center; font-size: 40px; font-weight: 900; letter-spacing: 4px; pointer-events: none;
+  opacity: 0; text-shadow: 0 0 20px currentColor; }
+#banner.show { animation: banner 2s forwards; }
+@keyframes banner { 0% { opacity: 0; transform: scale(1.4); } 15% { opacity: 1; transform: none; } 70% { opacity: 1; } 100% { opacity: 0; } }
+
+/* shop */
+#shop { background: rgba(3, 4, 12, 0.55); }
+.shop-panel { width: 640px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; padding: 16px; }
+.shop-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.shop-head h2 { margin: 0; flex: 1; letter-spacing: 2px; color: var(--accent); font-size: 22px; }
+#shopMoney { font-weight: 900; color: var(--gold); font-size: 20px; }
+#shopClose { width: 40px; height: 40px; border-radius: 12px; background: #2a1638; font-size: 20px; }
+#shopBody { overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding-bottom: 4px; }
+.card { background: rgba(0, 0, 0, 0.3); border: 2px solid var(--line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.card.on { border-color: var(--good); box-shadow: 0 0 14px rgba(87, 242, 135, 0.3); }
+.card canvas { position: static; width: 100%; height: 90px; }
+.card h3 { margin: 0; font-size: 18px; }
+.card .desc { font-size: 12px; color: var(--dim); margin: 0; min-height: 2.4em; }
+.stat { display: grid; grid-template-columns: 60px 1fr; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); }
+.stat i { display: block; height: 6px; border-radius: 3px; background: #1b2550; overflow: hidden; }
+.stat i b { display: block; height: 100%; background: var(--accent); }
+.card button { padding: 10px; border-radius: 10px; font-weight: 900; background: linear-gradient(90deg, #00c2ff, #b14bff); }
+.card button.cant { background: #3a3f5c; color: #aab; }
+.card button.eq { background: #1f7a4a; }
+.card button:disabled { background: #222a4a; color: var(--good); cursor: default; }
+.upg { grid-column: 1 / -1; display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; }
+.upg .ico { font-size: 32px; text-align: center; }
+.pips { display: flex; gap: 3px; margin-top: 6px; }
+.pips i { flex: 1; height: 8px; border-radius: 3px; background: #1b2550; }
+.pips i.f { background: var(--accent); }
+.upg button { min-width: 120px; }
+.note { grid-column: 1 / -1; font-size: 12px; color: var(--dim); text-align: center; margin: 0; }
+
+/* death */
+.dead-box { text-align: center; }
+.dead-box .boom { font-size: 70px; }
+.dead-box h2 { font-size: 40px; margin: 0; color: var(--bad); letter-spacing: 3px; text-shadow: 0 0 20px rgba(255, 92, 92, 0.6); }
+.dead-box p { font-size: 18px; }
+.small { color: var(--dim); }
+</style>
+</head>
+<body>
+  <canvas id="cv"></canvas>
+
+  <!-- start screen -->
+  <div id="start" class="overlay">
+    <div class="panel start-panel">
+      <h1>SPACE <span>WICK</span></h1>
+      <p class="tag">Fly. Shoot. Get rich. Buy better planes.</p>
+      <input id="name" maxlength="16" placeholder="Your pilot name" autocomplete="off" spellcheck="false">
+      <button id="play" class="big">🚀 PLAY</button>
+      <p id="startErr" class="err"></p>
+      <div class="howto">
+        <b>How to play</b>
+        <span>📱 Left thumb: drag to fly. Tap anywhere else to shoot.</span>
+        <span>💻 WASD or arrow keys to fly. Click to shoot.</span>
+        <span>🌀 Fly into the <b>ENTER WICK</b> portal to go to the battlefield.</span>
+        <span>🎯 In the Wick, dummies give $10 and shooting down pilots gives $50.</span>
+      </div>
+      <p id="mode" class="mode"></p>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" hidden>
+    <div class="hud-left">
+      <div id="money">$0</div>
+      <div class="hpbar"><div id="hpfill"></div><span id="hptext">200 / 200</span></div>
+      <div id="kills">🎯 0 kills</div>
+    </div>
+    <div id="zone">LOBBY</div>
+    <div id="feed"></div>
+    <button id="sound" title="Sound">🔊</button>
+  </div>
+  <button id="look" hidden>👀 LOOK</button>
+  <div id="toasts"></div>
+  <div id="banner"></div>
+
+  <!-- shop -->
+  <div id="shop" class="overlay" hidden>
+    <div class="panel shop-panel">
+      <div class="shop-head">
+        <h2 id="shopTitle">PLANE SHOP</h2>
+        <div id="shopMoney">$0</div>
+        <button id="shopClose" aria-label="Close">✕</button>
+      </div>
+      <div id="shopBody"></div>
+    </div>
+  </div>
+
+  <!-- death -->
+  <div id="dead" class="overlay dim" hidden>
+    <div class="dead-box">
+      <div class="boom">💥</div>
+      <h2>SHOT DOWN!</h2>
+      <p id="deadBy"></p>
+      <p class="small">Back to the lobby in <span id="deadT">3</span>…</p>
+    </div>
+  </div>
+
+  <div id="lost" class="overlay dim" hidden>
+    <div class="panel"><h2>Connection lost</h2><p>The game server stopped answering.</p><button class="big" onclick="location.reload()">Reconnect</button></div>
+  </div>
+
+  <script>window.SOLO = true;</script>
+  <script>
+// Space Wick game engine. The same file runs on the server (multiplayer) and in the browser (solo mode).
+// The engine owns health, bullets, money, shops and AI pilots. Each player's own browser moves their ship,
+// and the engine checks that the move is possible before accepting it.
+(function (root) {
+  'use strict';
+
+  const MAX_HP = 200;            // every ship and every dummy has 200 health
+  const SHIP_R = 24;
+  const DUMMY_R = 30;
+  const BULLET_SPEED = 950;
+  const BULLET_LIFE = 0.9;       // seconds
+  const RESPAWN_MS = 3000;
+  const PROTECT_MS = 3000;       // spawn shield when you enter the Wick
+  const DUMMY_RESPAWN_MS = 4000;
+  const REWARD_DUMMY = 10;       // money for a dummy in the Wick (lobby dummies give nothing)
+  const REWARD_KILL = 50;        // money for shooting down another pilot
+
+  // ✈️ planes: the better the plane, the more it costs
+  const PLANES = [
+    { id: 'rookie',  name: 'Rookie',  price: 0,     speed: 260, dmg: 10, delay: 420, guns: 1, color: '#9db4ff', trim: '#3b5bb5', desc: 'Your first ship. Slow but steady.' },
+    { id: 'scout',   name: 'Scout',   price: 150,   speed: 320, dmg: 12, delay: 360, guns: 1, color: '#6ee7a0', trim: '#1f7a4a', desc: 'Light and quick.' },
+    { id: 'viper',   name: 'Viper',   price: 400,   speed: 330, dmg: 17, delay: 310, guns: 1, color: '#ff6b6b', trim: '#8a1c1c', desc: 'Hits hard for its size.' },
+    { id: 'falcon',  name: 'Falcon',  price: 1000,  speed: 345, dmg: 14, delay: 260, guns: 2, color: '#ffb347', trim: '#9a5a00', desc: 'Twin guns!' },
+    { id: 'phantom', name: 'Phantom', price: 2500,  speed: 385, dmg: 20, delay: 230, guns: 2, color: '#b28dff', trim: '#4b2a8a', desc: 'Stealth fighter. Very fast.' },
+    { id: 'titan',   name: 'Titan',   price: 6000,  speed: 340, dmg: 28, delay: 210, guns: 2, color: '#ffd84d', trim: '#8a6d00', desc: 'A flying fortress.' },
+    { id: 'nova',    name: 'Nova',    price: 15000, speed: 420, dmg: 30, delay: 170, guns: 3, color: '#6ff3ff', trim: '#0b6b7a', desc: 'The best ship in space. Triple guns.' },
+  ];
+  const PLANE_INDEX = {};
+  PLANES.forEach((p, i) => { PLANE_INDEX[p.id] = i; });
+
+  // 🔧 upgrades work on whichever plane you fly
+  const UPGRADES = [
+    { key: 'dmg',  name: 'Damage',    icon: '💥', desc: '+10% bullet damage',  base: 60, max: 10 },
+    { key: 'rate', name: 'Fire Rate', icon: '🔫', desc: 'shoot 8% faster',     base: 70, max: 10 },
+    { key: 'spd',  name: 'Engine',    icon: '🚀', desc: '+6% flying speed',    base: 50, max: 10 },
+  ];
+  const UPG = {};
+  UPGRADES.forEach(u => { UPG[u.key] = u; });
+  const upCost = (key, lvl) => Math.round(UPG[key].base * Math.pow(1.7, lvl) / 5) * 5;
+
+  function stats(save) {
+    const p = PLANES[PLANE_INDEX[save.plane]] || PLANES[0];
+    const u = save.up || {};
+    return {
+      speed: p.speed * (1 + 0.06 * (u.spd || 0)),
+      dmg: p.dmg * (1 + 0.10 * (u.dmg || 0)),
+      delay: p.delay / (1 + 0.08 * (u.rate || 0)),
+      guns: p.guns,
+    };
+  }
+
+  function rng(seed) {
+    return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  }
+
+  // 🗺️ the two places: the lobby (safe) and the Wick (the battlefield)
+  const ZONES = {
+    lobby: {
+      name: 'Lobby', w: 1800, h: 1400, safe: true, reward: 0,
+      spawn: { x: 900, y: 760 },
+      portal: { x: 900, y: 250, r: 85, to: 'wick', label: 'ENTER WICK' },
+      shops: [
+        { id: 'planes',   label: 'PLANE SHOP',   x: 160,  y: 860, w: 380, h: 240 },
+        { id: 'upgrades', label: 'UPGRADE SHOP', x: 1260, y: 860, w: 380, h: 240 },
+      ],
+      dummies: [[480, 520], [1320, 520], [900, 1200]],
+    },
+    wick: {
+      name: 'The Wick', w: 4000, h: 4000, safe: false, reward: REWARD_DUMMY,
+      portal: { x: 2000, y: 3830, r: 85, to: 'lobby', label: 'BACK TO LOBBY' },
+      shops: [],
+      dummies: [],
+    },
+  };
+  (function placeWickDummies() {
+    const r = rng(42), z = ZONES.wick;
+    while (z.dummies.length < 16) {
+      const x = 300 + r() * (z.w - 600), y = 300 + r() * (z.h - 600);
+      if (Math.hypot(x - z.portal.x, y - z.portal.y) < 400) continue;
+      if (z.dummies.some(d => Math.hypot(d[0] - x, d[1] - y) < 450)) continue;
+      z.dummies.push([Math.round(x), Math.round(y)]);
+    }
+  })();
+
+  function nearShop(zone, x, y) {
+    const z = ZONES[zone];
+    if (!z) return null;
+    for (const s of z.shops) {
+      const pad = SHIP_R + 20;
+      if (x > s.x - pad && x < s.x + s.w + pad && y > s.y - pad && y < s.y + s.h + pad) return s;
+    }
+    return null;
+  }
+
+  // ship movement, shared by the browser (your ship) and the engine (AI pilots)
+  function stepShip(s, mx, my, speed, dt, zone) {
+    const len = Math.hypot(mx, my);
+    if (len > 1) { mx /= len; my /= len; }
+    const k = Math.min(1, 5 * dt);
+    s.vx += (mx * speed - s.vx) * k;
+    s.vy += (my * speed - s.vy) * k;
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    const z = ZONES[zone];
+    if (s.x < SHIP_R) { s.x = SHIP_R; s.vx = 0; }
+    if (s.y < SHIP_R) { s.y = SHIP_R; s.vy = 0; }
+    if (s.x > z.w - SHIP_R) { s.x = z.w - SHIP_R; s.vx = 0; }
+    if (s.y > z.h - SHIP_R) { s.y = z.h - SHIP_R; s.vy = 0; }
+    if (Math.hypot(s.vx, s.vy) > 25) s.a = Math.atan2(s.vy, s.vx);
+  }
+
+  const cleanName = n => String(n || '').replace(/[^A-Za-z0-9 _-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+
+  function cleanSave(s, name) {
+    const out = { name, money: 0, planes: ['rookie'], plane: 'rookie', up: { dmg: 0, rate: 0, spd: 0 }, kills: 0 };
+    if (!s || typeof s !== 'object') return out;
+    if (Number.isFinite(s.money) && s.money >= 0) out.money = Math.floor(s.money);
+    if (Number.isFinite(s.kills) && s.kills >= 0) out.kills = Math.floor(s.kills);
+    if (Array.isArray(s.planes)) out.planes = PLANES.map(p => p.id).filter(id => id === 'rookie' || s.planes.includes(id));
+    if (out.planes.includes(s.plane)) out.plane = s.plane;
+    for (const u of UPGRADES) {
+      const v = s.up && s.up[u.key];
+      if (Number.isInteger(v)) out.up[u.key] = Math.max(0, Math.min(u.max, v));
+    }
+    return out;
+  }
+
+  const BOT_NAMES = ['Zorbo', 'NebulaNick', 'CometKid', 'StarDust', 'Blaze77', 'Orbit', 'LunaZap', 'Quasar',
+    'RocketRay', 'Meteor', 'Pixel', 'Gizmo', 'Vortex', 'Astro_Jo', 'Sparky', 'Nova_Lee', 'TurboTom', 'Ziggy'];
+
+  function createEngine(opts) {
+    const send = opts.send;                    // send(playerId, message)
+    const load = opts.load || (() => null);    // load(nameKey) -> saved progress or null
+    const store = opts.save || (() => {});     // save(nameKey, progress)
+    const players = new Map();
+    let bullets = [];
+    const fx = { lobby: [], wick: [] };
+    const dummies = [];
+    for (const zone of Object.keys(ZONES)) {
+      ZONES[zone].dummies.forEach(([x, y], i) => dummies.push({ id: i, zone, x, y, hp: MAX_HP, deadUntil: 0 }));
+    }
+    let last = Date.now();
+    let botCheck = 0, lastBotSpawn = 0, botSeq = 0;
+
+    const humans = () => [...players.values()].filter(p => !p.bot);
+    const toZone = (zone, msg) => { for (const p of players.values()) if (!p.bot && p.zone === zone) send(p.id, msg); };
+    const persist = p => { if (!p.bot) store(p.save.name.toLowerCase(), p.save); };
+    const sendSave = p => { if (!p.bot) send(p.id, { t: 'save', save: p.save }); };
+    const tell = (p, text) => { if (!p.bot) send(p.id, { t: 'msg', text }); };
+
+    function makeShip(id, name, bot, save) {
+      return { id, name, bot, save, zone: 'lobby', x: 0, y: 0, vx: 0, vy: 0, a: -Math.PI / 2, hp: MAX_HP,
+        dead: false, respawnAt: 0, prot: 0, lastFire: 0, lastHit: 0, fire: false, tap: false, aim: 0,
+        tpn: 0, lastT: Date.now(), ai: null };
+    }
+
+    function wickSpawn() {
+      const z = ZONES.wick;
+      let best = null, bestD = -1;
+      for (let i = 0; i < 10; i++) {
+        const x = 250 + Math.random() * (z.w - 500), y = 250 + Math.random() * (z.h - 700);
+        let d = 99999;
+        for (const q of players.values()) if (q.zone === 'wick' && !q.dead) d = Math.min(d, Math.hypot(q.x - x, q.y - y));
+        if (d > bestD) { bestD = d; best = { x, y }; }
+      }
+      return best;
+    }
+
+    function teleport(p, zone) {
+      const now = Date.now();
+      p.zone = zone;
+      if (zone === 'lobby') {
+        const s = ZONES.lobby.spawn;
+        p.x = s.x + (Math.random() - 0.5) * 120; p.y = s.y + (Math.random() - 0.5) * 60;
+        p.prot = 0;
+      } else {
+        const s = wickSpawn();
+        p.x = s.x; p.y = s.y;
+        p.prot = now + PROTECT_MS;
+      }
+      p.vx = p.vy = 0; p.a = -Math.PI / 2;
+      p.tpn++; p.lastT = now; p.fire = false; p.tap = false;
+      if (!p.bot) send(p.id, { t: 'tp', zone, x: p.x, y: p.y, tpn: p.tpn });
+    }
+
+    function give(p, amt, why) {
+      if (p.bot || amt <= 0) return;
+      p.save.money += amt;
+      send(p.id, { t: 'money', amt, why, money: p.save.money });
+      persist(p);
+    }
+
+    // ---------- messages from players ----------
+    function handle(id, msg) {
+      if (!msg || typeof msg !== 'object') return;
+      const p = players.get(id);
+      if (msg.t === 'join') {
+        if (p) return;
+        let name = cleanName(msg.name);
+        if (!name) name = 'Pilot' + Math.floor(Math.random() * 9000 + 1000);
+        if (humans().some(q => q.name.toLowerCase() === name.toLowerCase())) {
+          return send(id, { t: 'err', text: `Someone named ${name} is already flying. Pick another name!` });
+        }
+        const save = cleanSave(load(name.toLowerCase()), name);
+        const ship = makeShip(id, name, false, save);
+        players.set(id, ship);
+        send(id, { t: 'welcome', id, save });
+        teleport(ship, 'lobby');
+        return;
+      }
+      if (!p || p.bot) return;
+
+      if (msg.t === 'in') {
+        if (p.dead) return;
+        const now = Date.now();
+        if (msg.tpn === p.tpn && Number.isFinite(msg.x) && Number.isFinite(msg.y)) {
+          // accept the move, but no faster than the ship can really fly
+          const dt = Math.min(1, (now - p.lastT) / 1000);
+          const maxD = stats(p.save).speed * 1.35 * dt + 40;
+          let dx = msg.x - p.x, dy = msg.y - p.y;
+          const d = Math.hypot(dx, dy);
+          if (d > maxD) { dx *= maxD / d; dy *= maxD / d; }
+          const z = ZONES[p.zone];
+          const nx = Math.max(SHIP_R, Math.min(z.w - SHIP_R, p.x + dx));
+          const ny = Math.max(SHIP_R, Math.min(z.h - SHIP_R, p.y + dy));
+          if (dt > 0) { p.vx = p.vx * 0.5 + (nx - p.x) / dt * 0.5; p.vy = p.vy * 0.5 + (ny - p.y) / dt * 0.5; }
+          p.x = nx; p.y = ny; p.lastT = now;
+        }
+        if (Number.isFinite(msg.a)) p.a = msg.a;
+        if (Number.isFinite(msg.aim)) p.aim = msg.aim;
+        p.fire = !!msg.fire;
+        if (msg.tap) p.tap = true;
+        return;
+      }
+
+      if (msg.t === 'buy') {
+        const plane = PLANES[PLANE_INDEX[msg.plane]];
+        if (!plane) return;
+        if (p.zone !== 'lobby') return tell(p, 'Shops are in the lobby!');
+        if (p.save.planes.includes(plane.id)) return;
+        if (p.save.money < plane.price) return tell(p, `You need $${(plane.price - p.save.money).toLocaleString('en-US')} more for the ${plane.name}.`);
+        p.save.money -= plane.price;
+        p.save.planes.push(plane.id);
+        p.save.plane = plane.id;
+        tell(p, `You bought the ${plane.name}! ✈️`);
+        sendSave(p); persist(p);
+        return;
+      }
+
+      if (msg.t === 'equip') {
+        if (!p.save.planes.includes(msg.plane)) return;
+        if (p.zone !== 'lobby') return tell(p, 'Change planes in the lobby!');
+        p.save.plane = msg.plane;
+        sendSave(p); persist(p);
+        return;
+      }
+
+      if (msg.t === 'up') {
+        const u = UPG[msg.key];
+        if (!u) return;
+        if (p.zone !== 'lobby') return tell(p, 'Shops are in the lobby!');
+        const lvl = p.save.up[u.key] || 0;
+        if (lvl >= u.max) return tell(p, `${u.name} is already maxed out!`);
+        const cost = upCost(u.key, lvl);
+        if (p.save.money < cost) return tell(p, `You need $${(cost - p.save.money).toLocaleString('en-US')} more.`);
+        p.save.money -= cost;
+        p.save.up[u.key] = lvl + 1;
+        tell(p, `${u.icon} ${u.name} is now level ${lvl + 1}!`);
+        sendSave(p); persist(p);
+      }
+    }
+
+    function removePlayer(id) {
+      const p = players.get(id);
+      if (!p) return;
+      persist(p);
+      players.delete(id);
+    }
+
+    // ---------- fighting ----------
+    function fireGuns(p, st) {
+      const gx = { 1: [0], 2: [-0.4, 0.4], 3: [-0.5, 0, 0.5] }[st.guns];
+      const ca = Math.cos(p.aim), sa = Math.sin(p.aim);
+      for (const g of gx) {
+        const ox = -sa * g * SHIP_R, oy = ca * g * SHIP_R;
+        bullets.push({ zone: p.zone, x: p.x + ca * SHIP_R * 1.2 + ox, y: p.y + sa * SHIP_R * 1.2 + oy,
+          vx: ca * BULLET_SPEED, vy: sa * BULLET_SPEED, owner: p.id, oname: p.name, dmg: p.bot ? st.dmg * 0.6 : st.dmg,
+          life: BULLET_LIFE, c: PLANE_INDEX[p.save.plane] });
+      }
+      if (p.zone === 'wick') p.prot = 0; // shooting turns off your spawn shield
+    }
+
+    function killShip(t, killer, killerName, now) {
+      t.dead = true; t.hp = 0; t.fire = false;
+      t.respawnAt = now + RESPAWN_MS;
+      fx[t.zone].push(['boom', Math.round(t.x), Math.round(t.y), PLANE_INDEX[t.save.plane]]);
+      if (!t.bot) send(t.id, { t: 'dead', by: killerName || 'space' });
+      if (killer && killer !== t) {
+        if (!killer.bot) { killer.save.kills++; give(killer, REWARD_KILL, `Shot down ${t.name}`); }
+      }
+      toZone(t.zone, { t: 'feed', k: killerName || '?', v: t.name });
+    }
+
+    function hitSeg(x1, y1, x2, y2, cx, cy, r) {
+      const dx = x2 - x1, dy = y2 - y1;
+      const l2 = dx * dx + dy * dy || 1;
+      let u = ((cx - x1) * dx + (cy - y1) * dy) / l2;
+      u = Math.max(0, Math.min(1, u));
+      const px = x1 + u * dx - cx, py = y1 + u * dy - cy;
+      return px * px + py * py < r * r;
+    }
+
+    function stepBullets(dt, now) {
+      const keep = [];
+      for (const b of bullets) {
+        b.life -= dt;
+        const nx = b.x + b.vx * dt, ny = b.y + b.vy * dt;
+        const z = ZONES[b.zone];
+        let hit = false;
+        if (!z.safe) {
+          for (const t of players.values()) {
+            if (t.dead || t.zone !== b.zone || t.id === b.owner || now < t.prot) continue;
+            if (hitSeg(b.x, b.y, nx, ny, t.x, t.y, SHIP_R)) {
+              hit = true;
+              t.hp -= b.dmg; t.lastHit = now;
+              fx[b.zone].push(['hit', Math.round(nx), Math.round(ny), b.c]);
+              if (t.bot && t.ai && players.get(b.owner)) t.ai.revenge = b.owner;
+              if (t.hp <= 0) killShip(t, players.get(b.owner), b.oname, now);
+              break;
+            }
+          }
+        }
+        if (!hit) {
+          for (const d of dummies) {
+            if (d.zone !== b.zone || d.hp <= 0) continue;
+            if (hitSeg(b.x, b.y, nx, ny, d.x, d.y, DUMMY_R)) {
+              hit = true;
+              d.hp -= b.dmg;
+              fx[b.zone].push(['hit', Math.round(nx), Math.round(ny), b.c]);
+              if (d.hp <= 0) {
+                d.hp = 0; d.deadUntil = now + DUMMY_RESPAWN_MS;
+                fx[b.zone].push(['boom', d.x, d.y, -1]);
+                const owner = players.get(b.owner);
+                if (owner && z.reward) give(owner, z.reward, 'Dummy');
+              }
+              break;
+            }
+          }
+        }
+        b.x = nx; b.y = ny;
+        if (!hit && b.life > 0 && nx > -50 && ny > -50 && nx < z.w + 50 && ny < z.h + 50) keep.push(b);
+      }
+      bullets = keep;
+    }
+
+    // ---------- 🤖 AI pilots, so the Wick is never empty ----------
+    function manageBots(now) {
+      if (now < botCheck) return;
+      botCheck = now + 1000;
+      const inWick = humans().filter(p => p.zone === 'wick').length;
+      const bots = [...players.values()].filter(p => p.bot);
+      const want = Math.max(3, Math.min(5, 6 - inWick));
+      if (bots.length < want && now - lastBotSpawn > 1500) {
+        lastBotSpawn = now;
+        const used = new Set([...players.values()].map(p => p.name));
+        const free = BOT_NAMES.filter(n => !used.has(n));
+        const name = free[Math.floor(Math.random() * free.length)] || 'Bot' + botSeq;
+        const r = Math.random();
+        const plane = r < 0.35 ? 'rookie' : r < 0.6 ? 'scout' : r < 0.8 ? 'viper' : r < 0.95 ? 'falcon' : 'phantom';
+        const lvl = () => Math.floor(Math.random() * 4);
+        const save = { name, money: 0, planes: [plane], plane, up: { dmg: lvl(), rate: lvl(), spd: lvl() }, kills: 0 };
+        const b = makeShip('b' + (++botSeq), name, true, save);
+        players.set(b.id, b);
+        teleport(b, 'wick');
+      } else if (bots.length > want) {
+        const extra = bots.find(b => !b.dead);
+        if (extra) { fx.wick.push(['warp', Math.round(extra.x), Math.round(extra.y), 0]); players.delete(extra.id); }
+      }
+    }
+
+    function botThink(p, dt, now) {
+      const st = stats(p.save);
+      const ai = p.ai || (p.ai = { t: 0, target: null, kind: null, wx: p.x, wy: p.y, strafe: 1, burst: 0, firing: false, revenge: null });
+      ai.t -= dt;
+      if (ai.t <= 0) {
+        ai.t = 0.7 + Math.random() * 0.7;
+        if (Math.random() < 0.25) ai.strafe = -ai.strafe;
+        let best = null, bestScore = 1100, kind = null;
+        for (const q of players.values()) {
+          if (q === p || q.dead || q.zone !== 'wick' || now < q.prot) continue;
+          let score = Math.hypot(q.x - p.x, q.y - p.y) * 0.8;
+          if (q.id === ai.revenge) score *= 0.5;
+          // don't all gang up on the same pilot
+          let chasers = 0;
+          for (const o of players.values()) if (o !== p && o.ai && o.ai.target === q) chasers++;
+          score *= 1 + chasers * 0.9;
+          if (score < bestScore) { bestScore = score; best = q; kind = 'ship'; }
+        }
+        for (const d of dummies) {
+          if (d.zone !== 'wick' || d.hp <= 0) continue;
+          const score = Math.hypot(d.x - p.x, d.y - p.y) * 1.3;
+          if (score < bestScore) { bestScore = score; best = d; kind = 'dummy'; }
+        }
+        ai.target = best; ai.kind = kind;
+      }
+      let t = ai.target;
+      if (t && (ai.kind === 'ship' ? (t.dead || !players.has(t.id) || t.zone !== 'wick') : t.hp <= 0)) { t = ai.target = null; }
+
+      let mx = 0, my = 0, dist = 0;
+      if (t) {
+        const dx = t.x - p.x, dy = t.y - p.y;
+        dist = Math.hypot(dx, dy) || 1;
+        const ux = dx / dist, uy = dy / dist;
+        if (dist > 400) { mx = ux; my = uy; }
+        else if (dist < 220) { mx = -ux + -uy * ai.strafe * 0.6; my = -uy + ux * ai.strafe * 0.6; }
+        else { mx = -uy * ai.strafe + ux * 0.2; my = ux * ai.strafe + uy * 0.2; }
+      } else {
+        if (Math.hypot(ai.wx - p.x, ai.wy - p.y) < 120) { ai.wx = 300 + Math.random() * 3400; ai.wy = 300 + Math.random() * 3200; }
+        mx = ai.wx - p.x; my = ai.wy - p.y;
+      }
+      // stay away from the lobby portal and the walls
+      const po = ZONES.wick.portal, pd = Math.hypot(p.x - po.x, p.y - po.y);
+      if (pd < 300) { mx += (p.x - po.x) / pd * 2; my += (p.y - po.y) / pd * 2; }
+      if (p.x < 150) mx += 1; if (p.x > 3850) mx -= 1; if (p.y < 150) my += 1; if (p.y > 3850) my -= 1;
+      stepShip(p, mx, my, st.speed * 0.85, dt, 'wick');
+
+      ai.burst -= dt;
+      if (ai.burst <= 0) { ai.firing = !ai.firing; ai.burst = ai.firing ? 0.6 + Math.random() * 0.9 : 0.3 + Math.random() * 0.8; }
+      if (t && dist < 750) {
+        const lead = ai.kind === 'ship' ? dist / BULLET_SPEED * 0.6 : 0;
+        const tx = t.x + (t.vx || 0) * lead, ty = t.y + (t.vy || 0) * lead;
+        p.aim = Math.atan2(ty - p.y, tx - p.x) + (Math.random() - 0.5) * 0.4;
+        p.fire = ai.firing;
+        if (p.fire) p.a = p.aim;
+      } else {
+        p.fire = false;
+      }
+    }
+
+    // ---------- the game clock ----------
+    function tick() {
+      const now = Date.now();
+      const dt = Math.min(0.2, (now - last) / 1000);
+      last = now;
+      manageBots(now);
+      for (const p of [...players.values()]) {
+        if (p.dead) {
+          if (now >= p.respawnAt) {
+            if (p.bot) players.delete(p.id);
+            else { p.dead = false; p.hp = MAX_HP; teleport(p, 'lobby'); }
+          }
+          continue;
+        }
+        if (p.bot) botThink(p, dt, now);
+        if (now - p.lastHit > 5000 && p.hp < MAX_HP) p.hp = Math.min(MAX_HP, p.hp + 12 * dt);
+        const st = stats(p.save);
+        if ((p.fire || p.tap) && now - p.lastFire >= st.delay) {
+          fireGuns(p, st);
+          p.lastFire = now; p.tap = false;
+        }
+        const po = ZONES[p.zone].portal;
+        if (!p.bot && Math.hypot(p.x - po.x, p.y - po.y) < po.r + SHIP_R * 0.4) teleport(p, po.to);
+      }
+      stepBullets(dt, now);
+      for (const d of dummies) if (d.hp <= 0 && now >= d.deadUntil) d.hp = MAX_HP;
+
+      for (const zone of Object.keys(ZONES)) {
+        const viewers = humans().filter(p => p.zone === zone);
+        if (viewers.length) {
+          const snap = {
+            t: 's',
+            sh: [...players.values()].filter(p => p.zone === zone && !p.dead).map(p =>
+              [p.id, Math.round(p.x), Math.round(p.y), Math.round(p.a * 100) / 100, Math.ceil(p.hp),
+                PLANE_INDEX[p.save.plane], (p.bot ? 1 : 0) | (now < p.prot ? 2 : 0), p.name]),
+            b: bullets.filter(b => b.zone === zone).map(b => [Math.round(b.x), Math.round(b.y), Math.round(b.vx), Math.round(b.vy), b.c]),
+            d: dummies.filter(d => d.zone === zone).map(d => Math.ceil(d.hp)),
+            fx: fx[zone],
+          };
+          for (const v of viewers) send(v.id, snap);
+        }
+        fx[zone] = [];
+      }
+    }
+
+    return { handle, removePlayer, tick, players };
+  }
+
+  const api = { createEngine, PLANES, PLANE_INDEX, UPGRADES, UPG, upCost, stats, ZONES, nearShop, stepShip,
+    MAX_HP, SHIP_R, DUMMY_R, REWARD_DUMMY, REWARD_KILL, TICK_MS: 50 };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.SpaceEngine = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+  <script>
+// Space Wick client: draws the game, reads your controls and talks to the engine
+// (over the network when online, or directly when playing solo).
+(function () {
+  'use strict';
+  const E = window.SpaceEngine;
+  const { PLANES, UPGRADES, ZONES, SHIP_R, DUMMY_R, MAX_HP } = E;
+  const $ = id => document.getElementById(id);
+  const fmt = n => '$' + Math.floor(n).toLocaleString('en-US');
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+
+  // ---------- state ----------
+  const S = {
+    id: null, save: null, zone: 'lobby', tpn: 0, dead: false, hp: MAX_HP, prot: false,
+    me: { x: 900, y: 760, vx: 0, vy: 0, a: -Math.PI / 2 },
+    ships: new Map(), bullets: [], bulletT: 0, dummyHp: [], parts: [],
+    lastAimT: 0, aim: 0, localFire: 0, shopOpen: null, near: null,
+  };
+
+  window.__spaceWick = S; // handy for testing in the browser console
+
+  // ---------- connection ----------
+  let send = () => {};
+  const SOLO = window.SOLO || location.protocol === 'file:' || /claudeusercontent|claude\.ai/.test(location.hostname);
+
+  function startSolo() {
+    const LOCAL = 'me';
+    const engine = E.createEngine({
+      send: (id, msg) => { if (id === LOCAL) onMsg(JSON.parse(JSON.stringify(msg))); },
+      load: key => { try { return JSON.parse(store.get('spacewick:' + key)); } catch (e) { return null; } },
+      save: (key, s) => store.set('spacewick:' + key, JSON.stringify(s)),
+    });
+    setInterval(engine.tick, E.TICK_MS);
+    send = msg => engine.handle(LOCAL, msg);
+    $('mode').textContent = 'Solo mode: you, AI pilots and dummies. Progress is saved on this device.';
+  }
+
+  let ws = null, wsReady = false;
+  function startOnline(onFail) {
+    const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
+    try { ws = new WebSocket(url); } catch (e) { return onFail(); }
+    let opened = false;
+    ws.onopen = () => { opened = true; wsReady = true; $('mode').textContent = 'Online: everyone on this server flies together.'; };
+    ws.onmessage = e => { try { onMsg(JSON.parse(e.data)); } catch (err) { console.error(err); } };
+    ws.onclose = () => { wsReady = false; if (!opened) onFail(); else if (S.id) $('lost').hidden = false; };
+    send = msg => { if (wsReady) ws.send(JSON.stringify(msg)); };
+  }
+
+  if (SOLO) startSolo();
+  else startOnline(() => { startSolo(); });
+
+  // ---------- messages from the engine ----------
+  function onMsg(m) {
+    switch (m.t) {
+      case 'welcome':
+        S.id = m.id; S.save = m.save;
+        store.set('spacewick:last', m.save.name);
+        $('start').hidden = true; $('hud').hidden = false;
+        updateHud();
+        break;
+      case 'err':
+        $('startErr').textContent = m.text;
+        break;
+      case 'tp':
+        S.zone = m.zone; S.tpn = m.tpn; S.dead = false;
+        Object.assign(S.me, { x: m.x, y: m.y, vx: 0, vy: 0, a: -Math.PI / 2 });
+        S.ships.clear(); S.bullets = []; S.parts = [];
+        $('dead').hidden = true;
+        if (m.zone !== 'lobby') closeShop();
+        banner(m.zone === 'wick' ? 'THE WICK' : 'LOBBY', m.zone === 'wick' ? '#ff6b6b' : '#6ff3ff');
+        sfx('warp');
+        updateHud();
+        break;
+      case 's': onSnap(m); break;
+      case 'money':
+        S.save.money = m.money;
+        toast(`+${fmt(m.amt)}  ${m.why}`, 'money');
+        sfx('coin');
+        updateHud();
+        break;
+      case 'save':
+        S.save = m.save; updateHud(); renderShop();
+        break;
+      case 'msg':
+        toast(m.text);
+        break;
+      case 'dead':
+        S.dead = true; S.hp = 0;
+        $('deadBy').textContent = 'Shot down by ' + m.by;
+        $('dead').hidden = false;
+        closeShop();
+        let left = 3;
+        $('deadT').textContent = left;
+        const iv = setInterval(() => { left--; $('deadT').textContent = Math.max(0, left); if (left <= 0 || !S.dead) clearInterval(iv); }, 1000);
+        updateHud();
+        break;
+      case 'feed': {
+        const d = document.createElement('div');
+        const mine = S.save && (m.k === S.save.name || m.v === S.save.name);
+        if (mine) d.className = 'me';
+        d.textContent = `${m.k}  💥  ${m.v}`;
+        $('feed').prepend(d);
+        while ($('feed').children.length > 5) $('feed').lastChild.remove();
+        setTimeout(() => d.remove(), 6000);
+        break;
+      }
+    }
+  }
+
+  function onSnap(m) {
+    const now = performance.now();
+    const seen = new Set();
+    for (const [id, x, y, a, hp, plane, flags, name] of m.sh) {
+      if (id === S.id) { S.hp = hp; S.prot = !!(flags & 2); continue; }
+      seen.add(id);
+      let s = S.ships.get(id);
+      if (!s) { s = { x, y, a, vx: 0, vy: 0 }; S.ships.set(id, s); }
+      if (s.tx !== undefined && s.tt) {
+        const dt = (now - s.tt) / 1000;
+        if (dt > 0.01) { s.vx = (x - s.tx) / dt; s.vy = (y - s.ty) / dt; }
+      }
+      Object.assign(s, { tx: x, ty: y, ta: a, hp, plane, bot: !!(flags & 1), prot: !!(flags & 2), name, tt: now });
+    }
+    for (const id of S.ships.keys()) if (!seen.has(id)) S.ships.delete(id);
+    S.bullets = m.b; S.bulletT = now;
+    S.dummyHp = m.d;
+    for (const [k, x, y, c] of m.fx) {
+      if (k === 'boom') { boom(x, y, c); if (Math.hypot(x - S.me.x, y - S.me.y) < 900) sfx('boom'); }
+      else if (k === 'hit') spark(x, y, c);
+      else if (k === 'warp') warpFx(x, y);
+    }
+    updateHpBar();
+  }
+
+  // ---------- start screen ----------
+  $('name').value = store.get('spacewick:last') || '';
+  function join() {
+    const name = $('name').value.trim();
+    if (!name) { $('startErr').textContent = 'Type a pilot name first!'; return; }
+    $('startErr').textContent = '';
+    audioOn();
+    const go = () => send({ t: 'join', name });
+    if (!SOLO && ws && !wsReady) { // still connecting
+      $('startErr').textContent = 'Connecting…';
+      const t0 = Date.now();
+      const iv = setInterval(() => { if (wsReady || Date.now() - t0 > 5000) { clearInterval(iv); $('startErr').textContent = ''; go(); } }, 100);
+    } else go();
+  }
+  $('play').onclick = join;
+  $('name').onkeydown = e => { if (e.key === 'Enter') join(); };
+
+  // ---------- HUD ----------
+  function updateHud() {
+    if (!S.save) return;
+    $('money').textContent = fmt(S.save.money);
+    $('shopMoney').textContent = fmt(S.save.money);
+    $('kills').textContent = `🎯 ${S.save.kills} kill${S.save.kills === 1 ? '' : 's'}`;
+    const z = $('zone');
+    z.textContent = S.zone === 'wick' ? '⚔️ THE WICK' : '🛡️ LOBBY (SAFE)';
+    z.className = S.zone === 'wick' ? 'wick' : '';
+    updateHpBar();
+  }
+  function updateHpBar() {
+    const hp = Math.max(0, S.hp);
+    $('hpfill').style.width = (hp / MAX_HP * 100) + '%';
+    $('hpfill').style.background = hp > 120 ? 'linear-gradient(90deg,#22c55e,#86efac)' : hp > 60 ? 'linear-gradient(90deg,#eab308,#fde047)' : 'linear-gradient(90deg,#dc2626,#f87171)';
+    $('hptext').textContent = `${Math.ceil(hp)} / ${MAX_HP}`;
+  }
+  function toast(text, cls) {
+    const d = document.createElement('div');
+    d.className = 'toast ' + (cls || '');
+    d.textContent = text;
+    $('toasts').appendChild(d);
+    while ($('toasts').children.length > 4) $('toasts').firstChild.remove();
+    setTimeout(() => d.remove(), 1600);
+  }
+  function banner(text, color) {
+    const b = $('banner');
+    b.textContent = text; b.style.color = color;
+    b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  }
+
+  // ---------- shops ----------
+  $('look').onclick = () => { if (S.near) openShop(S.near.id); };
+  $('shopClose').onclick = closeShop;
+  $('shop').addEventListener('pointerdown', e => { if (e.target === $('shop')) closeShop(); });
+  function openShop(id) { S.shopOpen = id; $('shop').hidden = false; keys.clear(); renderShop(); }
+  function closeShop() { S.shopOpen = null; $('shop').hidden = true; }
+
+  const maxStat = { speed: 420, dmg: 30 * 3, rate: 1000 / 170 };
+  function renderShop() {
+    if (!S.shopOpen || !S.save) return;
+    const body = $('shopBody');
+    body.innerHTML = '';
+    $('shopMoney').textContent = fmt(S.save.money);
+    if (S.shopOpen === 'planes') {
+      $('shopTitle').textContent = '✈️ PLANE SHOP';
+      PLANES.forEach((p, i) => {
+        const owned = S.save.planes.includes(p.id), on = S.save.plane === p.id;
+        const card = document.createElement('div');
+        card.className = 'card' + (on ? ' on' : '');
+        const bar = (label, v) => `<div class="stat">${label}<i><b style="width:${Math.min(100, v * 100)}%"></b></i></div>`;
+        card.innerHTML = `<canvas width="360" height="180"></canvas><h3>${p.name}</h3><p class="desc">${p.desc}</p>
+          ${bar('Speed', p.speed / maxStat.speed)}${bar('Damage', p.dmg * p.guns / maxStat.dmg)}${bar('Fire rate', 1000 / p.delay / maxStat.rate)}
+          <div class="stat">Guns<span>${'🔫'.repeat(p.guns)}</span></div>`;
+        const btn = document.createElement('button');
+        if (on) { btn.textContent = '✓ FLYING'; btn.disabled = true; }
+        else if (owned) { btn.textContent = 'EQUIP'; btn.className = 'eq'; btn.onclick = () => send({ t: 'equip', plane: p.id }); }
+        else {
+          btn.textContent = 'BUY ' + fmt(p.price);
+          if (S.save.money < p.price) btn.className = 'cant';
+          btn.onclick = () => send({ t: 'buy', plane: p.id });
+        }
+        card.appendChild(btn);
+        body.appendChild(card);
+        const c = card.querySelector('canvas'), g = c.getContext('2d');
+        g.translate(180, 90); g.scale(2.4, 2.4);
+        drawPlane(g, i, 0, 0, -Math.PI / 2 + 0.0001 + Math.PI / 2 * 0, 1, 0.6, 1);
+      });
+    } else {
+      $('shopTitle').textContent = '🔧 UPGRADE SHOP';
+      for (const u of UPGRADES) {
+        const lvl = S.save.up[u.key] || 0, max = lvl >= u.max, cost = E.upCost(u.key, lvl);
+        const row = document.createElement('div');
+        row.className = 'card upg';
+        row.innerHTML = `<div class="ico">${u.icon}</div><div><h3>${u.name} <span class="small">Lv ${lvl}/${u.max}</span></h3>
+          <p class="desc" style="min-height:0">${u.desc} per level</p>
+          <div class="pips">${Array.from({ length: u.max }, (_, i) => `<i class="${i < lvl ? 'f' : ''}"></i>`).join('')}</div></div>`;
+        const btn = document.createElement('button');
+        if (max) { btn.textContent = 'MAX'; btn.disabled = true; }
+        else {
+          btn.textContent = 'UPGRADE ' + fmt(cost);
+          if (S.save.money < cost) btn.className = 'cant';
+          btn.onclick = () => send({ t: 'up', key: u.key });
+        }
+        row.appendChild(btn);
+        body.appendChild(row);
+      }
+      const st = E.stats(S.save);
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = `Your ${PLANES[E.PLANE_INDEX[S.save.plane]].name} now: ${Math.round(st.dmg)} damage per bullet × ${st.guns} gun${st.guns > 1 ? 's' : ''}, ${(1000 / st.delay).toFixed(1)} shots/sec, speed ${Math.round(st.speed)}. Upgrades work on every plane you own.`;
+      body.appendChild(note);
+    }
+  }
+
+  // ---------- controls ----------
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  let W = 0, H = 0, DPR = 1, scale = 1;
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    scale = Math.max(0.55, Math.min(1.1, Math.sqrt(W * H) / 820));
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const keys = new Set();
+  window.addEventListener('keydown', e => {
+    if (document.activeElement === $('name')) return;
+    keys.add(e.key.toLowerCase());
+    if (e.key === 'Escape') closeShop();
+    if ((e.key === 'e' || e.key === 'Enter') && S.near && !S.shopOpen) openShop(S.near.id);
+  });
+  window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+  window.addEventListener('blur', () => { keys.clear(); mouse.down = false; fingers.clear(); joy = null; });
+
+  let joy = null;                 // the left-thumb joystick
+  const fingers = new Map();      // fingers that are shooting
+  const mouse = { down: false, x: 0, y: 0 };
+  let tapQueued = false;
+  const inJoyZone = (x, y) => x < W * 0.45 && y > H * 0.4;
+
+  cv.addEventListener('touchstart', e => {
+    e.preventDefault();
+    audioOn();
+    for (const t of e.changedTouches) {
+      if (!joy && inJoyZone(t.clientX, t.clientY)) joy = { id: t.identifier, ox: t.clientX, oy: t.clientY, x: t.clientX, y: t.clientY };
+      else { fingers.set(t.identifier, { x: t.clientX, y: t.clientY }); tapQueued = true; aimAt(t.clientX, t.clientY); }
+    }
+  }, { passive: false });
+  cv.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (joy && t.identifier === joy.id) { joy.x = t.clientX; joy.y = t.clientY; }
+      else if (fingers.has(t.identifier)) fingers.set(t.identifier, { x: t.clientX, y: t.clientY });
+    }
+  }, { passive: false });
+  const endTouch = e => {
+    for (const t of e.changedTouches) {
+      if (joy && t.identifier === joy.id) joy = null;
+      fingers.delete(t.identifier);
+    }
+  };
+  cv.addEventListener('touchend', endTouch);
+  cv.addEventListener('touchcancel', endTouch);
+  cv.addEventListener('mousedown', e => { audioOn(); mouse.down = true; mouse.x = e.clientX; mouse.y = e.clientY; tapQueued = true; aimAt(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+  window.addEventListener('mouseup', () => { mouse.down = false; });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+
+  function aimAt(sx, sy) {
+    const wx = S.me.x + (sx - W / 2) / scale, wy = S.me.y + (sy - H / 2) / scale;
+    S.aim = Math.atan2(wy - S.me.y, wx - S.me.x);
+    S.lastAimT = performance.now();
+  }
+  function aimPoint() {
+    if (fingers.size) { const f = [...fingers.values()].pop(); return f; }
+    if (mouse.down) return mouse;
+    return null;
+  }
+  function moveInput() {
+    let mx = 0, my = 0;
+    if (keys.has('a') || keys.has('arrowleft')) mx -= 1;
+    if (keys.has('d') || keys.has('arrowright')) mx += 1;
+    if (keys.has('w') || keys.has('arrowup')) my -= 1;
+    if (keys.has('s') || keys.has('arrowdown')) my += 1;
+    if (joy) {
+      const dx = joy.x - joy.ox, dy = joy.y - joy.oy, d = Math.hypot(dx, dy), R = 55;
+      if (d > 6) { const k = Math.min(1, d / R) / d; mx = dx * k; my = dy * k; }
+    }
+    return [mx, my];
+  }
+
+  // ---------- sound ----------
+  let ac = null, soundOn = store.get('spacewick:sound') !== 'off';
+  $('sound').textContent = soundOn ? '🔊' : '🔇';
+  $('sound').onclick = () => { soundOn = !soundOn; $('sound').textContent = soundOn ? '🔊' : '🔇'; store.set('spacewick:sound', soundOn ? 'on' : 'off'); };
+  function audioOn() { try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) {} }
+  function sfx(kind) {
+    if (!ac || !soundOn) return;
+    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    if (kind === 'pew') { o.type = 'square'; o.frequency.setValueAtTime(900, t); o.frequency.exponentialRampToValueAtTime(220, t + 0.09); g.gain.setValueAtTime(0.04, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1); o.start(t); o.stop(t + 0.1); }
+    else if (kind === 'boom') { o.type = 'sawtooth'; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(30, t + 0.45); g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5); o.start(t); o.stop(t + 0.5); }
+    else if (kind === 'coin') { o.type = 'triangle'; o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(1320, t + 0.07); g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.start(t); o.stop(t + 0.25); }
+    else if (kind === 'warp') { o.type = 'sine'; o.frequency.setValueAtTime(200, t); o.frequency.exponentialRampToValueAtTime(1200, t + 0.4); g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.45); o.start(t); o.stop(t + 0.45); }
+  }
+
+  // ---------- effects ----------
+  function colorOf(i) { return i >= 0 && PLANES[i] ? PLANES[i].color : '#ff9a3c'; }
+  function boom(x, y, c) {
+    const col = colorOf(c);
+    for (let i = 0; i < 34; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 320;
+      S.parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.5 + Math.random() * 0.6, max: 1.1, r: 2 + Math.random() * 4, c: i % 3 ? '#ffb347' : col });
+    }
+    S.parts.push({ x, y, vx: 0, vy: 0, life: 0.35, max: 0.35, r: 70, c: '#fff', ring: true });
+  }
+  function spark(x, y, c) {
+    for (let i = 0; i < 6; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 80 + Math.random() * 160;
+      S.parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.25, max: 0.25, r: 2, c: colorOf(c) });
+    }
+  }
+  function warpFx(x, y) { S.parts.push({ x, y, vx: 0, vy: 0, life: 0.5, max: 0.5, r: 60, c: '#6ff3ff', ring: true }); }
+
+  // ---------- drawing ----------
+  // half outlines of each plane (nose at +x); they're mirrored to make the full ship
+  const SHAPES = [
+    [[1.3, 0], [-0.8, 0.95], [-0.45, 0]],
+    [[1.55, 0], [0.2, 0.22], [-0.5, 1.05], [-0.85, 1.0], [-0.6, 0.25], [-1.0, 0.22], [-1.0, 0]],
+    [[1.5, 0], [0.6, 0.2], [0.1, 1.15], [-0.25, 1.15], [-0.3, 0.35], [-0.95, 0.5], [-0.95, 0]],
+    [[1.4, 0], [0.5, 0.25], [-0.2, 1.4], [-0.6, 1.4], [-0.5, 0.3], [-1.0, 0.6], [-1.05, 0]],
+    [[1.6, 0], [-0.9, 1.2], [-0.6, 0.4], [-1.0, 0.3], [-0.8, 0]],
+    [[1.3, 0], [0.9, 0.35], [0.4, 0.45], [0.2, 1.3], [-0.5, 1.5], [-0.7, 1.3], [-0.55, 0.5], [-1.1, 0.55], [-1.1, 0]],
+    [[1.7, 0], [0.7, 0.18], [0.3, 0.7], [0.5, 1.25], [-0.1, 1.1], [-0.5, 1.45], [-0.7, 0.4], [-1.05, 0.3], [-0.9, 0]],
+  ];
+  function drawPlane(g, idx, x, y, a, alpha, thrust, sizeMul) {
+    const p = PLANES[idx] || PLANES[0], half = SHAPES[idx] || SHAPES[0], R = SHIP_R * (sizeMul || 1);
+    g.save();
+    g.translate(x, y); g.rotate(a); g.globalAlpha = alpha;
+    if (thrust > 0.05) {
+      const fl = R * (0.5 + thrust * 0.9) * (0.85 + Math.random() * 0.3);
+      const grd = g.createLinearGradient(-R, 0, -R - fl, 0);
+      grd.addColorStop(0, '#fff'); grd.addColorStop(0.3, p.color); grd.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = grd;
+      g.beginPath(); g.moveTo(-R * 0.85, -R * 0.22); g.lineTo(-R - fl, 0); g.lineTo(-R * 0.85, R * 0.22); g.fill();
+    }
+    g.beginPath();
+    half.forEach(([px, py], i) => (i ? g.lineTo(px * R, py * R) : g.moveTo(px * R, py * R)));
+    for (let i = half.length - 1; i >= 0; i--) g.lineTo(half[i][0] * R, -half[i][1] * R);
+    g.closePath();
+    g.shadowColor = p.color; g.shadowBlur = 12;
+    g.fillStyle = p.trim; g.fill();
+    g.shadowBlur = 0;
+    g.lineWidth = 2.5; g.strokeStyle = p.color; g.stroke();
+    // stripe and cockpit
+    g.fillStyle = p.color; g.globalAlpha = alpha * 0.55;
+    g.fillRect(-R * 0.7, -R * 0.07, R * 1.2, R * 0.14);
+    g.globalAlpha = alpha;
+    g.fillStyle = '#e8fbff';
+    g.beginPath(); g.ellipse(R * 0.45, 0, R * 0.28, R * 0.15, 0, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }
+
+  // stars (three layers that move at different speeds)
+  const starLayers = [0.15, 0.35, 0.6].map((f, li) => {
+    const r = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(7 + li * 1000);
+    return { f, stars: Array.from({ length: 70 + li * 20 }, () => ({ x: r() * 1024, y: r() * 1024, s: 0.6 + r() * (1 + li), b: 0.3 + r() * 0.7 })) };
+  });
+  function drawStars(camX, camY, t) {
+    for (const L of starLayers) {
+      const ox = ((-camX * L.f) % 1024 + 1024) % 1024, oy = ((-camY * L.f) % 1024 + 1024) % 1024;
+      for (let tx = ox - 1024; tx < W; tx += 1024) for (let ty = oy - 1024; ty < H; ty += 1024) {
+        for (const s of L.stars) {
+          const x = tx + s.x, y = ty + s.y;
+          if (x < -2 || y < -2 || x > W + 2 || y > H + 2) continue;
+          ctx.globalAlpha = s.b * (0.75 + 0.25 * Math.sin(t / 600 + s.x));
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(x, y, s.s, s.s);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function label(text, x, y, size, color, glow) {
+    ctx.font = `900 ${size}px system-ui, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (glow) { ctx.shadowColor = color; ctx.shadowBlur = 14; }
+    ctx.lineWidth = Math.max(3, size / 6); ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.strokeText(text, x, y);
+    ctx.fillStyle = color; ctx.fillText(text, x, y);
+    ctx.shadowBlur = 0;
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
+  function drawZone(t) {
+    const z = ZONES[S.zone];
+    if (S.zone === 'lobby') {
+      // a space station deck
+      roundRect(0, 0, z.w, z.h, 60);
+      ctx.fillStyle = 'rgba(20,32,80,0.55)'; ctx.fill();
+      ctx.save(); ctx.clip();
+      ctx.strokeStyle = 'rgba(111,243,255,0.07)'; ctx.lineWidth = 2;
+      for (let x = 0; x <= z.w; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, z.h); ctx.stroke(); }
+      for (let y = 0; y <= z.h; y += 100) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(z.w, y); ctx.stroke(); }
+      ctx.restore();
+      roundRect(0, 0, z.w, z.h, 60);
+      ctx.strokeStyle = '#6ff3ff'; ctx.lineWidth = 6; ctx.shadowColor = '#6ff3ff'; ctx.shadowBlur = 20; ctx.stroke(); ctx.shadowBlur = 0;
+      label('🛡️ SAFE ZONE — practice on the dummies!', z.w / 2, z.h - 50, 28, 'rgba(200,230,255,0.6)');
+    } else {
+      ctx.strokeStyle = 'rgba(255,90,90,0.06)'; ctx.lineWidth = 2;
+      for (let x = 0; x <= z.w; x += 200) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, z.h); ctx.stroke(); }
+      for (let y = 0; y <= z.h; y += 200) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(z.w, y); ctx.stroke(); }
+      ctx.strokeStyle = '#ff4d4d'; ctx.lineWidth = 8; ctx.shadowColor = '#ff4d4d'; ctx.shadowBlur = 24;
+      ctx.strokeRect(0, 0, z.w, z.h); ctx.shadowBlur = 0;
+    }
+    drawPortal(z.portal, t);
+    for (const s of z.shops) drawShop(s, t);
+    z.dummies.forEach(([x, y], i) => drawDummy(x, y, S.dummyHp[i] === undefined ? MAX_HP : S.dummyHp[i], z.reward, t));
+  }
+
+  function drawPortal(p, t) {
+    const wick = p.to === 'wick', c1 = wick ? '#b14bff' : '#00c2ff', c2 = wick ? '#ff4fd8' : '#6ff3ff';
+    const grd = ctx.createRadialGradient(p.x, p.y, 5, p.x, p.y, p.r * 1.4);
+    grd.addColorStop(0, 'rgba(255,255,255,0.9)'); grd.addColorStop(0.35, c1); grd.addColorStop(0.75, 'rgba(60,0,120,0.5)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 1.4, 0, Math.PI * 2); ctx.fill();
+    for (let i = 0; i < 3; i++) {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(t / (700 + i * 300) * (i % 2 ? -1 : 1));
+      ctx.strokeStyle = i % 2 ? c2 : c1; ctx.lineWidth = 6 - i; ctx.shadowColor = c2; ctx.shadowBlur = 16;
+      ctx.beginPath(); ctx.arc(0, 0, p.r * (0.6 + i * 0.22), 0, Math.PI * 1.4); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.shadowBlur = 0;
+    label(p.label, p.x, p.y - p.r - 38, wick ? 42 : 30, wick ? '#ff9cf0' : '#9ff6ff', true);
+    if (!wick) label('fly in to leave', p.x, p.y + p.r + 30, 18, 'rgba(200,230,255,0.7)');
+    else label('fly in to fight!', p.x, p.y + p.r + 30, 20, 'rgba(255,200,240,0.8)');
+  }
+
+  function drawShop(s, t) {
+    const planes = s.id === 'planes', col = planes ? '#ffb347' : '#57f287', near = S.near === s;
+    // building
+    ctx.save();
+    if (near) { ctx.shadowColor = col; ctx.shadowBlur = 30 + 10 * Math.sin(t / 200); }
+    roundRect(s.x, s.y, s.w, s.h, 22);
+    ctx.fillStyle = '#141c3f'; ctx.fill();
+    ctx.lineWidth = 5; ctx.strokeStyle = col; ctx.stroke();
+    ctx.restore();
+    // sign
+    roundRect(s.x + 20, s.y - 34, s.w - 40, 62, 14);
+    ctx.fillStyle = col; ctx.fill();
+    label(s.label, s.x + s.w / 2, s.y - 3, 34, '#fff');
+    // window with a picture
+    roundRect(s.x + 40, s.y + 50, s.w - 80, s.h - 110, 14);
+    ctx.fillStyle = '#0a1030'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 3; ctx.stroke();
+    const cx = s.x + s.w / 2, cy = s.y + 50 + (s.h - 110) / 2;
+    if (planes) {
+      const i = Math.floor(t / 1500) % PLANES.length;
+      drawPlane(ctx, i, cx, cy, -Math.PI / 2 + Math.sin(t / 500) * 0.2, 1, 0.6, 1.25);
+    } else {
+      ctx.font = '60px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(['💥', '🔫', '🚀'][Math.floor(t / 1200) % 3], cx, cy);
+    }
+    label(near ? 'tap LOOK below!' : 'fly here', cx, s.y + s.h - 30, 22, near ? '#fff' : 'rgba(255,255,255,0.6)');
+  }
+
+  function drawDummy(x, y, hp, reward, t) {
+    if (hp <= 0) {
+      ctx.globalAlpha = 0.25; ctx.strokeStyle = '#fff'; ctx.setLineDash([6, 8]); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, DUMMY_R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      return;
+    }
+    ctx.save(); ctx.translate(x, y); ctx.rotate(t / 1500);
+    // little target drone
+    ctx.fillStyle = '#444b6e';
+    for (let i = 0; i < 4; i++) { ctx.rotate(Math.PI / 2); ctx.fillRect(DUMMY_R - 4, -5, 14, 10); }
+    ctx.restore();
+    const rings = ['#ff4d4d', '#fff', '#ff4d4d', '#fff'];
+    rings.forEach((c, i) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, DUMMY_R * (1 - i * 0.24), 0, Math.PI * 2); ctx.fill(); });
+    healthBar(x, y - DUMMY_R - 16, hp);
+    label(reward ? `DUMMY  +$${reward}` : 'DUMMY', x, y + DUMMY_R + 20, 16, reward ? '#ffd84d' : 'rgba(255,255,255,0.7)');
+  }
+
+  function healthBar(x, y, hp) {
+    const w = 56, f = Math.max(0, hp) / MAX_HP;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(x - w / 2 - 2, y - 2, w + 4, 9);
+    ctx.fillStyle = f > 0.6 ? '#22c55e' : f > 0.3 ? '#eab308' : '#ef4444';
+    ctx.fillRect(x - w / 2, y, w * f, 5);
+  }
+
+  function drawShipFull(s, isMe, t) {
+    const speed = Math.hypot(s.vx || 0, s.vy || 0);
+    drawPlane(ctx, s.plane, s.x, s.y, s.a, 1, Math.min(1, speed / 300), 1);
+    if (s.prot) {
+      ctx.strokeStyle = `rgba(111,243,255,${0.5 + 0.3 * Math.sin(t / 120)})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(s.x, s.y, SHIP_R * 1.7, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (S.zone !== 'lobby' || !isMe) healthBar(s.x, s.y - SHIP_R - 22, s.hp);
+    label((s.bot ? '🤖 ' : '') + s.name, s.x, s.y - SHIP_R - 36, 15, isMe ? '#ffd84d' : s.bot ? '#c9d2ff' : '#ffffff');
+  }
+
+  function drawMinimap() {
+    if (S.zone !== 'wick') return;
+    const z = ZONES.wick, size = Math.min(150, W * 0.3), k = size / z.w;
+    const x0 = W - size - 12, y0 = H - size - (W <= 520 ? 54 : 12);
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(x0, y0, size, size);
+    ctx.strokeStyle = '#ff4d4d'; ctx.lineWidth = 1.5; ctx.strokeRect(x0, y0, size, size);
+    ctx.fillStyle = '#b14bff'; ctx.beginPath(); ctx.arc(x0 + z.portal.x * k, y0 + z.portal.y * k, 4, 0, Math.PI * 2); ctx.fill();
+    z.dummies.forEach(([x, y], i) => { if ((S.dummyHp[i] || 0) > 0) { ctx.fillStyle = '#ffd84d'; ctx.fillRect(x0 + x * k - 1.5, y0 + y * k - 1.5, 3, 3); } });
+    for (const s of S.ships.values()) { ctx.fillStyle = '#ff5c5c'; ctx.beginPath(); ctx.arc(x0 + s.x * k, y0 + s.y * k, 2.5, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x0 + S.me.x * k, y0 + S.me.y * k, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawJoystick() {
+    if (!('ontouchstart' in window)) return;
+    const R = 55;
+    if (joy) {
+      ctx.globalAlpha = 0.35; ctx.fillStyle = '#6ff3ff';
+      ctx.beginPath(); ctx.arc(joy.ox, joy.oy, R, 0, Math.PI * 2); ctx.fill();
+      const dx = joy.x - joy.ox, dy = joy.y - joy.oy, d = Math.hypot(dx, dy), k = d > R ? R / d : 1;
+      ctx.globalAlpha = 0.8; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(joy.ox + dx * k, joy.oy + dy * k, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (S.id && !S.dead) {
+      const x = Math.min(W * 0.2, 110), y = H - 110;
+      ctx.globalAlpha = 0.18; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 0.5;
+      ctx.font = '700 13px system-ui'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText('drag to fly', x, y + 4);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- main loop ----------
+  let lastT = performance.now(), lastSend = 0;
+  function frame(t) {
+    const dt = Math.min(0.05, (t - lastT) / 1000);
+    lastT = t;
+    const me = S.me;
+
+    if (S.id && !S.dead) {
+      const [mx, my] = S.shopOpen ? [0, 0] : moveInput();
+      E.stepShip(me, mx, my, E.stats(S.save).speed, dt, S.zone);
+      const ap = aimPoint();
+      if (ap) aimAt(ap.x, ap.y);
+      const firing = !!ap && !S.shopOpen;
+      if (t - S.lastAimT < 350) me.a = S.aim;
+      // local "pew" in time with your guns
+      if ((firing || tapQueued) && t - S.localFire >= E.stats(S.save).delay) { S.localFire = t; sfx('pew'); }
+      if (t - lastSend > 45 || tapQueued) {
+        send({ t: 'in', x: Math.round(me.x * 10) / 10, y: Math.round(me.y * 10) / 10, a: Math.round(me.a * 100) / 100,
+          aim: Math.round(S.aim * 1000) / 1000, fire: firing, tap: tapQueued, tpn: S.tpn });
+        tapQueued = false; lastSend = t;
+      }
+      // shop check
+      const near = S.zone === 'lobby' ? E.nearShop('lobby', me.x, me.y) : null;
+      if (near !== S.near) {
+        S.near = near;
+        $('look').hidden = !near;
+        if (near) $('look').innerHTML = `👀 LOOK<small>${near.id === 'planes' ? 'Plane Shop' : 'Upgrade Shop'}</small>`;
+      }
+    } else if (S.near) { S.near = null; $('look').hidden = true; }
+
+    // other ships glide smoothly toward where the engine says they are
+    const k = Math.min(1, dt * 14);
+    for (const s of S.ships.values()) {
+      s.x += (s.tx - s.x) * k; s.y += (s.ty - s.y) * k;
+      let da = s.ta - s.a; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2;
+      s.a += da * k;
+    }
+
+    // ---- draw ----
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.fillStyle = S.zone === 'wick' ? '#07040e' : '#05060f';
+    ctx.fillRect(0, 0, W, H);
+    drawStars(me.x, me.y, t);
+    ctx.setTransform(DPR * scale, 0, 0, DPR * scale, DPR * (W / 2 - me.x * scale), DPR * (H / 2 - me.y * scale));
+    drawZone(t);
+
+    const age = (t - S.bulletT) / 1000;
+    for (const [x, y, vx, vy, c] of S.bullets) {
+      const bx = x + vx * age, by = y + vy * age, sp = Math.hypot(vx, vy) || 1;
+      ctx.strokeStyle = colorOf(c); ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.shadowColor = colorOf(c); ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - vx / sp * 22, by - vy / sp * 22); ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    for (const s of S.ships.values()) drawShipFull(s, false, t);
+    if (S.id && !S.dead) drawShipFull({ ...me, plane: E.PLANE_INDEX[S.save.plane], hp: S.hp, prot: S.prot, name: S.save.name, bot: false }, true, t);
+
+    S.parts = S.parts.filter(p => (p.life -= dt) > 0);
+    for (const p of S.parts) {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; p.vy *= 0.96;
+      const f = p.life / p.max;
+      ctx.globalAlpha = f;
+      if (p.ring) { ctx.strokeStyle = p.c; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1.2 - f), 0, Math.PI * 2); ctx.stroke(); }
+      else { ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); }
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    drawMinimap();
+    drawJoystick();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

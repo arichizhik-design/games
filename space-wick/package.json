@@ -1,0 +1,17 @@
+{
+  "name": "space-wick",
+  "version": "1.0.0",
+  "description": "Multiplayer space shooter: fly from the lobby into the Wick, shoot pilots and dummies for money, buy better planes.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
