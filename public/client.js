@@ -3158,27 +3158,42 @@
     const [nx, ny] = mid[0], [ax, ay] = mid[2];
     let dx = nx - ax, dy = ny - ay; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl; // pointing forward
     const ux = -dy, uy = dx; // sideways (up is the negative side)
-    const HS = 1.35; // head size
+    const HS = 1.2; // head size
     const P = (fw, side) => [nx + dx * fw * HS + ux * side * HS, ny + dy * fw * HS + uy * side * HS];
+    // a real snake head: wide jaws at the back (much wider than the neck) narrowing to a rounded snout
     const head = new Path2D();
-    head.moveTo(...P(0, -2.9));
-    head.bezierCurveTo(...P(1.5, -5.6), ...P(7, -5.2), ...P(11, -1.2));
-    head.quadraticCurveTo(...P(12, 0.4), ...P(10.5, 1.6));
-    head.bezierCurveTo(...P(7, 4.6), ...P(1.5, 5), ...P(0, 2.9));
+    head.moveTo(...P(0, -3.2));
+    head.bezierCurveTo(...P(1, -6.8), ...P(5, -7), ...P(8, -5.4));
+    head.bezierCurveTo(...P(11.5, -3.6), ...P(14.5, -2.2), ...P(15, 0));
+    head.bezierCurveTo(...P(14.6, 2), ...P(11.5, 3.6), ...P(8, 5.2));
+    head.bezierCurveTo(...P(5, 6.8), ...P(1, 6.6), ...P(0, 3.2));
     head.closePath();
-    ctx.fillStyle = '#ffffff'; ctx.fill(head);
-    ctx.save(); ctx.clip(head); // a red candy stripe across the back of its head
-    ctx.fillStyle = '#e8202a'; ctx.beginPath(); ctx.moveTo(...P(2, -7)); ctx.lineTo(...P(4.5, -7)); ctx.lineTo(...P(3.5, 7)); ctx.lineTo(...P(1, 7)); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fill(head); // the white jaw underneath
+    ctx.save(); ctx.clip(head);
+    ctx.fillStyle = '#e8202a'; // the red top of its head
+    ctx.beginPath(); ctx.moveTo(...P(-2, -10)); ctx.lineTo(...P(17, -10)); ctx.lineTo(...P(17, 0.2)); ctx.quadraticCurveTo(...P(8, 1.2), ...P(-2, 0.8)); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffffff'; // a white candy stripe across the top
+    ctx.beginPath(); ctx.moveTo(...P(3, -10)); ctx.lineTo(...P(5.2, -10)); ctx.lineTo(...P(4.6, 1)); ctx.lineTo(...P(2.4, 1)); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(120, 10, 20, 0.35)'; ctx.lineWidth = 0.5; // a few scales on top
+    for (const [f, sd] of [[8.5, -3.4], [10.5, -2.6], [7, -1.2], [11.5, -0.8]]) { const [qx, qy] = P(f, sd); ctx.beginPath(); ctx.arc(qx, qy, 0.9, 0, Math.PI); ctx.stroke(); }
     ctx.restore();
-    ctx.strokeStyle = 'rgba(130, 15, 25, 0.8)'; ctx.lineWidth = 0.8; ctx.stroke(head);
-    // its eye (on top, near the front), a nostril and rosy cheek
-    const [ex, ey] = P(7.4, -2.2);
-    ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.ellipse(ex, ey, 1.4, 1.6, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(ex - 0.4, ey - 0.6, 0.5, 0, Math.PI * 2); ctx.fill();
-    const [kx, ky] = P(10, -0.6); ctx.fillStyle = 'rgba(120, 10, 20, 0.7)'; ctx.beginPath(); ctx.arc(kx, ky, 0.4, 0, Math.PI * 2); ctx.fill();
-    const [cx2, cy2] = P(6, 2); ctx.fillStyle = 'rgba(255, 120, 140, 0.55)'; ctx.beginPath(); ctx.arc(cx2, cy2, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(110, 10, 20, 0.85)'; ctx.lineWidth = 0.9; ctx.stroke(head);
+    // the mouth line along the jaw
+    ctx.strokeStyle = 'rgba(110, 10, 20, 0.8)'; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(...P(14.6, 0.9)); ctx.quadraticCurveTo(...P(10, 2.6), ...P(5.5, 2.4)); ctx.stroke();
+    // nostrils
+    ctx.fillStyle = 'rgba(80, 0, 10, 0.85)';
+    for (const sd of [-1, 0.2]) { const [qx, qy] = P(13.6, sd); ctx.beginPath(); ctx.arc(qx, qy, 0.38, 0, Math.PI * 2); ctx.fill(); }
+    // the eye: gold with a skinny slit pupil, under a frowny brow ridge
+    const [ex, ey] = P(9, -2.7);
+    ctx.fillStyle = '#ffd43b'; ctx.strokeStyle = '#5c0a0a'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.ellipse(ex, ey, 2.1, 1.8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.ellipse(ex, ey, 0.5, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(ex - 0.8, ey - 0.8, 0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#7a0d16'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(...P(6.6, -4.9)); ctx.quadraticCurveTo(...P(9, -5.4), ...P(11.4, -3.6)); ctx.stroke();
     if ((time + seed) % 1.4 < 0.35) { // the forked tongue flicks out
-      const [t0x, t0y] = P(11.5, 0.8), [t1x, t1y] = P(16, 1), [fax, fay] = P(18, -0.6), [fbx, fby] = P(18, 2.6);
+      const [t0x, t0y] = P(15, 0.6), [t1x, t1y] = P(19, 0.8), [fax, fay] = P(21, -0.8), [fbx, fby] = P(21, 2.4);
       ctx.strokeStyle = '#e8202a'; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(t0x, t0y); ctx.lineTo(t1x, t1y); ctx.lineTo(fax, fay); ctx.moveTo(t1x, t1y); ctx.lineTo(fbx, fby); ctx.stroke();
     }
@@ -3926,7 +3941,7 @@
     if (pet.fx === 'xmas' || pet.fx === 'reindeer' || pet.fx === 'candysnake') {
       // 🎅 a little Santa hat (the snake's head is up on top of its candy cane hook, out in front)
       const snake = pet.fx === 'candysnake';
-      const hx = snake ? x + pp.facing * 26 * big : x - pp.facing * 6 * big, hy = y - (snake ? 11 : 28) * big;
+      const hx = snake ? x + pp.facing * 24 * big : x - pp.facing * 6 * big, hy = y - (snake ? 12 : 28) * big;
       ctx.fillStyle = '#e03131';
       ctx.beginPath(); ctx.moveTo(hx - 8, hy + 3); ctx.quadraticCurveTo(hx - 2, hy - 14, hx + pp.facing * -9, hy - 9); ctx.lineTo(hx + 8, hy + 3); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#fff';
