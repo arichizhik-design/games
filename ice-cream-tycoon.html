@@ -6520,7 +6520,7 @@ button:disabled { background: #d8c6cf; cursor: not-allowed; }
         ctx.restore();
         for (let k = 0; k < 3; k++) { // mini candy canes
           const a = time * 1.3 + k * 2.09 + seed;
-          drawCandyCane(x + Math.cos(a) * 44, y - 14 + Math.sin(a) * 16, 11, a * 1.5);
+          drawCandyCane(x + Math.cos(a) * 44, y - 14 + Math.sin(a) * 16, 11, Math.sin(time * 3 + k * 2) * 0.35); // always hook-up, just rocking
         }
         for (let k = 0; k < 2; k++) { // peppermint swirls
           const a = -time * 1.7 + k * Math.PI + seed, px = x + Math.cos(a) * 30, py = y - 30 + Math.sin(a) * 9;
